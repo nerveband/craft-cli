@@ -31,12 +31,12 @@ All tests passing:
 ## Live API Testing
 
 ### wavedepth Space API
-**URL**: `https://connect.craft.do/links/5VruASgpXo0/api/v1`
+**URL**: `https://connect.craft.do/links/YOUR_LINK/api/v1`
 
 #### Test 1: Configuration
 ```bash
-$ craft config set-api https://connect.craft.do/links/5VruASgpXo0/api/v1
-API URL set to: https://connect.craft.do/links/5VruASgpXo0/api/v1
+$ craft config set-api https://connect.craft.do/links/YOUR_LINK/api/v1
+API URL set to: https://connect.craft.do/links/YOUR_LINK/api/v1
 ✅ PASSED
 ```
 
@@ -56,7 +56,7 @@ ID                                    TITLE                                     
 $ craft info
 Craft CLI Information
 =====================
-API URL: https://connect.craft.do/links/5VruASgpXo0/api/v1
+API URL: https://connect.craft.do/links/YOUR_LINK/api/v1
 Default Format: json
 
 Total Documents: 329
@@ -80,17 +80,17 @@ craft-cli version 1.0.0
 #### Test 5: Config Commands
 ```bash
 $ craft config get-api
-https://connect.craft.do/links/5VruASgpXo0/api/v1
+https://connect.craft.do/links/YOUR_LINK/api/v1
 ✅ PASSED
 ```
 
 ### Personal Space API
-**URL**: `https://connect.craft.do/links/HHRuPxZZTJ6/api/v1`
+**URL**: `https://connect.craft.do/links/YOUR_LINK/api/v1`
 
 #### Test 6: Switch API Configuration
 ```bash
-$ craft config set-api https://connect.craft.do/links/HHRuPxZZTJ6/api/v1
-API URL set to: https://connect.craft.do/links/HHRuPxZZTJ6/api/v1
+$ craft config set-api https://connect.craft.do/links/YOUR_LINK/api/v1
+API URL set to: https://connect.craft.do/links/YOUR_LINK/api/v1
 ✅ PASSED
 ```
 
