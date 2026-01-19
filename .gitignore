@@ -35,3 +35,9 @@ Thumbs.db
 
 # Config (for local testing)
 .craft-cli/
+
+# Private API links (never commit)
+*5VruASgpXo0*
+*HHRuPxZZTJ6*
+*wlYPoWSB9T*
+*548eu6Zqdao*
