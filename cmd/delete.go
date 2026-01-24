@@ -8,8 +8,10 @@ import (
 
 var deleteCmd = &cobra.Command{
 	Use:   "delete <document-id>",
-	Short: "Delete a document",
-	Long: `Delete a document from Craft by its ID.
+	Short: "Move a document to trash",
+	Long: `Soft-delete a document by moving it to Craft trash.
+
+This uses DELETE /documents (you can restore via documents/move).
 
 Use --dry-run to preview what would be deleted without making changes.
 
@@ -33,7 +35,7 @@ Examples:
 				return fmt.Errorf("document not found: %s", docID)
 			}
 
-			fmt.Printf("Would delete document:\n")
+			fmt.Printf("Would move document to trash:\n")
 			fmt.Printf("  ID: %s\n", doc.ID)
 			fmt.Printf("  Title: %s\n", doc.Title)
 			return nil

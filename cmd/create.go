@@ -16,6 +16,7 @@ var (
 	createMarkdown string
 	createParentID string
 	batchCreate    bool
+	createStdin    bool
 )
 
 var createCmd = &cobra.Command{
@@ -44,6 +45,9 @@ Examples:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Handle batch mode
 		if batchCreate {
+			if createStdin {
+				return fmt.Errorf("--stdin cannot be used with --batch")
+			}
 			return runBatchCreate()
 		}
 
@@ -57,6 +61,12 @@ Examples:
 			ParentID: createParentID,
 		}
 
+		if createStdin {
+			if createFile != "" {
+				return fmt.Errorf("--stdin cannot be used with --file")
+			}
+			createFile = "-"
+		}
 		// Read content from various sources
 		content, err := readContent(createFile, createMarkdown)
 		if err != nil {
@@ -99,6 +109,7 @@ func init() {
 	createCmd.Flags().StringVar(&createTitle, "title", "", "Document title (required)")
 	createCmd.Flags().StringVar(&createFile, "file", "", "Read content from file (use - for stdin)")
 	createCmd.Flags().StringVar(&createMarkdown, "markdown", "", "Markdown content")
+	createCmd.Flags().BoolVar(&createStdin, "stdin", false, "Read content from stdin")
 	createCmd.Flags().StringVar(&createParentID, "parent", "", "Parent document ID")
 	createCmd.Flags().BoolVar(&batchCreate, "batch", false, "Batch create from JSON array on stdin")
 }

@@ -242,7 +242,13 @@ func outputCreated(doc *models.Document, format string) error {
 // outputDeleted outputs the result of a delete operation
 func outputDeleted(docID string) {
 	if !isQuiet() {
-		fmt.Printf("Document %s deleted successfully\n", docID)
+		fmt.Printf("Document %s moved to trash\n", docID)
+	}
+}
+
+func outputCleared(docID string, deletedBlocks int) {
+	if !isQuiet() {
+		fmt.Printf("Document %s cleared (%d blocks deleted)\n", docID, deletedBlocks)
 	}
 }
 

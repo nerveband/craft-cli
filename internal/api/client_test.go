@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
@@ -13,11 +12,11 @@ import (
 
 func TestNewClient(t *testing.T) {
 	client := NewClient("https://api.example.com")
-	
+
 	if client.baseURL != "https://api.example.com" {
 		t.Errorf("baseURL = %v, want https://api.example.com", client.baseURL)
 	}
-	
+
 	if client.httpClient == nil {
 		t.Error("httpClient should not be nil")
 	}
@@ -29,11 +28,11 @@ func TestClient_GetDocuments(t *testing.T) {
 		if r.URL.Path != "/documents" {
 			t.Errorf("Expected path /documents, got %s", r.URL.Path)
 		}
-		
+
 		if r.Method != "GET" {
 			t.Errorf("Expected GET method, got %s", r.Method)
 		}
-		
+
 		response := models.DocumentList{
 			Items: []models.Document{
 				{
@@ -45,22 +44,22 @@ func TestClient_GetDocuments(t *testing.T) {
 			},
 			Total: 1,
 		}
-		
+
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer server.Close()
 
 	client := NewClient(server.URL)
 	docs, err := client.GetDocuments()
-	
+
 	if err != nil {
 		t.Fatalf("GetDocuments() error = %v", err)
 	}
-	
+
 	if len(docs.Items) != 1 {
 		t.Errorf("Expected 1 document, got %d", len(docs.Items))
 	}
-	
+
 	if docs.Items[0].Title != "Test Document" {
 		t.Errorf("Document title = %v, want Test Document", docs.Items[0].Title)
 	}
@@ -168,38 +167,80 @@ func TestClient_CreateDocument(t *testing.T) {
 			t.Errorf("Expected POST method, got %s", r.Method)
 		}
 
-		// Craft API expects {"documents": [...]} wrapper
-		var wrapper struct {
-			Documents []models.CreateDocumentRequest `json:"documents"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&wrapper); err != nil {
-			t.Fatalf("Failed to decode request body: %v", err)
-		}
+		// First call: POST /documents to create the document
+		if r.URL.Path == "/documents" {
+			// Craft API expects {"documents": [...]} wrapper
+			var wrapper struct {
+				Documents []models.CreateDocumentRequest `json:"documents"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&wrapper); err != nil {
+				t.Fatalf("Failed to decode request body: %v", err)
+			}
 
-		if len(wrapper.Documents) != 1 {
-			t.Errorf("Expected 1 document, got %d", len(wrapper.Documents))
-		}
+			if len(wrapper.Documents) != 1 {
+				t.Errorf("Expected 1 document, got %d", len(wrapper.Documents))
+			}
 
-		if wrapper.Documents[0].Title != "New Document" {
-			t.Errorf("Expected title 'New Document', got %s", wrapper.Documents[0].Title)
-		}
+			if wrapper.Documents[0].Title != "New Document" {
+				t.Errorf("Expected title 'New Document', got %s", wrapper.Documents[0].Title)
+			}
 
-		// Return the Craft API response format
-		response := struct {
-			Items []struct {
-				ID    string `json:"id"`
-				Title string `json:"title"`
-			} `json:"items"`
-		}{
-			Items: []struct {
-				ID    string `json:"id"`
-				Title string `json:"title"`
+			// Return the Craft API response format
+			response := struct {
+				Items []struct {
+					ID    string `json:"id"`
+					Title string `json:"title"`
+				} `json:"items"`
 			}{
-				{ID: "doc1", Title: wrapper.Documents[0].Title},
-			},
+				Items: []struct {
+					ID    string `json:"id"`
+					Title string `json:"title"`
+				}{
+					{ID: "doc1", Title: wrapper.Documents[0].Title},
+				},
+			}
+
+			json.NewEncoder(w).Encode(response)
+			return
 		}
 
-		json.NewEncoder(w).Encode(response)
+		// Second call: POST /blocks to insert markdown content
+		if r.URL.Path == "/blocks" {
+			var req struct {
+				Markdown string `json:"markdown"`
+				Position struct {
+					PageID   string `json:"pageId"`
+					Position string `json:"position"`
+				} `json:"position"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				t.Fatalf("Failed to decode request body: %v", err)
+			}
+
+			if req.Position.PageID != "doc1" {
+				t.Errorf("Expected pageId 'doc1', got %s", req.Position.PageID)
+			}
+
+			response := struct {
+				Items []struct {
+					ID       string `json:"id"`
+					Type     string `json:"type"`
+					Markdown string `json:"markdown"`
+				} `json:"items"`
+			}{
+				Items: []struct {
+					ID       string `json:"id"`
+					Type     string `json:"type"`
+					Markdown string `json:"markdown"`
+				}{
+					{ID: "block1", Type: "text", Markdown: req.Markdown},
+				},
+			}
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+
+		t.Errorf("Unexpected path: %s", r.URL.Path)
 	}))
 	defer server.Close()
 
@@ -221,20 +262,41 @@ func TestClient_CreateDocument(t *testing.T) {
 }
 
 func TestClient_UpdateDocument(t *testing.T) {
-	t.Run("title only update fails", func(t *testing.T) {
-		client := NewClient("https://example.com")
-		req := &models.UpdateDocumentRequest{
-			Title: "Updated Document",
-		}
+	t.Run("title only update succeeds", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != "PUT" {
+				t.Errorf("Expected PUT method, got %s", r.Method)
+			}
+			if r.URL.Path != "/blocks" {
+				t.Errorf("Expected path /blocks, got %s", r.URL.Path)
+			}
+			var body struct {
+				Blocks []struct {
+					ID       string `json:"id"`
+					Markdown string `json:"markdown"`
+				} `json:"blocks"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("Failed to decode request body: %v", err)
+			}
+			if len(body.Blocks) != 1 {
+				t.Fatalf("Expected 1 block, got %d", len(body.Blocks))
+			}
+			if body.Blocks[0].ID != "doc1" {
+				t.Errorf("Expected id 'doc1', got %s", body.Blocks[0].ID)
+			}
+			if body.Blocks[0].Markdown != "Updated Document" {
+				t.Errorf("Expected markdown 'Updated Document', got %s", body.Blocks[0].Markdown)
+			}
+			json.NewEncoder(w).Encode(map[string]interface{}{"items": []interface{}{}})
+		}))
+		defer server.Close()
 
+		client := NewClient(server.URL)
+		req := &models.UpdateDocumentRequest{Title: "Updated Document"}
 		_, err := client.UpdateDocument("doc1", req)
-
-		if err == nil {
-			t.Error("Expected error for title-only update, got nil")
-		}
-
-		if err != nil && !strings.Contains(err.Error(), "does not support title updates") {
-			t.Errorf("Expected 'does not support title updates' error, got: %v", err)
+		if err != nil {
+			t.Fatalf("UpdateDocument() error = %v", err)
 		}
 	})
 
@@ -305,11 +367,38 @@ func TestClient_UpdateDocument(t *testing.T) {
 }
 
 func TestClient_DeleteDocument(t *testing.T) {
-	t.Run("deletes content blocks", func(t *testing.T) {
-		callCount := 0
+	t.Run("soft-deletes documents", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			callCount++
+			if r.Method != "DELETE" {
+				t.Errorf("Expected DELETE method, got %s", r.Method)
+			}
+			if r.URL.Path != "/documents" {
+				t.Errorf("Expected path /documents, got %s", r.URL.Path)
+			}
+			var body struct {
+				DocumentIDs []string `json:"documentIds"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("Failed to decode request body: %v", err)
+			}
+			if len(body.DocumentIDs) != 1 || body.DocumentIDs[0] != "doc1" {
+				t.Errorf("Expected documentIds ['doc1'], got %#v", body.DocumentIDs)
+			}
+			json.NewEncoder(w).Encode(map[string]interface{}{"items": []string{"doc1"}})
+		}))
+		defer server.Close()
 
+		client := NewClient(server.URL)
+		err := client.DeleteDocument("doc1")
+		if err != nil {
+			t.Fatalf("DeleteDocument() error = %v", err)
+		}
+	})
+}
+
+func TestClient_ClearDocumentContent(t *testing.T) {
+	t.Run("deletes content blocks", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// First call: GET /blocks to fetch document structure
 			if r.Method == "GET" && r.URL.Path == "/blocks" {
 				response := models.BlocksResponse{
@@ -318,16 +407,8 @@ func TestClient_DeleteDocument(t *testing.T) {
 					TextStyle: "page",
 					Markdown:  "Test Document",
 					Content: []models.Block{
-						{
-							ID:       "block1",
-							Type:     "text",
-							Markdown: "Content block 1",
-						},
-						{
-							ID:       "block2",
-							Type:     "text",
-							Markdown: "Content block 2",
-						},
+						{ID: "block1", Type: "text", Markdown: "Content block 1"},
+						{ID: "block2", Type: "text", Markdown: "Content block 2"},
 					},
 				}
 				json.NewEncoder(w).Encode(response)
@@ -368,35 +449,29 @@ func TestClient_DeleteDocument(t *testing.T) {
 		defer server.Close()
 
 		client := NewClient(server.URL)
-		err := client.DeleteDocument("doc1")
-
+		count, err := client.ClearDocumentContent("doc1")
 		if err != nil {
-			t.Fatalf("DeleteDocument() error = %v", err)
+			t.Fatalf("ClearDocumentContent() error = %v", err)
+		}
+		if count != 2 {
+			t.Errorf("Expected 2 deleted blocks, got %d", count)
 		}
 	})
 
 	t.Run("fails for empty document", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Return document with no content blocks
-			response := models.BlocksResponse{
-				ID:        "doc1",
-				Type:      "page",
-				Markdown:  "Empty Document",
-				Content:   []models.Block{},
-			}
+			response := models.BlocksResponse{ID: "doc1", Type: "page", Markdown: "Empty Document", Content: []models.Block{}}
 			json.NewEncoder(w).Encode(response)
 		}))
 		defer server.Close()
 
 		client := NewClient(server.URL)
-		err := client.DeleteDocument("doc1")
-
-		if err == nil {
-			t.Error("Expected error for empty document, got nil")
+		count, err := client.ClearDocumentContent("doc1")
+		if err != nil {
+			t.Fatalf("Expected no error for empty document, got: %v", err)
 		}
-
-		if err != nil && !strings.Contains(err.Error(), "no deletable content blocks") {
-			t.Errorf("Expected 'no deletable content blocks' error, got: %v", err)
+		if count != 0 {
+			t.Fatalf("Expected 0 deleted blocks, got %d", count)
 		}
 	})
 }
@@ -407,8 +482,8 @@ func TestClient_ErrorHandling(t *testing.T) {
 		statusCode int
 		wantErr    string
 	}{
-		{"Unauthorized", 401, "authentication failed"},
-		{"Forbidden", 403, "authentication failed"},
+		{"Unauthorized", 401, "authentication required"},
+		{"Forbidden", 403, "permission denied"},
 		{"NotFound", 404, "resource not found"},
 		{"RateLimit", 429, "rate limit exceeded"},
 		{"ServerError", 500, "Craft API error"},
@@ -429,11 +504,11 @@ func TestClient_ErrorHandling(t *testing.T) {
 
 			client := NewClient(server.URL)
 			_, err := client.GetDocuments()
-			
+
 			if err == nil {
 				t.Error("Expected error, got nil")
 			}
-			
+
 			if err != nil && len(tt.wantErr) > 0 {
 				errStr := err.Error()
 				if len(errStr) < len(tt.wantErr) || errStr[:len(tt.wantErr)] != tt.wantErr {

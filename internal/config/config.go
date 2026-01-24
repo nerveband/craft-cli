@@ -15,7 +15,8 @@ const (
 
 // Profile represents a named API configuration
 type Profile struct {
-	URL string `json:"url"`
+	URL    string `json:"url"`
+	APIKey string `json:"api_key,omitempty"`
 }
 
 // Config represents the application configuration
@@ -97,12 +98,17 @@ func (m *Manager) Save(cfg *Config) error {
 
 // AddProfile adds or updates a named profile
 func (m *Manager) AddProfile(name, url string) error {
+	return m.AddProfileWithKey(name, url, "")
+}
+
+// AddProfileWithKey adds or updates a named profile with an optional API key
+func (m *Manager) AddProfileWithKey(name, url, apiKey string) error {
 	cfg, err := m.Load()
 	if err != nil {
 		return err
 	}
 
-	cfg.Profiles[name] = Profile{URL: url}
+	cfg.Profiles[name] = Profile{URL: url, APIKey: apiKey}
 
 	// If this is the first profile, make it active
 	if len(cfg.Profiles) == 1 {
@@ -158,9 +164,10 @@ func (m *Manager) ListProfiles() ([]ProfileInfo, error) {
 	var profiles []ProfileInfo
 	for name, profile := range cfg.Profiles {
 		profiles = append(profiles, ProfileInfo{
-			Name:   name,
-			URL:    profile.URL,
-			Active: name == cfg.ActiveProfile,
+			Name:      name,
+			URL:       profile.URL,
+			Active:    name == cfg.ActiveProfile,
+			HasAPIKey: profile.APIKey != "",
 		})
 	}
 
@@ -174,9 +181,10 @@ func (m *Manager) ListProfiles() ([]ProfileInfo, error) {
 
 // ProfileInfo contains profile details for display
 type ProfileInfo struct {
-	Name   string
-	URL    string
-	Active bool
+	Name      string
+	URL       string
+	Active    bool
+	HasAPIKey bool
 }
 
 // GetActiveURL returns the URL of the active profile
@@ -196,6 +204,25 @@ func (m *Manager) GetActiveURL() (string, error) {
 	}
 
 	return profile.URL, nil
+}
+
+// GetActiveAPIKey returns the API key of the active profile (may be empty)
+func (m *Manager) GetActiveAPIKey() (string, error) {
+	cfg, err := m.Load()
+	if err != nil {
+		return "", err
+	}
+
+	if cfg.ActiveProfile == "" {
+		return "", nil
+	}
+
+	profile, exists := cfg.Profiles[cfg.ActiveProfile]
+	if !exists {
+		return "", nil
+	}
+
+	return profile.APIKey, nil
 }
 
 // Reset clears the configuration

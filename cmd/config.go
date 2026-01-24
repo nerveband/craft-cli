@@ -12,18 +12,27 @@ var configCmd = &cobra.Command{
 	Long:  "Manage Craft CLI configuration settings and API profiles",
 }
 
+var profileAPIKey string
+
 var addProfileCmd = &cobra.Command{
 	Use:   "add <name> <url>",
 	Short: "Add or update a profile",
-	Long:  "Add a new API profile or update an existing one",
-	Args:  cobra.ExactArgs(2),
+	Long: `Add a new API profile or update an existing one.
+
+Optionally include an API key for authentication:
+  craft config add myspace https://connect.craft.do/links/abc123/api/v1 --key pdk_xxxx`,
+	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 		url := args[1]
-		if err := cfgManager.AddProfile(name, url); err != nil {
+		if err := cfgManager.AddProfileWithKey(name, url, profileAPIKey); err != nil {
 			return fmt.Errorf("failed to add profile: %w", err)
 		}
-		fmt.Printf("Profile '%s' added\n", name)
+		if profileAPIKey != "" {
+			fmt.Printf("Profile '%s' added (with API key)\n", name)
+		} else {
+			fmt.Printf("Profile '%s' added\n", name)
+		}
 		return nil
 	},
 }
@@ -78,7 +87,11 @@ var listProfilesCmd = &cobra.Command{
 			if p.Active {
 				marker = "* "
 			}
-			fmt.Printf("%s%-12s %s\n", marker, p.Name, p.URL)
+			keyIndicator := ""
+			if p.HasAPIKey {
+				keyIndicator = " [key]"
+			}
+			fmt.Printf("%s%-12s %s%s\n", marker, p.Name, p.URL, keyIndicator)
 		}
 		return nil
 	},
@@ -127,5 +140,6 @@ func init() {
 	configCmd.AddCommand(listProfilesCmd)
 	configCmd.AddCommand(resetCmd)
 
+	addProfileCmd.Flags().StringVarP(&profileAPIKey, "key", "k", "", "API key for authentication")
 	resetCmd.Flags().BoolVarP(&forceReset, "force", "f", false, "Skip confirmation prompt")
 }

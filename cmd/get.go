@@ -34,11 +34,11 @@ var getCmd = &cobra.Command{
 			if content == "" {
 				content = doc.Content
 			}
-			
+
 			if err := os.WriteFile(outputFile, []byte(content), 0644); err != nil {
 				return fmt.Errorf("failed to write to file: %w", err)
 			}
-			
+
 			fmt.Printf("Document saved to: %s\n", outputFile)
 			return nil
 		}

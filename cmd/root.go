@@ -19,19 +19,20 @@ const (
 )
 
 var (
-	apiURL      string
+	apiURL       string
+	apiKey       string
 	outputFormat string
-	cfgManager  *config.Manager
-	version     = "1.1.0"
+	cfgManager   *config.Manager
+	version      = "1.3.0"
 
 	// Global flags for LLM/scripting friendliness
-	quietMode   bool
-	jsonErrors  bool
-	outputOnly  string
-	noHeaders   bool
-	rawOutput   bool
-	idOnly      bool
-	dryRun      bool
+	quietMode  bool
+	jsonErrors bool
+	outputOnly string
+	noHeaders  bool
+	rawOutput  bool
+	idOnly     bool
+	dryRun     bool
 )
 
 // rootCmd represents the base command
@@ -60,6 +61,7 @@ func init() {
 
 	// API and format flags
 	rootCmd.PersistentFlags().StringVar(&apiURL, "api-url", "", "Craft API URL (overrides config)")
+	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", "", "API key for authentication (overrides config)")
 	rootCmd.PersistentFlags().StringVar(&outputFormat, "format", "", "Output format (json, table, markdown)")
 
 	// LLM/scripting friendly flags
@@ -101,6 +103,19 @@ func getAPIClient() (*api.Client, error) {
 		}
 	}
 
+	// Get API key: flag > config > empty
+	key := apiKey
+	if key == "" {
+		var err error
+		key, err = cfgManager.GetActiveAPIKey()
+		if err != nil {
+			key = ""
+		}
+	}
+
+	if key != "" {
+		return api.NewClientWithKey(url, key), nil
+	}
 	return api.NewClient(url), nil
 }
 
@@ -132,9 +147,16 @@ func printStatus(format string, args ...interface{}) {
 // handleError handles errors with appropriate exit codes and formatting
 func handleError(err error) {
 	if jsonErrors {
+		code := categorizeError(err)
 		errObj := map[string]interface{}{
 			"error": err.Error(),
-			"code":  categorizeError(err),
+			"code":  code,
+		}
+		if hint := errorHint(code); hint != "" {
+			errObj["hint"] = hint
+		}
+		if apiErr, ok := err.(*api.APIError); ok {
+			errObj["status"] = apiErr.StatusCode
 		}
 		json.NewEncoder(os.Stderr).Encode(errObj)
 	} else {
@@ -153,20 +175,57 @@ func handleError(err error) {
 
 // categorizeError returns an error category for JSON output
 func categorizeError(err error) string {
+	if apiErr, ok := err.(*api.APIError); ok {
+		switch apiErr.StatusCode {
+		case 401:
+			return "AUTH_ERROR"
+		case 403:
+			return "PERMISSION_DENIED"
+		case 404:
+			return "NOT_FOUND"
+		case 413:
+			return "PAYLOAD_TOO_LARGE"
+		case 429:
+			return "RATE_LIMIT"
+		default:
+			if apiErr.StatusCode >= 500 {
+				return "API_ERROR"
+			}
+			// Fall back to string matching below.
+		}
+	}
+
 	errStr := err.Error()
 	switch {
 	case contains(errStr, "no active profile"), contains(errStr, "config"):
 		return "CONFIG_ERROR"
 	case contains(errStr, "authentication"), contains(errStr, "unauthorized"):
 		return "AUTH_ERROR"
+	case contains(errStr, "permission denied"):
+		return "PERMISSION_DENIED"
 	case contains(errStr, "not found"):
 		return "NOT_FOUND"
 	case contains(errStr, "rate limit"):
 		return "RATE_LIMIT"
+	case contains(errStr, "request entity too large"), contains(errStr, "entity too large"), contains(errStr, "payload too large"), contains(errStr, "413"):
+		return "PAYLOAD_TOO_LARGE"
 	case contains(errStr, "server"), contains(errStr, "500"):
 		return "API_ERROR"
 	default:
 		return "USER_ERROR"
+	}
+}
+
+func errorHint(code string) string {
+	switch code {
+	case "PAYLOAD_TOO_LARGE":
+		return "Reduce payload size or use chunking/replace modes (e.g. craft update --chunk-bytes 20000 or craft update --mode replace)."
+	case "PERMISSION_DENIED":
+		return "This API key may have limited permissions. Check the link's permission level in Craft (read-only vs read-write)."
+	case "AUTH_ERROR":
+		return "Check your API key is valid and not expired. Use --api-key flag or configure with 'craft config add'."
+	default:
+		return ""
 	}
 }
 

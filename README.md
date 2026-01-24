@@ -7,9 +7,12 @@ A powerful command-line interface for interacting with Craft Documents. Built fo
 ## Features
 
 - **Multi-Profile Support** - Store multiple Craft API connections and switch between them
+- **API Key Authentication** - Support for API keys with secure storage per profile
 - **Multiple Output Formats** - JSON (default), Table, and Markdown outputs
 - **LLM/Script Friendly** - Quiet mode, JSON errors, field extraction, stdin support
 - **Local Craft Integration** - Open documents, create new docs, search directly in Craft app (macOS)
+- **Auto-Chunking** - Automatically splits large documents to avoid API limits
+- **Section Replacement** - Update specific sections by heading name
 - **Self-Updating** - Built-in upgrade command to stay up to date
 - **Interactive Setup** - Guided first-time configuration wizard
 - **Shell Completions** - Tab completion for Bash, Zsh, Fish, and PowerShell
@@ -108,10 +111,16 @@ craft create --title "From File" --file content.md
 echo "# My Content" | craft create --title "From Stdin" --stdin
 
 # Update a document
-craft update <document-id> --title "Updated Title"
+craft update <document-id> --title "Updated Title"           # Rename (updates root page block)
+craft update <document-id> --file content.md                  # Append content
+craft update <document-id> --mode replace --file content.md   # Replace all content blocks
+craft update <document-id> --mode replace --section "Intro" --file intro.md
 
 # Delete a document
-craft delete <document-id>
+craft delete <document-id>            # Move to trash (soft-delete)
+
+# Clear document content (does not delete the document)
+craft clear <document-id>
 
 # Preview delete without executing
 craft delete <document-id> --dry-run
@@ -126,7 +135,10 @@ Store and switch between multiple Craft API connections:
 craft config add work https://connect.craft.do/links/WORK_LINK/api/v1
 craft config add personal https://connect.craft.do/links/PERSONAL_LINK/api/v1
 
-# List all profiles (* = active)
+# Add profile with API key for authentication
+craft config add secure https://connect.craft.do/links/LINK/api/v1 --key pdk_your_key_here
+
+# List all profiles (* = active, [key] = has API key)
 craft config list
 
 # Switch active profile
@@ -140,6 +152,9 @@ craft config reset
 
 # Override profile for single command
 craft list --api-url https://connect.craft.do/links/OTHER_LINK/api/v1
+
+# Use API key for single command (without saving to profile)
+craft list --api-url https://connect.craft.do/.../api/v1 --api-key pdk_your_key
 ```
 
 ### Local Craft App Commands (macOS)
@@ -256,7 +271,8 @@ Configuration is stored in `~/.craft-cli/config.json`:
   "active_profile": "work",
   "profiles": {
     "work": {
-      "url": "https://connect.craft.do/links/WORK_LINK/api/v1"
+      "url": "https://connect.craft.do/links/WORK_LINK/api/v1",
+      "api_key": "pdk_your_api_key_here"
     },
     "personal": {
       "url": "https://connect.craft.do/links/PERSONAL_LINK/api/v1"
@@ -265,14 +281,25 @@ Configuration is stored in `~/.craft-cli/config.json`:
 }
 ```
 
+**Note:** API keys are stored in plain text. Ensure appropriate file permissions on your config file.
+
 ## Exit Codes
 
 | Code | Meaning |
 |------|---------|
 | 0 | Success |
-| 1 | User error (invalid input, missing arguments) |
-| 2 | API error (server issues, network problems) |
+| 1 | User error (invalid input, missing arguments, permission denied) |
+| 2 | API error (server issues, network problems, authentication failure) |
 | 3 | Configuration error |
+
+**Error Categories** (with `--json-errors`):
+- `AUTH_ERROR` - Invalid or missing API key
+- `PERMISSION_DENIED` - API key lacks required permissions (read-only vs read-write)
+- `NOT_FOUND` - Resource not found
+- `PAYLOAD_TOO_LARGE` - Request too large (use `--chunk-bytes` to tune)
+- `RATE_LIMIT` - Too many requests
+- `API_ERROR` - Server-side error
+- `CONFIG_ERROR` - Configuration issue
 
 ## Examples
 

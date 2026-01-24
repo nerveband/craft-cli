@@ -15,11 +15,37 @@ import (
 
 const (
 	defaultTimeout = 30 * time.Second
+	// defaultInsertChunkBytes is a conservative default to avoid Craft API payload limits.
+	defaultInsertChunkBytes = 30000
 )
+
+// APIError represents an error response from Craft.
+// It preserves status code for machine handling while keeping the human message concise.
+type APIError struct {
+	StatusCode int
+	Err        string
+	Message    string
+	RawBody    string
+}
+
+func (e *APIError) Error() string {
+	msg := strings.TrimSpace(e.Message)
+	if msg == "" {
+		msg = strings.TrimSpace(e.Err)
+	}
+	if msg == "" {
+		msg = strings.TrimSpace(e.RawBody)
+	}
+	if msg == "" {
+		msg = "unknown error"
+	}
+	return msg
+}
 
 // Client represents the Craft API client
 type Client struct {
 	baseURL    string
+	apiKey     string
 	httpClient *http.Client
 }
 
@@ -27,6 +53,17 @@ type Client struct {
 func NewClient(baseURL string) *Client {
 	return &Client{
 		baseURL: baseURL,
+		httpClient: &http.Client{
+			Timeout: defaultTimeout,
+		},
+	}
+}
+
+// NewClientWithKey creates a new API client with an API key
+func NewClientWithKey(baseURL, apiKey string) *Client {
+	return &Client{
+		baseURL: baseURL,
+		apiKey:  apiKey,
 		httpClient: &http.Client{
 			Timeout: defaultTimeout,
 		},
@@ -54,6 +91,11 @@ func (c *Client) doRequest(method, path string, body interface{}) ([]byte, error
 		req.Header.Set("Content-Type", "application/json")
 	}
 
+	// Add API key authentication if configured
+	if c.apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	}
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
@@ -76,21 +118,55 @@ func (c *Client) doRequest(method, path string, body interface{}) ([]byte, error
 func (c *Client) handleErrorResponse(statusCode int, body []byte) error {
 	var errResp models.ErrorResponse
 	if err := json.Unmarshal(body, &errResp); err != nil {
-		// If we can't parse the error response, return a generic message
-		return fmt.Errorf("API error (status %d): %s", statusCode, string(body))
+		return &APIError{
+			StatusCode: statusCode,
+			RawBody:    string(body),
+			Message:    fmt.Sprintf("API error (status %d): %s", statusCode, string(body)),
+		}
 	}
 
+	// Some Craft errors use `error`, some use `message`.
+	msg := errResp.Message
+	if msg == "" {
+		msg = errResp.Error
+	}
+	if msg == "" {
+		msg = string(body)
+	}
+
+	// Provide helpful context for permission-related errors
 	switch statusCode {
-	case 401, 403:
-		return fmt.Errorf("authentication failed. Check API URL")
+	case 401:
+		if c.apiKey != "" {
+			msg = "authentication failed: invalid or expired API key"
+		} else {
+			msg = "authentication required. Use --api-key or configure a profile with an API key"
+		}
+	case 403:
+		// Check for specific permission messages in the response
+		lowerMsg := strings.ToLower(msg)
+		if strings.Contains(lowerMsg, "read") {
+			msg = "permission denied: this API key does not have read access"
+		} else if strings.Contains(lowerMsg, "write") || strings.Contains(lowerMsg, "create") || strings.Contains(lowerMsg, "update") {
+			msg = "permission denied: this API key does not have write access (read-only)"
+		} else if strings.Contains(lowerMsg, "delete") {
+			msg = "permission denied: this API key does not have delete access"
+		} else {
+			msg = "permission denied: " + msg
+		}
 	case 404:
-		return fmt.Errorf("resource not found")
+		msg = "resource not found"
 	case 429:
-		return fmt.Errorf("rate limit exceeded. Retry later")
+		msg = "rate limit exceeded. Retry later"
 	case 500, 502, 503, 504:
-		return fmt.Errorf("Craft API error: %s", errResp.Message)
-	default:
-		return fmt.Errorf("API error (%d): %s", statusCode, errResp.Message)
+		msg = "Craft API error: " + msg
+	}
+
+	return &APIError{
+		StatusCode: statusCode,
+		Err:        errResp.Error,
+		Message:    msg,
+		RawBody:    string(body),
 	}
 }
 
@@ -122,8 +198,8 @@ func (c *Client) GetDocument(id string) (*models.Document, error) {
 		return nil, fmt.Errorf("invalid response from API: %w", err)
 	}
 
-	// Combine markdown from all blocks
-	markdown := combineBlocksMarkdown(blocksResp)
+	// Combine markdown from all blocks (include title as H1 for readability)
+	markdown := CombineBlocksMarkdown(blocksResp, true)
 
 	doc := &models.Document{
 		ID:       blocksResp.ID,
@@ -134,12 +210,37 @@ func (c *Client) GetDocument(id string) (*models.Document, error) {
 	return doc, nil
 }
 
-// combineBlocksMarkdown extracts and combines markdown from all blocks
-func combineBlocksMarkdown(resp models.BlocksResponse) string {
+// GetDocumentContentMarkdown returns only the document content markdown (excluding the title/header).
+func (c *Client) GetDocumentContentMarkdown(id string) (string, error) {
+	blocksResp, err := c.GetDocumentBlocks(id)
+	if err != nil {
+		return "", err
+	}
+	return CombineBlocksMarkdown(blocksResp, false), nil
+}
+
+// GetDocumentBlocks retrieves the raw blocks response for a document.
+func (c *Client) GetDocumentBlocks(id string) (models.BlocksResponse, error) {
+	path := fmt.Sprintf("/blocks?id=%s", url.QueryEscape(id))
+	data, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return models.BlocksResponse{}, err
+	}
+
+	var blocksResp models.BlocksResponse
+	if err := json.Unmarshal(data, &blocksResp); err != nil {
+		return models.BlocksResponse{}, fmt.Errorf("invalid response from API: %w", err)
+	}
+
+	return blocksResp, nil
+}
+
+// CombineBlocksMarkdown extracts and combines markdown from all blocks.
+func CombineBlocksMarkdown(resp models.BlocksResponse, includeTitle bool) string {
 	var parts []string
 
 	// Add the document title/header
-	if resp.Markdown != "" {
+	if includeTitle && resp.Markdown != "" {
 		parts = append(parts, "# "+resp.Markdown)
 	}
 
@@ -193,9 +294,20 @@ type createDocumentsResponse struct {
 
 // CreateDocument creates a new document
 func (c *Client) CreateDocument(req *models.CreateDocumentRequest) (*models.Document, error) {
+	if req == nil {
+		return nil, fmt.Errorf("request is required")
+	}
+
+	// The Space API does not reliably accept content in POST /documents.
+	// To keep behavior consistent (and avoid duplicates if the API changes), we always insert
+	// content via POST /blocks after document creation.
+	createReq := *req
+	createReq.Markdown = ""
+	createReq.Content = ""
+
 	// Craft API expects {"documents": [...]} wrapper
 	wrapper := createDocumentsRequest{
-		Documents: []models.CreateDocumentRequest{*req},
+		Documents: []models.CreateDocumentRequest{createReq},
 	}
 
 	data, err := c.doRequest("POST", "/documents", wrapper)
@@ -215,6 +327,17 @@ func (c *Client) CreateDocument(req *models.CreateDocumentRequest) (*models.Docu
 	doc := &models.Document{
 		ID:    resp.Items[0].ID,
 		Title: resp.Items[0].Title,
+	}
+
+	content := req.Markdown
+	if strings.TrimSpace(content) == "" {
+		content = req.Content
+	}
+	if strings.TrimSpace(content) != "" {
+		_, err := c.AppendMarkdown(doc.ID, content, defaultInsertChunkBytes)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return doc, nil
@@ -244,50 +367,28 @@ type addBlockResponse struct {
 // UpdateDocument updates an existing document by adding content
 // Note: The Craft Connect API only supports adding content blocks, not updating title or replacing content
 func (c *Client) UpdateDocument(id string, req *models.UpdateDocumentRequest) (*models.Document, error) {
-	// Title updates are not supported via the API
-	if req.Title != "" && req.Markdown == "" {
-		return nil, fmt.Errorf("the Craft Connect API does not support title updates. Use the Craft app to rename documents")
+	if req == nil {
+		return nil, fmt.Errorf("request is required")
 	}
 
-	if req.Markdown == "" {
-		return nil, fmt.Errorf("markdown content is required for updates")
+	// Title updates are supported by updating the root page block via PUT /blocks.
+	if req.Title != "" {
+		if err := c.UpdateBlockMarkdown(id, req.Title); err != nil {
+			return nil, err
+		}
 	}
 
-	// Add content blocks to the document
-	addReq := addBlockRequest{
-		Markdown: req.Markdown,
-		Position: blockPosition{
-			PageID:   id,
-			Position: "end",
-		},
+	if strings.TrimSpace(req.Markdown) == "" {
+		// Title-only update is allowed.
+		return &models.Document{ID: id, Title: req.Title}, nil
 	}
 
-	data, err := c.doRequest("POST", "/blocks", addReq)
+	lastInserted, err := c.AppendMarkdown(id, req.Markdown, defaultInsertChunkBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	var resp addBlockResponse
-	if err := json.Unmarshal(data, &resp); err != nil {
-		return nil, fmt.Errorf("invalid response from API: %w", err)
-	}
-
-	// Return a document with the update info
-	doc := &models.Document{
-		ID: id,
-	}
-
-	// If title was also requested, note it in return
-	if req.Title != "" {
-		doc.Title = req.Title + " (title not updated - API limitation)"
-	}
-
-	// Set markdown to confirm what was added
-	if len(resp.Items) > 0 {
-		doc.Markdown = resp.Items[0].Markdown
-	}
-
-	return doc, nil
+	return &models.Document{ID: id, Title: req.Title, Markdown: lastInserted}, nil
 }
 
 // deleteBlocksRequest is the request body for deleting blocks
@@ -302,49 +403,111 @@ type deleteBlocksResponse struct {
 	} `json:"items"`
 }
 
-// DeleteDocument deletes a document by ID
-// Note: The Craft Connect API does not support deleting root page blocks (documents)
-// This will attempt to delete all content blocks within the document
+// DeleteDocument soft-deletes a document by moving it to trash.
 func (c *Client) DeleteDocument(id string) error {
-	// First, get the document to find all its content blocks
-	doc, err := c.GetDocument(id)
+	req := struct {
+		DocumentIDs []string `json:"documentIds"`
+	}{
+		DocumentIDs: []string{id},
+	}
+
+	_, err := c.doRequest("DELETE", "/documents", req)
+	return err
+}
+
+// ClearDocumentContent deletes all content blocks within a document (does not delete the document itself).
+func (c *Client) ClearDocumentContent(id string) (int, error) {
+	blocksResp, err := c.GetDocumentBlocks(id)
 	if err != nil {
-		return fmt.Errorf("failed to get document: %w", err)
+		return 0, fmt.Errorf("failed to get document blocks: %w", err)
 	}
 
-	// Get the blocks again to get block IDs
-	path := fmt.Sprintf("/blocks?id=%s", url.QueryEscape(id))
-	data, err := c.doRequest("GET", path, nil)
-	if err != nil {
-		return fmt.Errorf("failed to get document blocks: %w", err)
-	}
-
-	var blocksResp models.BlocksResponse
-	if err := json.Unmarshal(data, &blocksResp); err != nil {
-		return fmt.Errorf("invalid response from API: %w", err)
-	}
-
-	// Collect all content block IDs (not the root page)
 	var blockIDs []string
 	for _, block := range blocksResp.Content {
 		collectBlockIDs(&block, &blockIDs)
 	}
 
 	if len(blockIDs) == 0 {
-		return fmt.Errorf("the Craft Connect API cannot delete documents (only content blocks). Document '%s' has no deletable content blocks", doc.Title)
+		return 0, nil
 	}
 
-	// Delete the content blocks
-	deleteReq := deleteBlocksRequest{
-		BlockIDs: blockIDs,
-	}
-
+	deleteReq := deleteBlocksRequest{BlockIDs: blockIDs}
 	_, err = c.doRequest("DELETE", "/blocks", deleteReq)
 	if err != nil {
-		return fmt.Errorf("failed to delete blocks: %w", err)
+		return 0, fmt.Errorf("failed to delete blocks: %w", err)
 	}
 
-	return nil
+	return len(blockIDs), nil
+}
+
+// UpdateBlockMarkdown updates a block (including the document root page) using PUT /blocks.
+func (c *Client) UpdateBlockMarkdown(blockID, markdown string) error {
+	req := struct {
+		Blocks []struct {
+			ID       string `json:"id"`
+			Markdown string `json:"markdown"`
+		} `json:"blocks"`
+	}{
+		Blocks: []struct {
+			ID       string `json:"id"`
+			Markdown string `json:"markdown"`
+		}{{ID: blockID, Markdown: markdown}},
+	}
+
+	_, err := c.doRequest("PUT", "/blocks", req)
+	return err
+}
+
+// AppendMarkdown appends markdown to a document by inserting blocks at the end.
+// It automatically chunks large markdown to avoid API payload limits.
+func (c *Client) AppendMarkdown(docID, markdown string, chunkBytes int) (string, error) {
+	if strings.TrimSpace(markdown) == "" {
+		return "", nil
+	}
+	if chunkBytes <= 0 {
+		chunkBytes = defaultInsertChunkBytes
+	}
+
+	chunks := SplitMarkdownIntoChunks(markdown, chunkBytes)
+	var last string
+	for _, chunk := range chunks {
+		if strings.TrimSpace(chunk) == "" {
+			continue
+		}
+		addReq := addBlockRequest{
+			Markdown: chunk,
+			Position: blockPosition{PageID: docID, Position: "end"},
+		}
+
+		data, err := c.doRequest("POST", "/blocks", addReq)
+		if err != nil {
+			return "", err
+		}
+
+		var resp addBlockResponse
+		if err := json.Unmarshal(data, &resp); err != nil {
+			return "", fmt.Errorf("invalid response from API: %w", err)
+		}
+
+		if len(resp.Items) > 0 {
+			last = resp.Items[len(resp.Items)-1].Markdown
+		}
+	}
+
+	return last, nil
+}
+
+// ReplaceDocumentContent replaces a document's content by clearing existing blocks and inserting the new markdown.
+func (c *Client) ReplaceDocumentContent(docID, markdown string, chunkBytes int) error {
+	if strings.TrimSpace(markdown) == "" {
+		return fmt.Errorf("markdown content is required")
+	}
+	_, err := c.ClearDocumentContent(docID)
+	if err != nil {
+		return err
+	}
+	_, err = c.AppendMarkdown(docID, markdown, chunkBytes)
+	return err
 }
 
 // collectBlockIDs recursively collects all block IDs
