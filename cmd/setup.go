@@ -142,7 +142,7 @@ func runSetup() error {
 
 func printWelcome() {
 	fmt.Println()
-	fmt.Println(craftLogoAlt)
+	fmt.Print(craftLogoAlt)
 	fmt.Println("    C R A F T   C L I")
 	fmt.Println()
 	fmt.Println("  Welcome! Let's get you set up.")
@@ -242,7 +242,7 @@ func checkFirstRun() bool {
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Println()
-	fmt.Println(craftLogoAlt)
+	fmt.Print(craftLogoAlt)
 	fmt.Println("    C R A F T   C L I")
 	fmt.Println()
 	fmt.Println("  Welcome! It looks like this is your first time.")
