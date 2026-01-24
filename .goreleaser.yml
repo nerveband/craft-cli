@@ -61,7 +61,7 @@ changelog:
 
 release:
   github:
-    owner: ashrafali
+    owner: nerveband
     name: craft-cli
   draft: false
   prerelease: auto

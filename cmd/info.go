@@ -24,7 +24,12 @@ var infoCmd = &cobra.Command{
 
 		fmt.Println("Craft CLI Information")
 		fmt.Println("=====================")
-		fmt.Printf("API URL: %s\n", cfg.APIURL)
+		if cfg.ActiveProfile != "" {
+			fmt.Printf("Active Profile: %s\n", cfg.ActiveProfile)
+			if profile, ok := cfg.Profiles[cfg.ActiveProfile]; ok {
+				fmt.Printf("API URL: %s\n", profile.URL)
+			}
+		}
 		fmt.Printf("Default Format: %s\n", cfg.DefaultFormat)
 		fmt.Println()
 

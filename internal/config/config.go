@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 )
 
 const (
@@ -12,10 +13,16 @@ const (
 	ConfigFileName = "config.json"
 )
 
+// Profile represents a named API configuration
+type Profile struct {
+	URL string `json:"url"`
+}
+
 // Config represents the application configuration
 type Config struct {
-	APIURL        string `json:"api_url"`
-	DefaultFormat string `json:"default_format"`
+	DefaultFormat string             `json:"default_format"`
+	ActiveProfile string             `json:"active_profile,omitempty"`
+	Profiles      map[string]Profile `json:"profiles,omitempty"`
 }
 
 // Manager handles configuration operations
@@ -45,7 +52,10 @@ func (m *Manager) Load() (*Config, error) {
 	data, err := os.ReadFile(m.configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return &Config{DefaultFormat: "json"}, nil
+			return &Config{
+				DefaultFormat: "json",
+				Profiles:      make(map[string]Profile),
+			}, nil
 		}
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
@@ -55,9 +65,12 @@ func (m *Manager) Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 
-	// Set default format if not specified
+	// Set defaults
 	if cfg.DefaultFormat == "" {
 		cfg.DefaultFormat = "json"
+	}
+	if cfg.Profiles == nil {
+		cfg.Profiles = make(map[string]Profile)
 	}
 
 	return &cfg, nil
@@ -82,25 +95,107 @@ func (m *Manager) Save(cfg *Config) error {
 	return nil
 }
 
-// SetAPIURL updates the API URL in the configuration
-func (m *Manager) SetAPIURL(url string) error {
+// AddProfile adds or updates a named profile
+func (m *Manager) AddProfile(name, url string) error {
 	cfg, err := m.Load()
 	if err != nil {
 		return err
 	}
 
-	cfg.APIURL = url
+	cfg.Profiles[name] = Profile{URL: url}
+
+	// If this is the first profile, make it active
+	if len(cfg.Profiles) == 1 {
+		cfg.ActiveProfile = name
+	}
+
 	return m.Save(cfg)
 }
 
-// GetAPIURL retrieves the API URL from the configuration
-func (m *Manager) GetAPIURL() (string, error) {
+// RemoveProfile deletes a named profile
+func (m *Manager) RemoveProfile(name string) error {
+	cfg, err := m.Load()
+	if err != nil {
+		return err
+	}
+
+	if _, exists := cfg.Profiles[name]; !exists {
+		return fmt.Errorf("profile '%s' not found", name)
+	}
+
+	delete(cfg.Profiles, name)
+
+	// Clear active profile if it was the removed one
+	if cfg.ActiveProfile == name {
+		cfg.ActiveProfile = ""
+	}
+
+	return m.Save(cfg)
+}
+
+// UseProfile sets the active profile
+func (m *Manager) UseProfile(name string) error {
+	cfg, err := m.Load()
+	if err != nil {
+		return err
+	}
+
+	if _, exists := cfg.Profiles[name]; !exists {
+		return fmt.Errorf("profile '%s' not found", name)
+	}
+
+	cfg.ActiveProfile = name
+	return m.Save(cfg)
+}
+
+// ListProfiles returns all profiles with the active one marked
+func (m *Manager) ListProfiles() ([]ProfileInfo, error) {
+	cfg, err := m.Load()
+	if err != nil {
+		return nil, err
+	}
+
+	var profiles []ProfileInfo
+	for name, profile := range cfg.Profiles {
+		profiles = append(profiles, ProfileInfo{
+			Name:   name,
+			URL:    profile.URL,
+			Active: name == cfg.ActiveProfile,
+		})
+	}
+
+	// Sort by name for consistent output
+	sort.Slice(profiles, func(i, j int) bool {
+		return profiles[i].Name < profiles[j].Name
+	})
+
+	return profiles, nil
+}
+
+// ProfileInfo contains profile details for display
+type ProfileInfo struct {
+	Name   string
+	URL    string
+	Active bool
+}
+
+// GetActiveURL returns the URL of the active profile
+func (m *Manager) GetActiveURL() (string, error) {
 	cfg, err := m.Load()
 	if err != nil {
 		return "", err
 	}
 
-	return cfg.APIURL, nil
+	if cfg.ActiveProfile == "" {
+		return "", fmt.Errorf("no active profile. Run 'craft config add <name> <url>' first")
+	}
+
+	profile, exists := cfg.Profiles[cfg.ActiveProfile]
+	if !exists {
+		return "", fmt.Errorf("active profile '%s' not found. Run 'craft config add <name> <url>' first", cfg.ActiveProfile)
+	}
+
+	return profile.URL, nil
 }
 
 // Reset clears the configuration
