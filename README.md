@@ -320,6 +320,41 @@ llm_response | craft create --title "Generated Content" --stdin
 
 ## Development
 
+### Project Structure
+
+```
+craft-cli/
+├── main.go                 # Entry point
+├── cmd/                    # CLI commands
+│   ├── root.go             # Root command and global flags
+│   ├── config.go           # Profile management (add, use, list, remove)
+│   ├── setup.go            # Interactive setup wizard
+│   ├── list.go             # List documents
+│   ├── get.go              # Get document details
+│   ├── create.go           # Create documents
+│   ├── update.go           # Update documents
+│   ├── delete.go           # Delete documents
+│   ├── search.go           # Search documents
+│   ├── local.go            # macOS Craft app integration
+│   ├── upgrade.go          # Self-update functionality
+│   ├── version.go          # Version information
+│   ├── completion.go       # Shell completions
+│   ├── output.go           # Output formatting (JSON, table, markdown)
+│   └── info.go             # API info command
+├── internal/
+│   ├── api/
+│   │   ├── client.go       # Craft API client
+│   │   └── client_test.go
+│   ├── config/
+│   │   ├── config.go       # Configuration management
+│   │   └── config_test.go
+│   └── models/
+│       └── document.go     # Document data structures
+├── install.sh              # One-line installer script
+├── .goreleaser.yml         # Release configuration
+└── README.md
+```
+
 ### Prerequisites
 
 - Go 1.21 or later
