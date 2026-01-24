@@ -245,3 +245,49 @@ func outputDeleted(docID string) {
 		fmt.Printf("Document %s deleted successfully\n", docID)
 	}
 }
+
+// outputSearchResults prints search results in the specified format
+func outputSearchResults(items []models.SearchItem, format string) error {
+	switch format {
+	case "json":
+		return outputJSON(items)
+	case "table":
+		return outputSearchTable(items)
+	case "markdown":
+		return outputSearchMarkdown(items)
+	default:
+		return fmt.Errorf("unsupported format: %s", format)
+	}
+}
+
+// outputSearchTable prints search results as a table
+func outputSearchTable(items []models.SearchItem) error {
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+
+	if !hasNoHeaders() {
+		fmt.Fprintln(w, "DOCUMENT ID\tMATCH")
+		fmt.Fprintln(w, "-----------\t-----")
+	}
+
+	for _, item := range items {
+		match := item.Markdown
+		// Clean up the markdown snippet for display
+		match = strings.ReplaceAll(match, "\n", " ")
+		if len(match) > 80 {
+			match = match[:77] + "..."
+		}
+		fmt.Fprintf(w, "%s\t%s\n", item.DocumentID, match)
+	}
+
+	return w.Flush()
+}
+
+// outputSearchMarkdown prints search results as markdown
+func outputSearchMarkdown(items []models.SearchItem) error {
+	fmt.Println("# Search Results")
+	for _, item := range items {
+		fmt.Printf("## Document: %s\n", item.DocumentID)
+		fmt.Printf("%s\n\n", item.Markdown)
+	}
+	return nil
+}

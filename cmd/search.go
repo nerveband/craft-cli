@@ -22,7 +22,7 @@ var searchCmd = &cobra.Command{
 		}
 
 		format := getOutputFormat()
-		return outputDocuments(result.Items, format)
+		return outputSearchResults(result.Items, format)
 	},
 }
 

@@ -22,7 +22,7 @@ var (
 	apiURL      string
 	outputFormat string
 	cfgManager  *config.Manager
-	version     = "1.0.0"
+	version     = "1.1.0"
 
 	// Global flags for LLM/scripting friendliness
 	quietMode   bool

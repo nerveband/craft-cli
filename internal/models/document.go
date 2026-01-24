@@ -15,6 +15,24 @@ type Document struct {
 	HasChildren bool      `json:"hasChildren"`
 }
 
+// Block represents a content block from the Craft blocks API
+type Block struct {
+	ID        string  `json:"id"`
+	Type      string  `json:"type"`
+	TextStyle string  `json:"textStyle,omitempty"`
+	Markdown  string  `json:"markdown,omitempty"`
+	Content   []Block `json:"content,omitempty"`
+}
+
+// BlocksResponse represents the response from the blocks API
+type BlocksResponse struct {
+	ID        string  `json:"id"`
+	Type      string  `json:"type"`
+	TextStyle string  `json:"textStyle,omitempty"`
+	Markdown  string  `json:"markdown"`
+	Content   []Block `json:"content,omitempty"`
+}
+
 // DocumentList represents the response from listing documents
 type DocumentList struct {
 	Items []Document `json:"items"`
@@ -38,8 +56,14 @@ type UpdateDocumentRequest struct {
 
 // SearchResult represents a search result
 type SearchResult struct {
-	Items []Document `json:"items"`
-	Total int        `json:"total"`
+	Items []SearchItem `json:"items"`
+	Total int          `json:"total"`
+}
+
+// SearchItem represents a single search result item from the Craft API
+type SearchItem struct {
+	DocumentID string `json:"documentId"`
+	Markdown   string `json:"markdown"`
 }
 
 // ErrorResponse represents an API error response
