@@ -16,21 +16,159 @@ type Document struct {
 }
 
 // Block represents a content block from the Craft blocks API
+// Enhanced for MCP parity with full styling and metadata support
 type Block struct {
 	ID        string  `json:"id"`
-	Type      string  `json:"type"`
-	TextStyle string  `json:"textStyle,omitempty"`
+	Type      string  `json:"type"`                   // text, page, table, code, line, image, file, richUrl
+	TextStyle string  `json:"textStyle,omitempty"`    // h1, h2, h3, h4, page, card, caption
 	Markdown  string  `json:"markdown,omitempty"`
 	Content   []Block `json:"content,omitempty"`
+
+	// Styling properties (MCP parity)
+	ListStyle        string   `json:"listStyle,omitempty"`        // bullet, numbered, task, toggle
+	Decorations      []string `json:"decorations,omitempty"`      // callout, quote (can combine)
+	Color            string   `json:"color,omitempty"`            // #RRGGBB hex
+	CardLayout       string   `json:"cardLayout,omitempty"`       // small, regular, large
+	IndentationLevel int      `json:"indentationLevel,omitempty"` // 0-5
+	LineStyle        string   `json:"lineStyle,omitempty"`        // strong, regular, light, extraLight, pageBreak
+	Font             string   `json:"font,omitempty"`             // system, serif, mono, rounded
+	TextAlignment    string   `json:"textAlignment,omitempty"`    // left, center, right
+
+	// Task-specific
+	TaskInfo *TaskInfo `json:"taskInfo,omitempty"`
+
+	// Media blocks (image, file)
+	URL      string `json:"url,omitempty"`
+	AltText  string `json:"altText,omitempty"`
+	FileName string `json:"fileName,omitempty"`
+
+	// Rich URL blocks
+	Title       string `json:"title,omitempty"`
+	Description string `json:"description,omitempty"`
+	Layout      string `json:"layout,omitempty"`
+
+	// Code blocks
+	Language string `json:"language,omitempty"`
+	RawCode  string `json:"rawCode,omitempty"`
+
+	// Table blocks
+	Rows [][]TableCell `json:"rows,omitempty"`
+
+	// Metadata
+	Metadata *BlockMetadata `json:"metadata,omitempty"`
+}
+
+// TaskInfo represents task-specific metadata
+type TaskInfo struct {
+	State        string `json:"state,omitempty"`        // todo, done, canceled
+	CompletedAt  string `json:"completedAt,omitempty"`  // ISO 8601 timestamp
+	CanceledAt   string `json:"canceledAt,omitempty"`   // ISO 8601 timestamp
+	ScheduleDate string `json:"scheduleDate,omitempty"` // YYYY-MM-DD
+	DeadlineDate string `json:"deadlineDate,omitempty"` // YYYY-MM-DD
+	Repeat       *RepeatConfig `json:"repeat,omitempty"`
+}
+
+// RepeatConfig represents task repeat configuration
+type RepeatConfig struct {
+	Type     string `json:"type,omitempty"`     // daily, weekly, monthly, yearly
+	Interval int    `json:"interval,omitempty"` // every N days/weeks/etc
+	Weekdays []int  `json:"weekdays,omitempty"` // 0=Sunday, 6=Saturday
+	EndDate  string `json:"endDate,omitempty"`  // YYYY-MM-DD
+}
+
+// TableCell represents a cell in a table block
+type TableCell struct {
+	Value      string     `json:"value"`
+	Attributes []TextAttr `json:"attributes,omitempty"`
+}
+
+// TextAttr represents text formatting attributes
+type TextAttr struct {
+	Type  string `json:"type"`            // bold, italic, highlight, strikethrough, code, link
+	Start int    `json:"start"`
+	End   int    `json:"end"`
+	Color string `json:"color,omitempty"` // for highlights (e.g., gradient-blue)
+	URL   string `json:"url,omitempty"`   // for links
+}
+
+// BlockMetadata contains block timing and authorship information
+type BlockMetadata struct {
+	CreatedAt      string `json:"createdAt,omitempty"`
+	LastModifiedAt string `json:"lastModifiedAt,omitempty"`
+	CreatedBy      string `json:"createdBy,omitempty"`
+	LastModifiedBy string `json:"lastModifiedBy,omitempty"`
+	ClickableLink  string `json:"clickableLink,omitempty"`
 }
 
 // BlocksResponse represents the response from the blocks API
+// Now supports all block properties for MCP parity
 type BlocksResponse struct {
 	ID        string  `json:"id"`
 	Type      string  `json:"type"`
 	TextStyle string  `json:"textStyle,omitempty"`
 	Markdown  string  `json:"markdown"`
 	Content   []Block `json:"content,omitempty"`
+
+	// Additional properties that may appear on root block
+	CardLayout string         `json:"cardLayout,omitempty"`
+	Metadata   *BlockMetadata `json:"metadata,omitempty"`
+}
+
+// Folder represents a Craft folder
+type Folder struct {
+	ID            string `json:"id"`
+	Name          string `json:"name"`
+	ParentID      string `json:"parentId,omitempty"`
+	DocumentCount int    `json:"documentCount,omitempty"`
+}
+
+// FolderList represents a list of folders
+type FolderList struct {
+	Items []Folder `json:"items"`
+	Total int      `json:"total"`
+}
+
+// MoveRequest represents a request to move a document or folder
+type MoveRequest struct {
+	TargetFolderID string `json:"targetFolderId,omitempty"`
+	TargetLocation string `json:"targetLocation,omitempty"` // unsorted, trash, etc.
+}
+
+// Task represents a task from the tasks API
+type Task struct {
+	ID           string    `json:"id"`
+	BlockID      string    `json:"blockId"`
+	DocumentID   string    `json:"documentId"`
+	Markdown     string    `json:"markdown"`
+	State        string    `json:"state"` // todo, done, canceled
+	CompletedAt  string    `json:"completedAt,omitempty"`
+	CanceledAt   string    `json:"canceledAt,omitempty"`
+	ScheduleDate string    `json:"scheduleDate,omitempty"`
+	DeadlineDate string    `json:"deadlineDate,omitempty"`
+	Repeat       *RepeatConfig `json:"repeat,omitempty"`
+}
+
+// TaskList represents a list of tasks
+type TaskList struct {
+	Items []Task `json:"items"`
+	Total int    `json:"total"`
+}
+
+// AddBlockRequest represents a request to add a block
+type AddBlockRequest struct {
+	Markdown       string `json:"markdown,omitempty"`
+	Position       string `json:"position,omitempty"`       // start, end
+	SiblingBlockID string `json:"siblingBlockId,omitempty"` // for before/after positioning
+	RelativePos    string `json:"relativePos,omitempty"`    // before, after
+}
+
+// UpdateBlockRequest represents a request to update a block
+type UpdateBlockRequest struct {
+	Markdown  string `json:"markdown,omitempty"`
+	TextStyle string `json:"textStyle,omitempty"`
+	ListStyle string `json:"listStyle,omitempty"`
+	Color     string `json:"color,omitempty"`
+	Font      string `json:"font,omitempty"`
 }
 
 // DocumentList represents the response from listing documents
