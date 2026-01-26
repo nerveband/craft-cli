@@ -2,9 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
+	"github.com/ashrafali/craft-cli/internal/config"
 	"github.com/spf13/cobra"
 )
+
+var testPermissions bool
 
 var infoCmd = &cobra.Command{
 	Use:   "info",
@@ -22,16 +27,59 @@ var infoCmd = &cobra.Command{
 			return err
 		}
 
+		// Get config file path
+		homeDir, _ := os.UserHomeDir()
+		configPath := filepath.Join(homeDir, config.ConfigDirName, config.ConfigFileName)
+
 		fmt.Println("Craft CLI Information")
 		fmt.Println("=====================")
 		if cfg.ActiveProfile != "" {
-			fmt.Printf("Active Profile: %s\n", cfg.ActiveProfile)
+			fmt.Printf("Active Profile:   %s\n", cfg.ActiveProfile)
 			if profile, ok := cfg.Profiles[cfg.ActiveProfile]; ok {
-				fmt.Printf("API URL: %s\n", profile.URL)
+				fmt.Printf("API URL:          %s\n", profile.URL)
+				if profile.APIKey != "" {
+					fmt.Printf("Authentication:   API Key (configured)\n")
+				} else {
+					fmt.Printf("Authentication:   Public Link\n")
+				}
 			}
 		}
-		fmt.Printf("Default Format: %s\n", cfg.DefaultFormat)
+		fmt.Printf("Config File:      %s\n", configPath)
+		fmt.Printf("Default Format:   %s\n", cfg.DefaultFormat)
 		fmt.Println()
+
+		// Test permissions if requested
+		if testPermissions {
+			fmt.Println("Testing Permissions...")
+			fmt.Println()
+
+			// Test read permission
+			canRead := true
+			_, err := client.GetDocuments()
+			if err != nil {
+				canRead = false
+			}
+
+			if canRead {
+				fmt.Println("✓ Read:   Allowed")
+			} else {
+				fmt.Println("✗ Read:   Denied")
+			}
+
+			// Test write permission (dry-run create)
+			// Note: We can't truly test write without making changes
+			fmt.Println("  Write:  Use 'craft create --dry-run' to test")
+
+			// Test delete permission
+			// Note: Can't safely test without actually deleting
+			fmt.Println("  Delete: Use 'craft delete --dry-run' to test")
+
+			fmt.Println()
+			fmt.Println("Note: Write and delete permissions are difficult to test")
+			fmt.Println("without making actual changes. Try the operations with")
+			fmt.Println("--dry-run flag to see if you get PERMISSION_DENIED errors.")
+			fmt.Println()
+		}
 
 		// Try to fetch documents to show scope
 		result, err := client.GetDocuments()
@@ -82,4 +130,6 @@ var docsCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(infoCmd)
 	rootCmd.AddCommand(docsCmd)
+
+	infoCmd.Flags().BoolVar(&testPermissions, "test-permissions", false, "Test read/write/delete permissions")
 }

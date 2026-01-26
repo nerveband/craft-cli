@@ -9,7 +9,38 @@ import (
 var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Manage configuration",
-	Long:  "Manage Craft CLI configuration settings and API profiles",
+	Long: `Manage Craft CLI configuration settings and API profiles.
+
+Configuration is stored in: ~/.craft-cli/config.json
+
+You can edit this file directly or use these commands to manage it.
+
+Examples:
+  # Add a public link (permissions set in Craft)
+  craft config add work https://connect.craft.do/links/LINK/api/v1
+
+  # Add a profile with API key authentication
+  craft config add secure https://connect.craft.do/.../api/v1 --key pdk_xxx
+
+  # List all profiles (* = active, [key] = has API key)
+  craft config list
+
+  # Switch active profile
+  craft config use personal
+
+  # Remove a profile
+  craft config remove old-profile
+
+Permissions:
+  Both public links and API keys can have different permission levels
+  configured in Craft (not in this CLI):
+    - Read-only:  Can list, get, and search documents
+    - Write-only: Can create, update, and delete documents
+    - Read-write: Full access to all operations
+
+  If you get PERMISSION_DENIED errors, check the link/key permissions
+  in your Craft workspace settings. Use 'craft info --test-permissions'
+  to see what your current profile can do.`,
 }
 
 var profileAPIKey string

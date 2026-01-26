@@ -23,7 +23,7 @@ var (
 	apiKey       string
 	outputFormat string
 	cfgManager   *config.Manager
-	version      = "1.3.0"
+	version      = "1.4.0"
 
 	// Global flags for LLM/scripting friendliness
 	quietMode  bool
@@ -58,6 +58,43 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
+
+	// Set custom usage template with documentation footer
+	rootCmd.SetUsageTemplate(`Usage:{{if .Runnable}}
+  {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
+  {{.CommandPath}} [command]{{end}}{{if gt (len .Aliases) 0}}
+
+Aliases:
+  {{.NameAndAliases}}{{end}}{{if .HasExample}}
+
+Examples:
+{{.Example}}{{end}}{{if .HasAvailableSubCommands}}{{$cmds := .Commands}}{{if eq (len .Groups) 0}}
+
+Available Commands:{{range $cmds}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{else}}{{range $group := .Groups}}
+
+{{.Title}}{{range $cmds}}{{if (and (eq .GroupID $group.ID) (or .IsAvailableCommand (eq .Name "help")))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if not .AllChildCommandsHaveGroup}}
+
+Additional Commands:{{range $cmds}}{{if (and (eq .GroupID "") (or .IsAvailableCommand (eq .Name "help")))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
+
+Flags:
+{{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
+
+Global Flags:
+{{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
+
+Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
+  {{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableSubCommands}}
+
+Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
+
+Documentation:
+  Full docs:        https://github.com/nerveband/craft-cli
+  Report issues:    https://github.com/nerveband/craft-cli/issues
+  Craft API docs:   https://support.craft.do/hc/en-us/articles/23702897811612
+`)
 
 	// API and format flags
 	rootCmd.PersistentFlags().StringVar(&apiURL, "api-url", "", "Craft API URL (overrides config)")
@@ -221,9 +258,11 @@ func errorHint(code string) string {
 	case "PAYLOAD_TOO_LARGE":
 		return "Reduce payload size or use chunking/replace modes (e.g. craft update --chunk-bytes 20000 or craft update --mode replace)."
 	case "PERMISSION_DENIED":
-		return "This API key may have limited permissions. Check the link's permission level in Craft (read-only vs read-write)."
+		return "This link/API key has insufficient permissions. Both public links and API keys can be read-only, write-only, or read-write. Check the link's permission settings in Craft. Use 'craft info --test-permissions' to see what your current profile can do."
 	case "AUTH_ERROR":
-		return "Check your API key is valid and not expired. Use --api-key flag or configure with 'craft config add'."
+		return "Authentication failed. Check your API key is valid and not expired. Use --api-key flag or configure with 'craft config add'."
+	case "CONFIG_ERROR":
+		return "Configuration error. Your config file is at ~/.craft-cli/config.json. Run 'craft config list' to see profiles or 'craft setup' to reconfigure."
 	default:
 		return ""
 	}

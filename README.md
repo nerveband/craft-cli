@@ -263,7 +263,13 @@ craft version
 
 ## Configuration
 
-Configuration is stored in `~/.craft-cli/config.json`:
+### Config File Location
+
+Configuration is stored in `~/.craft-cli/config.json`
+
+You can edit this file directly or use `craft config` commands to manage it.
+
+### Config File Structure
 
 ```json
 {
@@ -281,7 +287,67 @@ Configuration is stored in `~/.craft-cli/config.json`:
 }
 ```
 
-**Note:** API keys are stored in plain text. Ensure appropriate file permissions on your config file.
+**Field Descriptions:**
+- `default_format`: Default output format (`json`, `table`, or `markdown`)
+- `active_profile`: Name of the currently active profile
+- `profiles`: Map of named profiles, each containing:
+  - `url`: Craft API URL from your workspace link
+  - `api_key`: (Optional) API key for authentication
+
+### Understanding Permissions
+
+Both **public links** and **API keys** can have different permission levels. These permissions are configured in Craft (not in this CLI):
+
+**Permission Levels:**
+- **Read-only**: Can list, get, and search documents
+- **Write-only**: Can create, update, and delete documents
+- **Read-write**: Full access to all operations
+
+**How to Set Permissions:**
+1. In Craft, go to your workspace settings
+2. Find the share link or API key settings
+3. Configure the permission level (read-only, write-only, or read-write)
+
+**Testing Your Permissions:**
+```bash
+# Show current profile info and test permissions
+craft info --test-permissions
+
+# Try operations with dry-run to check permissions
+craft create --title "Test" --dry-run
+craft delete <doc-id> --dry-run
+```
+
+### Troubleshooting Permission Errors
+
+If you get `PERMISSION_DENIED` errors:
+
+1. **Check your link/key permissions in Craft**
+   - Public links: Check share settings in Craft
+   - API keys: Verify key permissions in workspace settings
+
+2. **Understand the operation requirements**
+   - List/Get/Search require read permission
+   - Create/Update require write permission
+   - Delete requires write permission
+
+3. **Common scenarios**
+   - Read-only key trying to create → Need write permission
+   - Write-only key trying to list → Need read permission
+   - Expired or invalid API key → Regenerate in Craft
+
+4. **Test your setup**
+   ```bash
+   craft info --test-permissions
+   ```
+
+### Security Notes
+
+- API keys are stored in **plain text** in the config file
+- Ensure appropriate file permissions: `chmod 600 ~/.craft-cli/config.json`
+- Never commit your config file to version control
+- Regenerate API keys if accidentally exposed
+- Use different profiles for different security levels
 
 ## Exit Codes
 
