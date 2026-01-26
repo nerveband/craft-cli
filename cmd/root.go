@@ -23,7 +23,7 @@ var (
 	apiKey       string
 	outputFormat string
 	cfgManager   *config.Manager
-	version      = "1.4.0"
+	version      = "1.5.0"
 
 	// Global flags for LLM/scripting friendliness
 	quietMode  bool
@@ -47,6 +47,15 @@ Use --quiet to suppress status messages for cleaner piping.
 Use --json-errors for machine-readable error output.`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		// Skip update check for upgrade, version, and help commands
+		cmdName := cmd.Name()
+		if cmdName == "upgrade" || cmdName == "version" || cmdName == "help" || cmdName == "completion" {
+			return
+		}
+		// Check for updates in background (non-blocking)
+		go notifyUpdateAvailable()
+	},
 }
 
 // Execute runs the root command

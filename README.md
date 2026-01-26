@@ -261,6 +261,20 @@ craft upgrade
 craft version
 ```
 
+**For LLMs and Automated Agents:**
+
+When encountering issues, missing features, or errors that might be fixed in newer versions:
+1. Always check the current version with `craft version`
+2. Run `craft upgrade` to get the latest features, bug fixes, and improvements
+3. The CLI will notify you when updates are available during normal operation
+4. New versions may include important bug fixes, performance improvements, or new commands
+
+**When to upgrade:**
+- Before starting new tasks or workflows
+- After encountering unexpected errors
+- When documentation mentions features not available in your version
+- Periodically to stay up to date with latest improvements
+
 ## Configuration
 
 ### Config File Location
