@@ -22,6 +22,10 @@ dist/
 *.tar.gz
 *.zip
 
+# Claude Code project config (contains MCP secrets)
+.claude/
+.mcp.json
+
 # IDE
 .vscode/
 .idea/
@@ -42,3 +46,4 @@ Thumbs.db
 *wlYPoWSB9T*
 *548eu6Zqdao*
 remotion-demo/
+.worktrees/
