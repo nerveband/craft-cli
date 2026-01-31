@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -1088,4 +1089,389 @@ func (c *Client) DeleteCollectionItem(collectionID, itemID string) error {
 
 	_, err := c.doRequest("DELETE", path, req)
 	return err
+}
+
+// ========== Connection ==========
+
+// GetConnection retrieves connection/space info from the API.
+func (c *Client) GetConnection() (*models.ConnectionInfo, error) {
+	data, err := c.doRequest("GET", "/connection", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result models.ConnectionInfo
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, fmt.Errorf("invalid response from API: %w", err)
+	}
+
+	return &result, nil
+}
+
+// ========== Comments ==========
+
+// addCommentRequest is the request body for adding comments.
+type addCommentRequest struct {
+	Comments []struct {
+		BlockID string `json:"blockId"`
+		Content string `json:"content"`
+	} `json:"comments"`
+}
+
+// AddComment adds a comment to a block.
+func (c *Client) AddComment(blockID, content string) (*models.CommentResponse, error) {
+	req := addCommentRequest{
+		Comments: []struct {
+			BlockID string `json:"blockId"`
+			Content string `json:"content"`
+		}{{BlockID: blockID, Content: content}},
+	}
+
+	data, err := c.doRequest("POST", "/comments", req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result models.CommentResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, fmt.Errorf("invalid response from API: %w", err)
+	}
+
+	return &result, nil
+}
+
+// ========== Block Search ==========
+
+// SearchBlocks searches for blocks matching a pattern within a document.
+func (c *Client) SearchBlocks(blockID, pattern string, caseSensitive bool, beforeCount, afterCount int) (*models.BlockSearchResultList, error) {
+	params := url.Values{}
+	params.Set("blockId", blockID)
+	params.Set("pattern", pattern)
+	if caseSensitive {
+		params.Set("caseSensitive", "true")
+	}
+	params.Set("beforeBlockCount", strconv.Itoa(beforeCount))
+	params.Set("afterBlockCount", strconv.Itoa(afterCount))
+
+	path := "/blocks/search?" + params.Encode()
+
+	data, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result models.BlockSearchResultList
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, fmt.Errorf("invalid response from API: %w", err)
+	}
+
+	return &result, nil
+}
+
+// ========== Advanced Document Search ==========
+
+// SearchOptions contains optional parameters for advanced document search.
+type SearchOptions struct {
+	Regexps              string
+	Location             string
+	FolderIDs            string
+	DocumentIDs          string
+	FetchMetadata        bool
+	CreatedDateGte       string
+	CreatedDateLte       string
+	LastModifiedDateGte  string
+	LastModifiedDateLte  string
+	DailyNoteDateGte     string
+	DailyNoteDateLte     string
+}
+
+// SearchDocumentsAdvanced searches for documents with full option support.
+func (c *Client) SearchDocumentsAdvanced(query string, opts SearchOptions) (*models.SearchResult, error) {
+	params := url.Values{}
+	params.Set("include", query)
+
+	if opts.Regexps != "" {
+		params.Set("regexps", opts.Regexps)
+	}
+	if opts.Location != "" {
+		params.Set("location", opts.Location)
+	}
+	if opts.FolderIDs != "" {
+		params.Set("folderIDs", opts.FolderIDs)
+	}
+	if opts.DocumentIDs != "" {
+		params.Set("documentIDs", opts.DocumentIDs)
+	}
+	if opts.FetchMetadata {
+		params.Set("fetchMetadata", "true")
+	}
+	if opts.CreatedDateGte != "" {
+		params.Set("createdDateGte", opts.CreatedDateGte)
+	}
+	if opts.CreatedDateLte != "" {
+		params.Set("createdDateLte", opts.CreatedDateLte)
+	}
+	if opts.LastModifiedDateGte != "" {
+		params.Set("lastModifiedDateGte", opts.LastModifiedDateGte)
+	}
+	if opts.LastModifiedDateLte != "" {
+		params.Set("lastModifiedDateLte", opts.LastModifiedDateLte)
+	}
+	if opts.DailyNoteDateGte != "" {
+		params.Set("dailyNoteDateGte", opts.DailyNoteDateGte)
+	}
+	if opts.DailyNoteDateLte != "" {
+		params.Set("dailyNoteDateLte", opts.DailyNoteDateLte)
+	}
+
+	path := "/documents/search?" + params.Encode()
+
+	data, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result models.SearchResult
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, fmt.Errorf("invalid response from API: %w", err)
+	}
+
+	return &result, nil
+}
+
+// ========== Advanced Document Listing ==========
+
+// ListDocumentsOptions contains optional parameters for advanced document listing.
+type ListDocumentsOptions struct {
+	FolderID             string
+	Location             string
+	FetchMetadata        bool
+	CreatedDateGte       string
+	CreatedDateLte       string
+	LastModifiedDateGte  string
+	LastModifiedDateLte  string
+	DailyNoteDateGte     string
+	DailyNoteDateLte     string
+}
+
+// GetDocumentsAdvanced retrieves documents with full option support.
+func (c *Client) GetDocumentsAdvanced(opts ListDocumentsOptions) (*models.DocumentList, error) {
+	params := url.Values{}
+
+	if opts.FolderID != "" {
+		params.Set("folderId", opts.FolderID)
+	}
+	if opts.Location != "" {
+		params.Set("location", opts.Location)
+	}
+	if opts.FetchMetadata {
+		params.Set("fetchMetadata", "true")
+	}
+	if opts.CreatedDateGte != "" {
+		params.Set("createdDateGte", opts.CreatedDateGte)
+	}
+	if opts.CreatedDateLte != "" {
+		params.Set("createdDateLte", opts.CreatedDateLte)
+	}
+	if opts.LastModifiedDateGte != "" {
+		params.Set("lastModifiedDateGte", opts.LastModifiedDateGte)
+	}
+	if opts.LastModifiedDateLte != "" {
+		params.Set("lastModifiedDateLte", opts.LastModifiedDateLte)
+	}
+	if opts.DailyNoteDateGte != "" {
+		params.Set("dailyNoteDateGte", opts.DailyNoteDateGte)
+	}
+	if opts.DailyNoteDateLte != "" {
+		params.Set("dailyNoteDateLte", opts.DailyNoteDateLte)
+	}
+
+	path := "/documents"
+	if encoded := params.Encode(); encoded != "" {
+		path = path + "?" + encoded
+	}
+
+	data, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result models.DocumentList
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, fmt.Errorf("invalid response from API: %w", err)
+	}
+
+	return &result, nil
+}
+
+// ========== Block by Date ==========
+
+// GetBlockByDate retrieves blocks for a daily note by date.
+func (c *Client) GetBlockByDate(date string, maxDepth int, fetchMetadata bool) (*models.Block, error) {
+	params := url.Values{}
+	params.Set("date", date)
+	if maxDepth != -1 {
+		params.Set("maxDepth", strconv.Itoa(maxDepth))
+	}
+	if fetchMetadata {
+		params.Set("fetchMetadata", "true")
+	}
+
+	path := "/blocks?" + params.Encode()
+
+	data, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var block models.Block
+	if err := json.Unmarshal(data, &block); err != nil {
+		return nil, fmt.Errorf("invalid response from API: %w", err)
+	}
+
+	return &block, nil
+}
+
+// ========== Add Block to Date ==========
+
+// addBlockToDateRequest is the request body for adding blocks to a daily note.
+type addBlockToDateRequest struct {
+	Markdown string `json:"markdown"`
+	Position struct {
+		Date     string `json:"date"`
+		Position string `json:"position"`
+	} `json:"position"`
+}
+
+// AddBlockToDate adds a block to a daily note page.
+func (c *Client) AddBlockToDate(date, markdown, position string) (*models.Block, error) {
+	req := addBlockToDateRequest{
+		Markdown: markdown,
+	}
+	req.Position.Date = date
+	req.Position.Position = position
+
+	data, err := c.doRequest("POST", "/blocks", req)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp addBlockResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, fmt.Errorf("invalid response from API: %w", err)
+	}
+
+	if len(resp.Items) == 0 {
+		return nil, fmt.Errorf("no block returned from API")
+	}
+
+	return &models.Block{
+		ID:       resp.Items[0].ID,
+		Type:     resp.Items[0].Type,
+		Markdown: resp.Items[0].Markdown,
+	}, nil
+}
+
+// ========== File Upload ==========
+
+// doRequestRaw sends raw bytes with a custom content type.
+func (c *Client) doRequestRaw(method, path string, body []byte, contentType string) ([]byte, error) {
+	var reqBody io.Reader
+	if body != nil {
+		reqBody = bytes.NewReader(body)
+	}
+
+	reqURL := fmt.Sprintf("%s%s", c.baseURL, path)
+	req, err := http.NewRequest(method, reqURL, reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
+
+	if c.apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode >= 400 {
+		return nil, c.handleErrorResponse(resp.StatusCode, respBody)
+	}
+
+	return respBody, nil
+}
+
+// UploadFile uploads a file as raw binary data.
+// Exactly one of pageID, date, or siblingID must be provided to indicate placement.
+func (c *Client) UploadFile(fileData []byte, pageID, date, siblingID, position string) (*models.UploadResponse, error) {
+	params := url.Values{}
+	if position != "" {
+		params.Set("position", position)
+	}
+	if pageID != "" {
+		params.Set("pageId", pageID)
+	}
+	if date != "" {
+		params.Set("date", date)
+	}
+	if siblingID != "" {
+		params.Set("siblingId", siblingID)
+	}
+
+	path := "/upload"
+	if encoded := params.Encode(); encoded != "" {
+		path = path + "?" + encoded
+	}
+
+	data, err := c.doRequestRaw("POST", path, fileData, "application/octet-stream")
+	if err != nil {
+		return nil, err
+	}
+
+	var result models.UploadResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, fmt.Errorf("invalid response from API: %w", err)
+	}
+
+	return &result, nil
+}
+
+// ========== Enhanced Block Retrieval ==========
+
+// GetBlockWithOptions retrieves a block by ID with optional depth and metadata.
+func (c *Client) GetBlockWithOptions(blockID string, maxDepth int, fetchMetadata bool) (*models.Block, error) {
+	params := url.Values{}
+	params.Set("id", blockID)
+	if maxDepth != -1 {
+		params.Set("maxDepth", strconv.Itoa(maxDepth))
+	}
+	if fetchMetadata {
+		params.Set("fetchMetadata", "true")
+	}
+
+	path := "/blocks?" + params.Encode()
+
+	data, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var block models.Block
+	if err := json.Unmarshal(data, &block); err != nil {
+		return nil, fmt.Errorf("invalid response from API: %w", err)
+	}
+
+	return &block, nil
 }
