@@ -8,7 +8,7 @@ A powerful command-line interface for interacting with Craft Documents. Built fo
 
 - **Multi-Profile Support** - Store multiple Craft API connections and switch between them
 - **API Key Authentication** - Support for API keys with secure storage per profile
-- **Multiple Output Formats** - JSON (default), Table, and Markdown outputs
+- **Multiple Output Formats** - JSON (default, full API payloads), Compact (legacy), Table, and Markdown outputs
 - **LLM/Script Friendly** - Quiet mode, JSON errors, field extraction, stdin support
 - **Local Craft Integration** - Open documents, create new docs, search directly in Craft app (macOS)
 - **Auto-Chunking** - Automatically splits large documents to avoid API limits
@@ -212,8 +212,11 @@ echo "New content" | craft update <doc-id> --stdin
 ### Output Formats
 
 ```bash
-# JSON (default) - best for scripts and LLMs
+# JSON (default) - full API/MCP-shaped payloads (best for scripts and LLMs)
 craft list --format json
+
+# Compact - legacy flattened JSON output
+craft list --format compact
 
 # Table - human readable
 craft list --format table
@@ -221,6 +224,21 @@ craft list --format table
 # Markdown - documentation friendly
 craft get <doc-id> --format markdown
 ```
+
+### LLM & Styling Docs
+
+LLM-friendly docs live in `docs/llm/`:
+- `docs/llm/README.md` - quick index
+- `docs/llm/styling-and-markdown.md` - markdown shortcuts + styling JSON examples
+- `docs/llm/output-parity.md` - MCP/API/CLI parity notes + differences chart
+
+### MCP/API/CLI Differences (Summary)
+
+| Surface | JSON shape | Notes |
+| --- | --- | --- |
+| MCP | JSON-RPC envelope | Blocks payload returned inside `result.content[].text` |
+| API | REST payload | List endpoints return `{items, total}` |
+| CLI | Default JSON | Mirrors API shapes; `--format compact` keeps legacy flattened arrays |
 
 ### Shell Completions
 
