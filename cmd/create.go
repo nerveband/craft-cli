@@ -106,10 +106,6 @@ Examples:
 		}
 
 		format := getOutputFormat()
-		if format == FormatJSON {
-			payload := &models.DocumentList{Items: []models.Document{*doc}, Total: 1}
-			return outputDocumentsPayload(payload, format)
-		}
 		return outputCreated(doc, format)
 	},
 }
@@ -210,5 +206,9 @@ func runBatchCreate() error {
 	}
 
 	format := getOutputFormat()
-	if format == FormatJSON {\n+		payload := &models.DocumentList{Items: results, Total: len(results)}\n+		return outputDocumentsPayload(payload, format)\n+	}\n+	return outputDocuments(results, format)
+	if format == FormatJSON {
+		payload := &models.DocumentList{Items: results, Total: len(results)}
+		return outputDocumentsPayload(payload, format)
+	}
+	return outputDocuments(results, format)
 }

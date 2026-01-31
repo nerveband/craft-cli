@@ -53,6 +53,9 @@ Use --document to filter collections by document ID.`,
 		}
 
 		format := getOutputFormat()
+		if format == FormatJSON {
+			return outputJSON(collections)
+		}
 		return outputCollections(collections.Items, format)
 	},
 }
@@ -102,6 +105,9 @@ Default depth is -1 (no limit).`,
 		}
 
 		format := getOutputFormat()
+		if format == FormatJSON {
+			return outputJSON(items)
+		}
 		return outputCollectionItems(items.Items, format)
 	},
 }
@@ -149,7 +155,7 @@ Examples:
 		}
 
 		format := getOutputFormat()
-		if format == "json" {
+		if isJSONFormat(format) {
 			return outputJSON(result)
 		}
 
@@ -261,7 +267,7 @@ func init() {
 // outputCollections prints collections in the specified format
 func outputCollections(collections []models.Collection, format string) error {
 	switch format {
-	case "json":
+	case FormatCompact:
 		return outputJSON(collections)
 	case "table":
 		return outputCollectionsTable(collections)
@@ -310,7 +316,7 @@ func outputCollectionsMarkdown(collections []models.Collection) error {
 // outputCollectionItems prints collection items in the specified format
 func outputCollectionItems(items []models.CollectionItem, format string) error {
 	switch format {
-	case "json":
+	case FormatCompact:
 		return outputJSON(items)
 	case "table":
 		return outputCollectionItemsTable(items)

@@ -78,7 +78,7 @@ Intended for LLMs/agents and scripting tools.`,
 			Generated: time.Now().UTC().Format(time.RFC3339),
 			Global:    flagsToSpec(rootCmd.PersistentFlags()),
 			Notes: []string{
-				"Default output is JSON. Use --format table|markdown for human output where supported.",
+				"Default output is JSON. Use --format compact (legacy JSON), table, or markdown for human output where supported.",
 				"craft delete is a soft-delete to trash (DELETE /documents).",
 				"craft clear deletes all content blocks in a document (cannot be undone without a backup).",
 				"craft update supports --mode append|replace and auto-chunks large markdown inserts.",

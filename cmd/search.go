@@ -142,9 +142,6 @@ func runDocumentSearch(client *api.Client, args []string, format string) error {
 	if format == FormatJSON {
 		return outputSearchResultsPayload(result, format)
 	}
-	if format == FormatJSON {
-		return outputSearchResultsPayload(result, format)
-	}
 	return outputSearchResults(result.Items, format)
 }
 
@@ -153,7 +150,10 @@ func runDocumentSearch(client *api.Client, args []string, format string) error {
 // outputBlockSearchResults dispatches block search results to the appropriate formatter.
 func outputBlockSearchResults(items []models.BlockSearchResult, format string) error {
 	switch format {
-	case "json":
+	case FormatJSON:
+		payload := &models.BlockSearchResultList{Items: items}
+		return outputJSON(payload)
+	case FormatCompact:
 		return outputJSON(items)
 	case "table":
 		return outputBlockSearchTable(items)
