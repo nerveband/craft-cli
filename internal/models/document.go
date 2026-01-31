@@ -210,3 +210,106 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 	Code    int    `json:"code"`
 }
+
+// Collection represents a Craft collection (database)
+type Collection struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	ItemCount  int    `json:"itemCount"`
+	DocumentID string `json:"documentId"`
+}
+
+// CollectionList represents a list of collections
+type CollectionList struct {
+	Items []Collection `json:"items"`
+}
+
+// CollectionSchema represents a collection's schema
+type CollectionSchema struct {
+	Key                string                 `json:"key"`
+	Name               string                 `json:"name"`
+	ContentPropDetails *CollectionPropDetails `json:"contentPropDetails,omitempty"`
+	Properties         []CollectionProperty   `json:"properties"`
+}
+
+// CollectionPropDetails describes the content/title property
+type CollectionPropDetails struct {
+	Key  string `json:"key"`
+	Name string `json:"name"`
+}
+
+// CollectionProperty represents a property in a collection schema
+type CollectionProperty struct {
+	Key     string   `json:"key"`
+	Name    string   `json:"name"`
+	Type    string   `json:"type"`
+	Options []string `json:"options,omitempty"`
+}
+
+// CollectionItem represents an item in a collection
+type CollectionItem struct {
+	ID         string                 `json:"id"`
+	Title      string                 `json:"title"`
+	Properties map[string]interface{} `json:"properties,omitempty"`
+	Content    []Block                `json:"content,omitempty"`
+}
+
+// CollectionItemList represents a list of collection items
+type CollectionItemList struct {
+	Items []CollectionItem `json:"items"`
+}
+
+// ConnectionInfo represents the response from GET /connection
+type ConnectionInfo struct {
+	Space struct {
+		ID           string `json:"id"`
+		Timezone     string `json:"timezone"`
+		Time         string `json:"time"`
+		FriendlyDate string `json:"friendlyDate"`
+	} `json:"space"`
+	UTC struct {
+		Time string `json:"time"`
+	} `json:"utc"`
+	URLTemplates struct {
+		App string `json:"app"`
+	} `json:"urlTemplates"`
+}
+
+// UploadResponse represents the response from POST /upload
+type UploadResponse struct {
+	BlockID  string `json:"blockId"`
+	AssetURL string `json:"assetUrl"`
+}
+
+// CommentResponse represents the response from POST /comments
+type CommentResponse struct {
+	Items []struct {
+		CommentID string `json:"commentId"`
+	} `json:"items"`
+}
+
+// BlockSearchResult represents a single block search match
+type BlockSearchResult struct {
+	BlockID       string           `json:"blockId"`
+	Markdown      string           `json:"markdown"`
+	PageBlockPath []PageBlockEntry `json:"pageBlockPath,omitempty"`
+	BeforeBlocks  []BlockContext   `json:"beforeBlocks,omitempty"`
+	AfterBlocks   []BlockContext   `json:"afterBlocks,omitempty"`
+}
+
+// PageBlockEntry represents a path entry in block search results
+type PageBlockEntry struct {
+	ID      string `json:"id"`
+	Content string `json:"content"`
+}
+
+// BlockContext represents a surrounding block in search results
+type BlockContext struct {
+	BlockID  string `json:"blockId"`
+	Markdown string `json:"markdown"`
+}
+
+// BlockSearchResultList represents block search results
+type BlockSearchResultList struct {
+	Items []BlockSearchResult `json:"items"`
+}
