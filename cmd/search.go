@@ -139,6 +139,12 @@ func runDocumentSearch(client *api.Client, args []string, format string) error {
 		printStatus("Found %d result(s)\n", len(result.Items))
 	}
 
+	if format == FormatJSON {
+		return outputSearchResultsPayload(result, format)
+	}
+	if format == FormatJSON {
+		return outputSearchResultsPayload(result, format)
+	}
 	return outputSearchResults(result.Items, format)
 }
 

@@ -100,7 +100,17 @@ Examples:
 			return err
 		}
 
-		return outputCreated(doc, getOutputFormat())
+		if isQuiet() {
+			fmt.Println(doc.ID)
+			return nil
+		}
+
+		format := getOutputFormat()
+		if format == FormatJSON {
+			payload := &models.DocumentList{Items: []models.Document{*doc}, Total: 1}
+			return outputDocumentsPayload(payload, format)
+		}
+		return outputCreated(doc, format)
 	},
 }
 
@@ -199,5 +209,6 @@ func runBatchCreate() error {
 		return nil
 	}
 
-	return outputDocuments(results, getOutputFormat())
+	format := getOutputFormat()
+	if format == FormatJSON {\n+		payload := &models.DocumentList{Items: results, Total: len(results)}\n+		return outputDocumentsPayload(payload, format)\n+	}\n+	return outputDocuments(results, format)
 }
