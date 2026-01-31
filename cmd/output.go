@@ -19,10 +19,11 @@ func outputDocuments(docs []models.Document, format string) error {
 	}
 
 	switch format {
-	case "json":
-		return outputJSON(docs)
 	case FormatCompact:
 		return outputJSON(docs)
+	case "json":
+		payload := &models.DocumentList{Items: docs, Total: len(docs)}
+		return outputDocumentsPayload(payload, format)
 	case "table":
 		return outputTable(docs)
 	case "markdown":
@@ -45,9 +46,7 @@ func outputDocument(doc *models.Document, format string) error {
 	}
 
 	switch format {
-	case "json":
-		return outputJSON(doc)
-	case FormatCompact:
+	case FormatJSON, FormatCompact:
 		return outputJSON(doc)
 	case "table":
 		return outputDocumentTable(doc)
@@ -260,7 +259,8 @@ func outputCleared(docID string, deletedBlocks int) {
 func outputSearchResults(items []models.SearchItem, format string) error {
 	switch format {
 	case "json":
-		return outputJSON(items)
+		payload := &models.SearchResult{Items: items, Total: len(items)}
+		return outputSearchResultsPayload(payload, format)
 	case FormatCompact:
 		return outputJSON(items)
 	case "table":
@@ -270,6 +270,22 @@ func outputSearchResults(items []models.SearchItem, format string) error {
 	default:
 		return fmt.Errorf("unsupported format: %s", format)
 	}
+}
+
+// outputDocumentsPayload prints a full DocumentList payload for JSON output.
+func outputDocumentsPayload(payload *models.DocumentList, format string) error {
+	if format != FormatJSON {
+		return fmt.Errorf("unsupported format: %s", format)
+	}
+	return outputJSON(payload)
+}
+
+// outputSearchResultsPayload prints a full SearchResult payload for JSON output.
+func outputSearchResultsPayload(payload *models.SearchResult, format string) error {
+	if format != FormatJSON {
+		return fmt.Errorf("unsupported format: %s", format)
+	}
+	return outputJSON(payload)
 }
 
 // outputSearchTable prints search results as a table

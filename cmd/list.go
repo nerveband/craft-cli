@@ -67,6 +67,9 @@ Examples:
 		}
 
 		format := getOutputFormat()
+		if format == FormatJSON {
+			return outputDocumentsPayload(result, format)
+		}
 		return outputDocuments(result.Items, format)
 	},
 }

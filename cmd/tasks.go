@@ -58,6 +58,9 @@ Scopes:
 		}
 
 		format := getOutputFormat()
+		if format == FormatJSON {
+			return outputJSON(tasks)
+		}
 		return outputTasks(tasks.Items, format)
 	},
 }
@@ -209,7 +212,7 @@ func init() {
 // outputTasks prints tasks in the specified format
 func outputTasks(tasks []models.Task, format string) error {
 	switch format {
-	case FormatJSON, FormatCompact:
+	case FormatCompact:
 		return outputJSON(tasks)
 	case "table":
 		return outputTasksTable(tasks)

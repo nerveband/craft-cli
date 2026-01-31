@@ -39,6 +39,9 @@ var foldersListCmd = &cobra.Command{
 		}
 
 		format := getOutputFormat()
+		if format == FormatJSON {
+			return outputJSON(folders)
+		}
 		return outputFolders(folders.Items, format)
 	},
 }
@@ -160,7 +163,7 @@ func init() {
 // outputFolders prints folders in the specified format
 func outputFolders(folders []models.Folder, format string) error {
 	switch format {
-	case FormatJSON, FormatCompact:
+	case FormatCompact:
 		return outputJSON(folders)
 	case "table":
 		return outputFoldersTable(folders)
