@@ -26,16 +26,37 @@ Examples:
 var blocksGetCmd = &cobra.Command{
 	Use:   "get [block-id]",
 	Short: "Get a specific block",
-	Long:  "Retrieve a specific block by ID with its content and children",
-	Args:  cobra.ExactArgs(1),
+	Long: `Retrieve a specific block by ID or daily note date.
+
+When --date is provided, fetches the daily note for that date instead of a block ID.
+Use --depth to control how many levels of children to include.
+Use --metadata to include created/modified timestamps.
+
+Examples:
+  craft blocks get BLOCK_ID                        # Get a specific block
+  craft blocks get BLOCK_ID --depth 0              # Block only, no children
+  craft blocks get BLOCK_ID --metadata             # Include metadata
+  craft blocks get --date today                    # Today's daily note
+  craft blocks get --date yesterday                # Yesterday's daily note
+  craft blocks get --date 2024-01-15               # Specific date
+  craft blocks get --date today --depth 1          # Daily note, 1 level deep`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := getAPIClient()
 		if err != nil {
 			return err
 		}
 
-		blockID := args[0]
-		block, err := client.GetBlock(blockID)
+		var block *models.Block
+
+		if blockDate != "" {
+			block, err = client.GetBlockByDate(blockDate, blockDepth, blockMetadata)
+		} else {
+			if len(args) == 0 {
+				return fmt.Errorf("block-id is required when not using --date")
+			}
+			block, err = client.GetBlockWithOptions(args[0], blockDepth, blockMetadata)
+		}
 		if err != nil {
 			return err
 		}
@@ -66,6 +87,9 @@ var (
 	blockPosition   string
 	blockSiblingID  string
 	blockTargetPage string
+	blockDate       string
+	blockDepth      int
+	blockMetadata   bool
 )
 
 var blocksAddCmd = &cobra.Command{
@@ -79,10 +103,15 @@ Positions:
   before - Add before a sibling block (requires --sibling)
   after  - Add after a sibling block (requires --sibling)
 
+When --date is provided, adds the block to the daily note for that date.
+The page-id argument is not required when using --sibling or --date.
+
 Examples:
   craft blocks add PAGE_ID --markdown "Hello world"
   craft blocks add PAGE_ID --markdown "# Header" --position start
-  craft blocks add --sibling BLOCK_ID --position before --markdown "Insert here"`,
+  craft blocks add --sibling BLOCK_ID --position before --markdown "Insert here"
+  craft blocks add --date today --markdown "Daily log entry"
+  craft blocks add --date 2024-01-15 --markdown "Note" --position start`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if blockMarkdown == "" {
@@ -102,9 +131,15 @@ Examples:
 				return fmt.Errorf("--position must be 'before' or 'after' when using --sibling")
 			}
 			block, err = client.AddBlockRelative(blockSiblingID, blockMarkdown, blockPosition)
+		} else if blockDate != "" {
+			// Add to daily note by date
+			if blockPosition == "" {
+				blockPosition = "end"
+			}
+			block, err = client.AddBlockToDate(blockDate, blockMarkdown, blockPosition)
 		} else {
 			if len(args) == 0 {
-				return fmt.Errorf("page-id is required when not using --sibling")
+				return fmt.Errorf("page-id is required when not using --sibling or --date")
 			}
 			pageID := args[0]
 			if blockPosition == "" {
@@ -235,11 +270,15 @@ func init() {
 	rootCmd.AddCommand(blocksCmd)
 
 	blocksCmd.AddCommand(blocksGetCmd)
+	blocksGetCmd.Flags().StringVar(&blockDate, "date", "", "Daily note date (today, tomorrow, yesterday, YYYY-MM-DD)")
+	blocksGetCmd.Flags().IntVar(&blockDepth, "depth", -1, "Max depth (-1 for all, 0 for block only)")
+	blocksGetCmd.Flags().BoolVar(&blockMetadata, "metadata", false, "Include metadata (created/modified info)")
 
 	blocksCmd.AddCommand(blocksAddCmd)
 	blocksAddCmd.Flags().StringVarP(&blockMarkdown, "markdown", "m", "", "Markdown content for the block")
 	blocksAddCmd.Flags().StringVarP(&blockPosition, "position", "p", "end", "Position: start, end, before, after")
 	blocksAddCmd.Flags().StringVar(&blockSiblingID, "sibling", "", "Sibling block ID for relative positioning")
+	blocksAddCmd.Flags().StringVar(&blockDate, "date", "", "Daily note date (today, tomorrow, yesterday, YYYY-MM-DD)")
 	blocksAddCmd.MarkFlagRequired("markdown")
 
 	blocksCmd.AddCommand(blocksUpdateCmd)
