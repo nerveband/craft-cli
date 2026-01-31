@@ -439,6 +439,7 @@ func sliceContains(slice []string, item string) bool {
 // OutputFormat constants
 const (
 	FormatJSON       = "json"
+	FormatCompact    = "compact"
 	FormatTable      = "table"
 	FormatMarkdown   = "markdown"
 	FormatStructured = "structured"
@@ -449,6 +450,7 @@ const (
 // ValidOutputFormats lists all valid output formats
 var ValidOutputFormats = []string{
 	FormatJSON,
+	FormatCompact,
 	FormatTable,
 	FormatMarkdown,
 	FormatStructured,

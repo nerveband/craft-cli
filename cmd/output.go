@@ -21,6 +21,8 @@ func outputDocuments(docs []models.Document, format string) error {
 	switch format {
 	case "json":
 		return outputJSON(docs)
+	case FormatCompact:
+		return outputJSON(docs)
 	case "table":
 		return outputTable(docs)
 	case "markdown":
@@ -44,6 +46,8 @@ func outputDocument(doc *models.Document, format string) error {
 
 	switch format {
 	case "json":
+		return outputJSON(doc)
+	case FormatCompact:
 		return outputJSON(doc)
 	case "table":
 		return outputDocumentTable(doc)
@@ -256,6 +260,8 @@ func outputCleared(docID string, deletedBlocks int) {
 func outputSearchResults(items []models.SearchItem, format string) error {
 	switch format {
 	case "json":
+		return outputJSON(items)
+	case FormatCompact:
 		return outputJSON(items)
 	case "table":
 		return outputSearchTable(items)
