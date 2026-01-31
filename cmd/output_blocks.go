@@ -467,3 +467,7 @@ func IsValidFormat(format string) bool {
 	}
 	return false
 }
+
+func isJSONFormat(format string) bool {
+	return format == FormatJSON || format == FormatCompact
+}

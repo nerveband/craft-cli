@@ -160,7 +160,7 @@ func init() {
 // outputFolders prints folders in the specified format
 func outputFolders(folders []models.Folder, format string) error {
 	switch format {
-	case "json":
+	case FormatJSON, FormatCompact:
 		return outputJSON(folders)
 	case "table":
 		return outputFoldersTable(folders)
@@ -209,7 +209,7 @@ func outputFoldersMarkdown(folders []models.Folder) error {
 // outputFolder prints a single folder
 func outputFolder(folder *models.Folder, format string) error {
 	switch format {
-	case "json":
+	case FormatJSON, FormatCompact:
 		return outputJSON(folder)
 	case "table", "markdown":
 		fmt.Printf("Created folder: %s (ID: %s)\n", folder.Name, folder.ID)

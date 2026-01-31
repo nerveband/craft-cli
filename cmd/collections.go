@@ -149,7 +149,7 @@ Examples:
 		}
 
 		format := getOutputFormat()
-		if format == "json" {
+		if isJSONFormat(format) {
 			return outputJSON(result)
 		}
 
@@ -261,7 +261,7 @@ func init() {
 // outputCollections prints collections in the specified format
 func outputCollections(collections []models.Collection, format string) error {
 	switch format {
-	case "json":
+	case FormatJSON, FormatCompact:
 		return outputJSON(collections)
 	case "table":
 		return outputCollectionsTable(collections)
@@ -310,7 +310,7 @@ func outputCollectionsMarkdown(collections []models.Collection) error {
 // outputCollectionItems prints collection items in the specified format
 func outputCollectionItems(items []models.CollectionItem, format string) error {
 	switch format {
-	case "json":
+	case FormatJSON, FormatCompact:
 		return outputJSON(items)
 	case "table":
 		return outputCollectionItemsTable(items)

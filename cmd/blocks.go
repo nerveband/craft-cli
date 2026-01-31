@@ -63,7 +63,7 @@ Examples:
 
 		format := getOutputFormat()
 		switch format {
-		case FormatStructured, "json":
+		case FormatStructured, FormatJSON, FormatCompact:
 			return outputJSON(block)
 		case FormatCraft:
 			var sb strings.Builder
@@ -158,7 +158,7 @@ Examples:
 		}
 
 		format := getOutputFormat()
-		if format == "json" {
+		if isJSONFormat(format) {
 			return outputJSON(block)
 		}
 		fmt.Printf("Block created: %s\n", block.ID)

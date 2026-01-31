@@ -147,7 +147,7 @@ func runDocumentSearch(client *api.Client, args []string, format string) error {
 // outputBlockSearchResults dispatches block search results to the appropriate formatter.
 func outputBlockSearchResults(items []models.BlockSearchResult, format string) error {
 	switch format {
-	case "json":
+	case FormatJSON, FormatCompact:
 		return outputJSON(items)
 	case "table":
 		return outputBlockSearchTable(items)

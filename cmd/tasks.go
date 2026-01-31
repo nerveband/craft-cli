@@ -107,7 +107,7 @@ Examples:
 		}
 
 		format := getOutputFormat()
-		if format == "json" {
+		if isJSONFormat(format) {
 			return outputJSON(task)
 		}
 		fmt.Printf("Task created: %s (ID: %s)\n", task.Markdown, task.ID)
@@ -209,7 +209,7 @@ func init() {
 // outputTasks prints tasks in the specified format
 func outputTasks(tasks []models.Task, format string) error {
 	switch format {
-	case "json":
+	case FormatJSON, FormatCompact:
 		return outputJSON(tasks)
 	case "table":
 		return outputTasksTable(tasks)

@@ -107,7 +107,7 @@ Examples:
 		}
 
 		format := getOutputFormat()
-		if format == "json" {
+		if isJSONFormat(format) {
 			return outputJSON(result)
 		}
 

@@ -108,7 +108,7 @@ Documentation:
 	// API and format flags
 	rootCmd.PersistentFlags().StringVar(&apiURL, "api-url", "", "Craft API URL (overrides config)")
 	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", "", "API key for authentication (overrides config)")
-	rootCmd.PersistentFlags().StringVar(&outputFormat, "format", "", "Output format (json, compact, table, markdown)")
+	rootCmd.PersistentFlags().StringVar(&outputFormat, "format", "", "Output format (json, compact=legacy JSON, table, markdown)")
 
 	// LLM/scripting friendly flags
 	rootCmd.PersistentFlags().BoolVarP(&quietMode, "quiet", "q", false, "Suppress status messages, output data only")
