@@ -960,3 +960,132 @@ func (c *Client) DeleteTask(taskID string) error {
 	_, err := c.doRequest("DELETE", "/tasks", req)
 	return err
 }
+
+// ========== Collection Operations ==========
+
+// GetCollections retrieves all collections, optionally filtered by document IDs
+func (c *Client) GetCollections(documentIDs string) (*models.CollectionList, error) {
+	path := "/collections"
+	if documentIDs != "" {
+		path = fmt.Sprintf("/collections?documentIds=%s", url.QueryEscape(documentIDs))
+	}
+
+	data, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result models.CollectionList
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, fmt.Errorf("invalid response from API: %w", err)
+	}
+
+	return &result, nil
+}
+
+// GetCollectionSchema retrieves the schema for a collection
+func (c *Client) GetCollectionSchema(collectionID, format string) (*models.CollectionSchema, error) {
+	path := fmt.Sprintf("/collections/%s/schema", url.PathEscape(collectionID))
+	if format != "" {
+		path = fmt.Sprintf("%s?format=%s", path, url.QueryEscape(format))
+	}
+
+	data, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result models.CollectionSchema
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, fmt.Errorf("invalid response from API: %w", err)
+	}
+
+	return &result, nil
+}
+
+// GetCollectionItems retrieves items from a collection
+func (c *Client) GetCollectionItems(collectionID string, maxDepth int) (*models.CollectionItemList, error) {
+	path := fmt.Sprintf("/collections/%s/items", url.PathEscape(collectionID))
+	if maxDepth > 0 {
+		path = fmt.Sprintf("%s?maxDepth=%d", path, maxDepth)
+	}
+
+	data, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result models.CollectionItemList
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, fmt.Errorf("invalid response from API: %w", err)
+	}
+
+	return &result, nil
+}
+
+// AddCollectionItem adds an item to a collection
+func (c *Client) AddCollectionItem(collectionID, title string, properties map[string]interface{}, allowNewOptions bool) (*models.CollectionItemList, error) {
+	path := fmt.Sprintf("/collections/%s/items", url.PathEscape(collectionID))
+
+	req := struct {
+		Items []struct {
+			Title      string                 `json:"title"`
+			Properties map[string]interface{} `json:"properties,omitempty"`
+		} `json:"items"`
+		AllowNewSelectOptions bool `json:"allowNewSelectOptions"`
+	}{
+		Items: []struct {
+			Title      string                 `json:"title"`
+			Properties map[string]interface{} `json:"properties,omitempty"`
+		}{{Title: title, Properties: properties}},
+		AllowNewSelectOptions: allowNewOptions,
+	}
+
+	data, err := c.doRequest("POST", path, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result models.CollectionItemList
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, fmt.Errorf("invalid response from API: %w", err)
+	}
+
+	return &result, nil
+}
+
+// UpdateCollectionItem updates an item in a collection
+func (c *Client) UpdateCollectionItem(collectionID, itemID string, properties map[string]interface{}, allowNewOptions bool) error {
+	path := fmt.Sprintf("/collections/%s/items", url.PathEscape(collectionID))
+
+	req := struct {
+		ItemsToUpdate []struct {
+			ID         string                 `json:"id"`
+			Properties map[string]interface{} `json:"properties,omitempty"`
+		} `json:"itemsToUpdate"`
+		AllowNewSelectOptions bool `json:"allowNewSelectOptions"`
+	}{
+		ItemsToUpdate: []struct {
+			ID         string                 `json:"id"`
+			Properties map[string]interface{} `json:"properties,omitempty"`
+		}{{ID: itemID, Properties: properties}},
+		AllowNewSelectOptions: allowNewOptions,
+	}
+
+	_, err := c.doRequest("PUT", path, req)
+	return err
+}
+
+// DeleteCollectionItem deletes an item from a collection
+func (c *Client) DeleteCollectionItem(collectionID, itemID string) error {
+	path := fmt.Sprintf("/collections/%s/items", url.PathEscape(collectionID))
+
+	req := struct {
+		IDsToDelete []string `json:"idsToDelete"`
+	}{
+		IDsToDelete: []string{itemID},
+	}
+
+	_, err := c.doRequest("DELETE", path, req)
+	return err
+}
