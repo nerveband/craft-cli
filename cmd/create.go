@@ -106,10 +106,6 @@ Examples:
 		}
 
 		format := getOutputFormat()
-		if format == FormatJSON {
-			payload := &models.DocumentList{Items: []models.Document{*doc}, Total: 1}
-			return outputDocumentsPayload(payload, format)
-		}
 		return outputCreated(doc, format)
 	},
 }
