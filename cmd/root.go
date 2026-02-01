@@ -23,7 +23,7 @@ var (
 	apiKey       string
 	outputFormat string
 	cfgManager   *config.Manager
-	version      = "1.7.1"
+	version      = "1.8.0"
 
 	// Global flags for LLM/scripting friendliness
 	quietMode  bool

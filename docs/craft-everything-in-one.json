@@ -1,0 +1,648 @@
+{
+  "documentId": "6DB46B0B-FBE5-4936-88E7-38B91A4F888C",
+  "data": [
+    {
+      "id": "6DB46B0B-FBE5-4936-88E7-38B91A4F888C",
+      "type": "page",
+      "textStyle": "page",
+      "markdown": "Craft Everything In One",
+      "content": [
+        {
+          "id": "ACA113A6-AA9D-4476-9C95-311E91AFC7C8",
+          "type": "text",
+          "textStyle": "h1",
+          "markdown": "# Titles"
+        },
+        {
+          "id": "73B8583B-CCD6-4AC0-AE88-81CDF0343BE9",
+          "type": "text",
+          "textStyle": "h1",
+          "markdown": "# Title"
+        },
+        {
+          "id": "555CF89F-6416-45CA-AB20-67C296A77ADA",
+          "type": "text",
+          "textStyle": "h2",
+          "markdown": "## Subtitle"
+        },
+        {
+          "id": "20F41592-25F5-453A-890F-2829EBEE6FCE",
+          "type": "text",
+          "textStyle": "h3",
+          "markdown": "### Heading"
+        },
+        {
+          "id": "9FF26B6D-ED16-448C-B216-C9C12351645D",
+          "type": "text",
+          "textStyle": "h4",
+          "markdown": "#### Strong"
+        },
+        {
+          "id": "F4B70AB8-5A8D-4175-9BB7-6EB2A7F76DC0",
+          "type": "text",
+          "markdown": "Body"
+        },
+        {
+          "id": "6425A05F-F1DE-44D2-ACB3-0EA4C89DB0AB",
+          "type": "text",
+          "textStyle": "caption",
+          "markdown": "<caption>Caption</caption>"
+        },
+        {
+          "id": "6777A898-B7E7-42F7-8932-89B6078DB494",
+          "type": "text",
+          "markdown": ""
+        },
+        {
+          "id": "B33CB2FB-F446-47E7-B324-15F6CE83DC24",
+          "type": "text",
+          "markdown": "We also have dividers"
+        },
+        {
+          "id": "F92112EA-02CB-4CAC-8A97-5E3437A0B72F",
+          "type": "text",
+          "markdown": "That are extralight like this one"
+        },
+        {
+          "id": "C83EC2E8-9B13-402A-A622-EB876AEA3B78",
+          "type": "line",
+          "lineStyle": "extraLight",
+          "markdown": "***"
+        },
+        {
+          "id": "389F9F8C-3CEF-441D-9FF8-0094CA1A1D77",
+          "type": "text",
+          "markdown": "This one is light"
+        },
+        {
+          "id": "CA834F73-C575-4DCA-A68A-9B75B7CED783",
+          "type": "line",
+          "lineStyle": "light",
+          "markdown": "****"
+        },
+        {
+          "id": "7DE9F892-B196-4502-B893-F1FE7658DA6B",
+          "type": "text",
+          "markdown": "This one is regular"
+        },
+        {
+          "id": "A3A2E7C0-A672-4639-B394-80F233526137",
+          "type": "line",
+          "lineStyle": "regular",
+          "markdown": "*****"
+        },
+        {
+          "id": "4026A747-822F-41C7-BCC8-EBFA372C0DD5",
+          "type": "text",
+          "markdown": "This one is strong!"
+        },
+        {
+          "id": "5BC5ECA6-31DA-4C64-8009-59039AB31854",
+          "type": "line",
+          "lineStyle": "strong",
+          "markdown": "******"
+        },
+        {
+          "id": "5E792636-4FCB-4CE4-BBB5-5B5AD5E04816",
+          "type": "text",
+          "markdown": "And this one is a page break"
+        },
+        {
+          "id": "D7244C16-29F6-47BD-9C81-F7CC6E34F1C6",
+          "type": "line",
+          "lineStyle": "pageBreak",
+          "markdown": "*******"
+        },
+        {
+          "id": "640F8D48-9E5F-4F12-B6A4-003C913F5B3A",
+          "type": "text",
+          "markdown": "This is a block of text with different formatting including **bold**, *italics*, ~strikethrough~, and a `code inline`."
+        },
+        {
+          "id": "423BCE6D-E3B5-419D-AC82-8F245CD7F86C",
+          "type": "text",
+          "markdown": "Here are some highlighting styles including a <highlight color=\"yellow\">yellow</highlight> <highlight color=\"green\">green</highlight> or a <highlight color=\"gradient-blue\">gradient</highlight> <highlight color=\"gradient-red\">one</highlight> or <highlight color=\"gradient-yellow\">like</highlight> **<highlight color=\"gradient-brown\">other</highlight> <highlight color=\"purple\">*stuff*</highlight>**."
+        },
+        {
+          "id": "D1638EB5-3E50-417E-8C55-AE6B096E0FE8",
+          "type": "text",
+          "markdown": "Here is a code block with javascript formatting applied to it:"
+        },
+        {
+          "id": "EEB607ED-4E5A-4C78-9CDA-01BD9387116B",
+          "type": "code",
+          "language": "javascript",
+          "rawCode": "// A simple variable\nconst greeting = \"Hello, world!\";\n\n// A function that takes a name and says hi\nfunction sayHello(name) {\n  console.log(`${greeting} My name is ${name}.`);\n}\n\nsayHello(\"Gemini\");\n\n",
+          "markdown": "```javascript\n// A simple variable\nconst greeting = \"Hello, world!\";\n\n// A function that takes a name and says hi\nfunction sayHello(name) {\n  console.log(`${greeting} My name is ${name}.`);\n}\n\nsayHello(\"Gemini\");\n\n\n```"
+        },
+        {
+          "id": "9509A8D8-3843-459A-A38E-41BF33C46E4F",
+          "type": "text",
+          "textAlignment": "justify",
+          "markdown": "Here is a link to my website: [https://ashrafali.net](https://ashrafali.net)"
+        },
+        {
+          "id": "B47FA3EF-059A-450E-B684-D1C03DAA28FA",
+          "type": "text",
+          "textAlignment": "justify",
+          "markdown": "And here it is in a smart link with three formats:"
+        },
+        {
+          "id": "26EADC06-AE39-4F2F-B448-EE9B16DFFFEF",
+          "type": "richUrl",
+          "url": "https://ashrafali.net",
+          "title": "Ashraf Ali",
+          "description": "My God, the majesty in this song lives rent free in my head. Subhanallah. Not sure what adventure it's taking me to, but I keep moving forward.",
+          "markdown": "[Ashraf Ali](https://ashrafali.net)"
+        },
+        {
+          "id": "ED4475D2-7691-48A6-86C7-0B95AC01CDDD",
+          "type": "richUrl",
+          "url": "https://ashrafali.net",
+          "title": "Ashraf Ali",
+          "description": "My God, the majesty in this song lives rent free in my head. Subhanallah. Not sure what adventure it's taking me to, but I keep moving forward.",
+          "markdown": "[Ashraf Ali](https://ashrafali.net)"
+        },
+        {
+          "id": "AD36CC2E-46CB-4F61-B401-BF53C13CA2FC",
+          "type": "richUrl",
+          "url": "https://ashrafali.net",
+          "title": "Ashraf Ali",
+          "description": "My God, the majesty in this song lives rent free in my head. Subhanallah. Not sure what adventure it's taking me to, but I keep moving forward.",
+          "markdown": "[Ashraf Ali](https://ashrafali.net)"
+        },
+        {
+          "id": "F3A7D99E-9E64-43FA-AA89-A0FC90D347C2",
+          "type": "text",
+          "markdown": "You can even put things like YouTube:"
+        },
+        {
+          "id": "59A6CB60-9AC5-409E-B1B1-F1E0D96E5FDF",
+          "type": "richUrl",
+          "url": "https://www.youtube.com/watch?v=Bl8GK7tjqOU",
+          "title": "Easy One-Pot Chicken Dinner Recipe | Home Movies with Alison Roman",
+          "description": "I have written many chicken recipes in my life (have eaten hundreds, likely thousands of chickens) and sure, I think they're all great, but I'm only h...",
+          "markdown": "[Easy One-Pot Chicken Dinner Recipe | Home Movies with Alison Roman](https://www.youtube.com/watch?v=Bl8GK7tjqOU)"
+        },
+        {
+          "id": "769ACD5A-AC13-46B2-97D8-58C95CD58E56",
+          "type": "text",
+          "markdown": "Or put a Figma link:"
+        },
+        {
+          "id": "0D8A0DBE-C321-4603-BD48-5EEF63447D02",
+          "type": "richUrl",
+          "url": "https://www.figma.com/make/tZ3VCGR1NybMXpYPtUCFQT/Interactive-Components-Tutorial?fullscreen=1&t=zk3ynxFX0aIaieCf-1",
+          "title": "Figma",
+          "description": "Created with Figma",
+          "markdown": "[Figma](https://www.figma.com/make/tZ3VCGR1NybMXpYPtUCFQT/Interactive-Components-Tutorial?fullscreen=1&t=zk3ynxFX0aIaieCf-1)"
+        },
+        {
+          "id": "749A522D-1E8C-426D-8D44-807EA632D113",
+          "type": "text",
+          "markdown": "Here is a formula!"
+        },
+        {
+          "id": "07EDD713-2A9C-4DF7-A92C-E67E68351150",
+          "type": "code",
+          "language": "math_formula",
+          "rawCode": "d_1 = \\frac{1}{\\sigma \\sqrt{t}} \\left[ \\ln\\left(\\frac{S_t}{K}\\right) + \\left(r + \\frac{\\sigma^2}{2}\\right)t \\right]",
+          "markdown": "```math_formula\nd_1 = \\frac{1}{\\sigma \\sqrt{t}} \\left[ \\ln\\left(\\frac{S_t}{K}\\right) + \\left(r + \\frac{\\sigma^2}{2}\\right)t \\right]\n```"
+        },
+        {
+          "id": "4763DD16-DC11-490B-B194-46FA6C25DC9E",
+          "type": "text",
+          "markdown": ""
+        },
+        {
+          "id": "A88898E8-A822-4F42-9D5B-AD1BBEB5DDC4",
+          "type": "text",
+          "markdown": "Here is also a task list:"
+        },
+        {
+          "id": "C43BC46E-51D5-49DF-9020-8E2BBA6F80FB",
+          "type": "text",
+          "taskInfo": { "state": "todo" },
+          "listStyle": "task",
+          "markdown": "- [ ] Task 1"
+        },
+        {
+          "id": "C10B761F-9ADD-42FA-8C79-C1B357E4F810",
+          "type": "text",
+          "taskInfo": { "state": "todo" },
+          "listStyle": "task",
+          "markdown": "- [ ] Task 2"
+        },
+        {
+          "id": "8BBEECA7-2424-4FC0-8554-5637A454873B",
+          "type": "text",
+          "taskInfo": { "state": "todo" },
+          "listStyle": "task",
+          "markdown": "- [ ] Task 3"
+        },
+        {
+          "id": "362D2B1B-6777-4432-95E6-1CD2341A624E",
+          "type": "text",
+          "markdown": "And here is a collapsable and expandable section"
+        },
+        {
+          "id": "1D4C86FF-76FD-4B16-9D51-C26D256214BF",
+          "type": "text",
+          "listStyle": "toggle",
+          "markdown": "+ The section starts here and this is expanded A"
+        },
+        {
+          "id": "6A303D67-AAC0-4047-919B-15A822A26605",
+          "type": "text",
+          "indentationLevel": 1,
+          "listStyle": "toggle",
+          "markdown": "  + And this is a sub item 1"
+        },
+        {
+          "id": "D278EFF3-047C-4C3E-B2CE-C57630F42786",
+          "type": "text",
+          "indentationLevel": 2,
+          "listStyle": "toggle",
+          "markdown": "    + and this is another sub item (a)"
+        },
+        {
+          "id": "7353EC89-635C-48EE-B970-5442E08836B3",
+          "type": "text",
+          "indentationLevel": 2,
+          "listStyle": "toggle",
+          "markdown": "    + and this is under that sub item (b)"
+        },
+        {
+          "id": "B4E64956-41B7-405E-A8A3-E73AE7BE5668",
+          "type": "text",
+          "indentationLevel": 1,
+          "listStyle": "toggle",
+          "markdown": "  + And this is sub item 2"
+        },
+        {
+          "id": "4FB50C31-73D6-47DE-A637-3246F6C7854D",
+          "type": "text",
+          "listStyle": "toggle",
+          "markdown": "+ And this section is collapsed B with nothing under"
+        },
+        {
+          "id": "E4AF0727-3383-41C2-A2CE-27115F2FC994",
+          "type": "text",
+          "markdown": "Here are bullets"
+        },
+        {
+          "id": "CC2AD66A-A06C-4842-B04B-B6D2B94B1C11",
+          "type": "text",
+          "listStyle": "bullet",
+          "markdown": "- This is the primary bullet"
+        },
+        {
+          "id": "ECC731F4-ECD8-458C-ABC8-F420D5034AD0",
+          "type": "text",
+          "indentationLevel": 1,
+          "listStyle": "bullet",
+          "markdown": "  - "
+        },
+        {
+          "id": "EB2E2067-44D0-4FD9-9E63-C0C2FC0ED864",
+          "type": "text",
+          "indentationLevel": 1,
+          "listStyle": "bullet",
+          "markdown": "  - This is the sub bullet"
+        },
+        {
+          "id": "82F89722-7C25-4D87-9296-1223FF52834C",
+          "type": "text",
+          "indentationLevel": 2,
+          "listStyle": "bullet",
+          "markdown": "    - and this is the sub sub bullet"
+        },
+        {
+          "id": "2D2B0572-E473-4430-BCE9-1FF3147380F1",
+          "type": "text",
+          "listStyle": "bullet",
+          "markdown": "- This is another primary bullet"
+        },
+        {
+          "id": "559EFE62-F62B-47D4-8869-B5A58BDB4121",
+          "type": "text",
+          "markdown": "Here are the numbers"
+        },
+        {
+          "id": "0A9ABD4E-E924-403A-912D-DD7CB5E48F0D",
+          "type": "text",
+          "listStyle": "numbered",
+          "markdown": "1. This is a number 1"
+        },
+        {
+          "id": "A047B6F2-0A61-4E6A-81A3-88E57A8F4C58",
+          "type": "text",
+          "listStyle": "numbered",
+          "markdown": "1. This is a number 2"
+        },
+        {
+          "id": "A48D5FF5-0EDB-4681-8A4C-1B0869F98D3E",
+          "type": "text",
+          "listStyle": "numbered",
+          "markdown": "1. This is a number 3"
+        },
+        {
+          "id": "E727E577-CE62-4B13-ACF2-EFFEDE86C7B0",
+          "type": "text",
+          "indentationLevel": 1,
+          "listStyle": "numbered",
+          "markdown": "  1. And this is a sub number"
+        },
+        {
+          "id": "84CEB1EB-4317-4152-BCE0-0AF8D604C23C",
+          "type": "text",
+          "indentationLevel": 2,
+          "listStyle": "numbered",
+          "markdown": "    1. And this is a sub sub number"
+        },
+        {
+          "id": "F821A4AA-1823-4F10-AAEA-AAEE36765200",
+          "type": "text",
+          "listStyle": "numbered",
+          "markdown": "1. And this is Number 4"
+        },
+        {
+          "id": "DC172FD9-F639-4628-BD4F-93B1150CAC7E",
+          "type": "text",
+          "markdown": "We also have decorations which include"
+        },
+        {
+          "id": "67E4284C-D2DB-49E3-98BB-73A16A38DD72",
+          "type": "text",
+          "decorations": ["quote"],
+          "markdown": "> Focus on items, and this one has no color"
+        },
+        {
+          "id": "B8860605-594B-4BC2-83EE-8B8F5F96D6A9",
+          "type": "text",
+          "decorations": ["callout"],
+          "markdown": "<callout>Or putting items in a Block, and this has no color</callout>"
+        },
+        {
+          "id": "F0075991-67C2-4CCD-BC55-B308E6B43254",
+          "type": "text",
+          "textStyle": "caption",
+          "decorations": ["quote"],
+          "color": "#c400ff",
+          "markdown": "> <caption>And this focus has a color of purple with caption</caption>"
+        },
+        {
+          "id": "CADCE94B-E249-4499-A574-518EAABDD38A",
+          "type": "text",
+          "textStyle": "h1",
+          "decorations": ["callout"],
+          "color": "#00ca85",
+          "markdown": "<callout># And this block has a color of green with a title</callout>"
+        },
+        {
+          "id": "C6AA95AA-52CB-4C7A-993D-6A9C3280F12F",
+          "type": "text",
+          "markdown": "Paragraphs can be left aligned."
+        },
+        {
+          "id": "EB87C711-D77B-4572-8FA9-730BE8365CED",
+          "type": "text",
+          "textAlignment": "center",
+          "markdown": "Or they can be centered"
+        },
+        {
+          "id": "6EFE42A0-46C1-4C77-B93B-B6C5FB8A8172",
+          "type": "text",
+          "textAlignment": "right",
+          "markdown": "Or they can be right aligned"
+        },
+        {
+          "id": "B27F29AC-1C6B-4882-B36C-B7CC9D90DD90",
+          "type": "text",
+          "textAlignment": "justify",
+          "markdown": "Or even justified"
+        },
+        {
+          "id": "9D0CD275-A57D-4BE6-A14B-3F14060D776A",
+          "type": "text",
+          "textAlignment": "justify",
+          "markdown": "They can have colors as well including the default."
+        },
+        {
+          "id": "24B7A64B-FD63-45F4-AB0E-5B6B6A2B185C",
+          "type": "text",
+          "textAlignment": "justify",
+          "color": "#ef052a",
+          "markdown": "Or something red"
+        },
+        {
+          "id": "C9ED06CF-2347-4141-985D-01E6BF3866ED",
+          "type": "text",
+          "textAlignment": "justify",
+          "color": "#ff9200",
+          "markdown": "Or even orange."
+        },
+        {
+          "id": "D5644B09-0126-4C7F-A2E0-94BE2396F51E",
+          "type": "text",
+          "textAlignment": "justify",
+          "color": "#00ca85",
+          "markdown": "This is the system font with green."
+        },
+        {
+          "id": "FB68C899-4911-4186-9BC8-1C3CA62808B6",
+          "type": "text",
+          "textAlignment": "justify",
+          "font": "serif",
+          "color": "#0400ff",
+          "markdown": "And this is the Serif font with blue."
+        },
+        {
+          "id": "5E14713E-9A5B-4A72-8AA1-6882DEE4F217",
+          "type": "text",
+          "textAlignment": "justify",
+          "font": "mono",
+          "color": "#864d00",
+          "markdown": "And this is the mono font with brown."
+        },
+        {
+          "id": "3BCBC41E-F469-4E03-BF8D-5970D7884893",
+          "type": "text",
+          "textAlignment": "justify",
+          "font": "rounded",
+          "color": "#c400ff",
+          "markdown": "And this is the round font with purple."
+        },
+        {
+          "id": "A72269C7-9B26-4FAB-97B8-6349910C90B1",
+          "type": "text",
+          "textAlignment": "justify",
+          "font": "rounded",
+          "markdown": "I've also added here a whiteboard right below:"
+        },
+        {
+          "id": "FD37DB34-987B-4675-8695-32AEECB7EB00",
+          "type": "whiteboard",
+          "url": "https://r.craft.do/nMlHZLktTg",
+          "markdown": "![Whiteboard](https://r.craft.do/nMlHZLktTg)"
+        },
+        {
+          "id": "5A0EDA07-E639-4C5B-8E12-C805A08641AA",
+          "type": "text",
+          "textAlignment": "justify",
+          "font": "rounded",
+          "markdown": "And this is an image"
+        },
+        {
+          "id": "3696DA2B-ADE5-4EC3-8771-60EEA151430B",
+          "type": "image",
+          "url": "https://r.craft.do/7kRrQjUZV6",
+          "markdown": "![Image](https://r.craft.do/7kRrQjUZV6)"
+        },
+        {
+          "id": "2AE25AF7-02B3-4D99-B4E9-15D78631EC9B",
+          "type": "text",
+          "textAlignment": "justify",
+          "font": "rounded",
+          "markdown": "Wait, this is another three images!:"
+        },
+        {
+          "id": "BF6B6928-39B0-4152-AD9C-B923BF5D9EF8",
+          "type": "image",
+          "url": "https://images.unsplash.com/photo-1741812191037-96bb5f12010a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxNDIyNzR8MHwxfGNvbGxlY3Rpb258MnwzMTcwOTl8fHx8fDJ8fDE3Njk4MjI2MzZ8&ixlib=rb-4.1.0&q=80&w=1080"
+        },
+        {
+          "id": "BF396F0B-BF73-487D-812F-A02E4810816F",
+          "type": "image",
+          "url": "https://images.unsplash.com/photo-1741800459656-4116dcb230ae?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxNDIyNzR8MHwxfGNvbGxlY3Rpb258N3wzMTcwOTl8fHx8fDJ8fDE3Njk4MjI2MzZ8&ixlib=rb-4.1.0&q=80&w=1080"
+        },
+        {
+          "id": "512FBEC1-A36E-4A64-B9C8-D64D4270AC33",
+          "type": "image",
+          "url": "https://images.unsplash.com/photo-1742197062761-1e44b0d7fd2e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxNDIyNzR8MHwxfGNvbGxlY3Rpb258NXwzMTcwOTl8fHx8fDJ8fDE3Njk4MjI2MzZ8&ixlib=rb-4.1.0&q=80&w=1080"
+        },
+        {
+          "id": "FF27E001-0072-4AE4-9CEB-1FA41938C4AE",
+          "type": "text",
+          "markdown": "Okay now finall, we have pages!"
+        },
+        {
+          "id": "B8941996-FB65-4060-8C1E-6318B5B90DAD",
+          "type": "page",
+          "textStyle": "page",
+          "markdown": "Woah, this is a page",
+          "content": [
+            {
+              "id": "F3E0977C-B0ED-446E-B4E7-99D27AACBC7D",
+              "type": "text",
+              "markdown": "and i can click in, it lives inside the main page i just came from. "
+            }
+          ]
+        },
+        {
+          "id": "0504009E-05CC-4D67-84F4-F1ED4233A096",
+          "type": "text",
+          "markdown": "And we have cards. so many types"
+        },
+        {
+          "id": "394447F0-4FA6-4663-A1A0-D288FEC47E3D",
+          "type": "page",
+          "textStyle": "card",
+          "cardLayout": "regular",
+          "markdown": "The most basic card",
+          "content": [
+            {
+              "id": "CFF705B5-20E5-4285-A6C1-F8F01C9D6937",
+              "type": "text",
+              "markdown": "With a circle"
+            }
+          ]
+        },
+        {
+          "id": "17771BAC-2F64-4148-93E1-22DFE8B7A340",
+          "type": "page",
+          "textStyle": "card",
+          "cardLayout": "small",
+          "markdown": "Another card style",
+          "content": [
+            {
+              "id": "CB82302D-AA2A-411C-B843-E3A5DE42F7C0",
+              "type": "text",
+              "markdown": "With a circle"
+            }
+          ]
+        },
+        {
+          "id": "9CC856E3-0803-4AD4-93D1-B3E80829302C",
+          "type": "page",
+          "textStyle": "card",
+          "cardLayout": "small",
+          "markdown": "This has emojis!",
+          "content": [
+            {
+              "id": "27579E01-059B-436A-8448-6F598C9E5BC2",
+              "type": "text",
+              "markdown": "Nothing crazy"
+            }
+          ]
+        },
+        {
+          "id": "AF627A5C-E307-4CF9-9A7E-8E866BED35E6",
+          "type": "page",
+          "textStyle": "card",
+          "cardLayout": "square",
+          "markdown": "This has a page-like preview. ",
+          "content": [
+            {
+              "id": "B1BA2155-FF3D-4B48-91C6-41D2715A6644",
+              "type": "text",
+              "markdown": "Simple"
+            }
+          ]
+        },
+        {
+          "id": "E1C950D0-157F-4B6C-8D89-1D84369664B1",
+          "type": "page",
+          "textStyle": "card",
+          "cardLayout": "regular",
+          "markdown": "This has a three image thumb preview",
+          "content": [
+            {
+              "id": "CD50CCC8-58A2-4E8D-8BB6-F52EA541523C",
+              "type": "text",
+              "markdown": "Simple"
+            }
+          ]
+        },
+        {
+          "id": "9FDE68F7-09DC-427E-9F52-617D78F48A28",
+          "type": "page",
+          "textStyle": "card",
+          "cardLayout": "large",
+          "markdown": "This has a gradient + emojis",
+          "content": [
+            {
+              "id": "7A72CAB8-78BC-49AB-8517-7AE337FF7F94",
+              "type": "text",
+              "markdown": "Simple"
+            }
+          ]
+        },
+        {
+          "id": "CFCBE3E2-BCA4-493A-B77E-4FE6DBCF0086",
+          "type": "page",
+          "textStyle": "card",
+          "cardLayout": "large",
+          "markdown": "This has a photo + pages preview",
+          "content": [
+            {
+              "id": "01929E56-2681-41A2-9984-7375E9B8F167",
+              "type": "text",
+              "markdown": "Simple"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
