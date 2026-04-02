@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/ashrafali/craft-cli/internal/api"
 	"github.com/spf13/cobra"
 )
 
@@ -129,10 +130,20 @@ func runSetup() error {
 		fmt.Printf("  Using name: %s\n", profileName)
 	}
 
+	fmt.Println()
+	fmt.Print("Optional API key (press Enter to skip): ")
+	setupAPIKey, err := reader.ReadString('\n')
+	if err != nil {
+		return fmt.Errorf("failed to read input: %w", err)
+	}
+	setupAPIKey = strings.TrimSpace(setupAPIKey)
+
 	// Save profile
-	if err := cfgManager.AddProfile(profileName, apiURL); err != nil {
+	if err := cfgManager.AddProfileWithKey(profileName, apiURL, setupAPIKey); err != nil {
 		return fmt.Errorf("failed to save profile: %w", err)
 	}
+
+	printSetupVerification(apiURL, setupAPIKey)
 
 	// Success!
 	printSuccess(profileName)
@@ -190,6 +201,32 @@ func printSuccess(profileName string) {
 	fmt.Println()
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	fmt.Println()
+}
+
+func printSetupVerification(apiURL, apiKey string) {
+	fmt.Println()
+	fmt.Println("Verifying connection and permissions...")
+	fmt.Println()
+
+	client := api.NewClient(apiURL)
+	if apiKey != "" {
+		client = api.NewClientWithKey(apiURL, apiKey)
+	}
+
+	if _, err := client.GetConnection(); err != nil {
+		fmt.Printf("✗ Connectivity: Failed (%v)\n", err)
+	} else {
+		fmt.Println("✓ Connectivity: OK")
+	}
+
+	if _, err := client.GetDocuments(); err != nil {
+		fmt.Printf("✗ Read:         Denied (%v)\n", err)
+	} else {
+		fmt.Println("✓ Read:         Allowed")
+	}
+
+	fmt.Println("  Write:        Use 'craft create --dry-run' to test")
+	fmt.Println("  Delete:       Use 'craft delete --dry-run' to test")
 }
 
 func promptYesNo(reader *bufio.Reader, question string, defaultYes bool) bool {
