@@ -24,6 +24,8 @@ var (
 	searchModifiedAfter  string
 	searchModifiedBefore string
 	searchLimit          int
+	searchCount          bool
+	searchFields         string
 )
 
 var searchCmd = &cobra.Command{
@@ -76,6 +78,8 @@ func init() {
 	searchCmd.Flags().StringVar(&searchModifiedAfter, "modified-after", "", "Filter: modified on or after date (YYYY-MM-DD)")
 	searchCmd.Flags().StringVar(&searchModifiedBefore, "modified-before", "", "Filter: modified on or before date (YYYY-MM-DD)")
 	searchCmd.Flags().IntVar(&searchLimit, "limit", 0, "Maximum number of results to return (0 = all, API max is 20)")
+	searchCmd.Flags().BoolVar(&searchCount, "count", false, "Output only the matching result count")
+	searchCmd.Flags().StringVar(&searchFields, "fields", "", "Comma-separated fields to include in JSON output (e.g. documentId,markdown)")
 }
 
 // runBlockSearch executes a block-level search within a document.
@@ -95,6 +99,10 @@ func runBlockSearch(client *api.Client, args []string, format string) error {
 	result, err := client.SearchBlocks(searchDocument, pattern, searchCaseSensitive, searchContext, searchContext)
 	if err != nil {
 		return err
+	}
+
+	if searchCount {
+		return outputCount(len(result.Items))
 	}
 
 	if len(result.Items) == 0 {
@@ -135,7 +143,13 @@ func runDocumentSearch(client *api.Client, args []string, format string) error {
 		return err
 	}
 
-	if searchLimit > 0 && len(result.Items) > searchLimit {
+	if searchCount {
+		return outputCount(result.Total)
+	}
+
+	originalReturned := len(result.Items)
+	truncated := searchLimit > 0 && len(result.Items) > searchLimit
+	if truncated {
 		result.Items = result.Items[:searchLimit]
 	}
 
@@ -145,7 +159,17 @@ func runDocumentSearch(client *api.Client, args []string, format string) error {
 		printStatus("Found %d result(s)\n", len(result.Items))
 	}
 
+	if searchFields != "" {
+		items, err := projectItems(result.Items, searchFields)
+		if err != nil {
+			return err
+		}
+		return outputJSON(payloadWithMetadata(items, result.Total, truncated, originalReturned, len(result.Items), "craft search "+quoteMCPArg(query)+" --limit 0"))
+	}
 	if format == FormatJSON {
+		if truncated {
+			return outputJSON(payloadWithMetadata(result.Items, result.Total, true, originalReturned, len(result.Items), "craft search "+quoteMCPArg(query)+" --limit 0"))
+		}
 		return outputSearchResultsPayload(result, format)
 	}
 	return outputSearchResults(result.Items, format)

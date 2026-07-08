@@ -12,13 +12,17 @@ import (
 
 // CommandSchema describes a CLI command for machine consumption
 type CommandSchema struct {
-	Name        string          `json:"name"`
-	Description string          `json:"description"`
-	Usage       string          `json:"usage"`
-	Flags       []FlagSchema    `json:"flags,omitempty"`
-	Subcommands []CommandSchema `json:"subcommands,omitempty"`
-	Examples    []string        `json:"examples,omitempty"`
-	Safety      *SafetyInfo     `json:"safety,omitempty"`
+	SchemaVersion        string          `json:"schema_version,omitempty"`
+	Name                 string          `json:"name"`
+	Description          string          `json:"description"`
+	Usage                string          `json:"usage"`
+	Flags                []FlagSchema    `json:"flags,omitempty"`
+	Subcommands          []CommandSchema `json:"subcommands,omitempty"`
+	Examples             []string        `json:"examples,omitempty"`
+	Safety               *SafetyInfo     `json:"safety,omitempty"`
+	Backends             []string        `json:"backends,omitempty"`
+	RequiredCapabilities []string        `json:"required_capabilities,omitempty"`
+	OptionalCapabilities []string        `json:"optional_capabilities,omitempty"`
 }
 
 // FlagSchema describes a command flag
@@ -95,6 +99,9 @@ func buildSchema(cmd *cobra.Command) CommandSchema {
 		Description: cmd.Short,
 		Usage:       cmd.UseLine(),
 	}
+	if cmd == rootCmd {
+		schema.SchemaVersion = "2026-07-08"
+	}
 
 	// Collect examples
 	if cmd.Example != "" {
@@ -122,16 +129,102 @@ func buildSchema(cmd *cobra.Command) CommandSchema {
 
 	// Add safety metadata based on command name
 	schema.Safety = inferSafety(cmd.Name())
+	schema.Backends, schema.RequiredCapabilities, schema.OptionalCapabilities = inferCommandCapabilities(cmd)
 
 	// Collect subcommands
 	for _, sub := range cmd.Commands() {
-		if sub.IsAvailableCommand() && sub.Name() != "help" && sub.Name() != "schema" {
+		isRootSchemaCommand := cmd.Name() == "craft" && sub.Name() == "schema"
+		if sub.IsAvailableCommand() && sub.Name() != "help" && !isRootSchemaCommand {
 			subSchema := buildSchema(sub)
 			schema.Subcommands = append(schema.Subcommands, subSchema)
 		}
 	}
 
 	return schema
+}
+
+func inferCommandCapabilities(cmd *cobra.Command) ([]string, []string, []string) {
+	path := cmd.CommandPath()
+	name := cmd.Name()
+
+	if strings.HasPrefix(path, "craft mcp") {
+		return []string{"mcp"}, []string{"mcp"}, nil
+	}
+	if path == "craft batch" {
+		return []string{"mcp"}, []string{"mcp", "batch"}, nil
+	}
+	if strings.HasPrefix(path, "craft audit") {
+		return []string{"local"}, []string{"audit"}, nil
+	}
+	if strings.HasPrefix(path, "craft profiles") {
+		return []string{"local"}, []string{"profiles"}, nil
+	}
+	if strings.HasPrefix(path, "craft collections views") ||
+		strings.HasPrefix(path, "craft collections active-view") {
+		if name == "list" {
+			return []string{"mcp"}, []string{"mcp", "read", "collections.views"}, nil
+		}
+		return []string{"mcp"}, []string{"mcp", "write", "collections.views"}, nil
+	}
+	if strings.Contains(path, "resolve-link") ||
+		strings.Contains(path, "explore-icons") ||
+		strings.Contains(path, "explore-themes") ||
+		strings.Contains(path, "explore-washi") ||
+		strings.Contains(path, "search-unsplash") ||
+		strings.Contains(path, "revert") {
+		return []string{"mcp"}, []string{"mcp"}, nil
+	}
+
+	backends := []string{"rest"}
+	var required []string
+	var optional []string
+
+	switch name {
+	case "list", "get", "search", "connection", "info", "docs", "limits", "version", "schema", "llm", "completion":
+		required = []string{"read"}
+	case "create", "add", "upload":
+		required = []string{"write"}
+	case "update", "move":
+		required = []string{"write"}
+	case "delete", "clear", "remove":
+		required = []string{"write", "delete"}
+	}
+
+	if strings.HasPrefix(path, "craft blocks") {
+		backends = []string{"rest", "mcp"}
+		optional = append(optional, "mcp", "blocks.style", "blocks.revert")
+	}
+	if path == "craft list" {
+		backends = []string{"rest", "mcp"}
+		optional = append(optional, "cursor")
+	}
+	if strings.HasPrefix(path, "craft collections") {
+		optional = append(optional, "mcp", "collections.views")
+	}
+	if strings.HasPrefix(path, "craft whiteboards") {
+		required = append(required, "whiteboards")
+	}
+	if strings.HasPrefix(path, "craft local") {
+		return []string{"local"}, []string{"craft-app"}, nil
+	}
+
+	if len(required) == 0 && len(optional) == 0 {
+		return backends, nil, nil
+	}
+	return backends, uniqueStrings(required), uniqueStrings(optional)
+}
+
+func uniqueStrings(values []string) []string {
+	seen := map[string]bool{}
+	var result []string
+	for _, value := range values {
+		if value == "" || seen[value] {
+			continue
+		}
+		seen[value] = true
+		result = append(result, value)
+	}
+	return result
 }
 
 func inferSafety(name string) *SafetyInfo {

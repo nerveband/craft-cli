@@ -36,9 +36,9 @@ func TestClient_GetDocuments(t *testing.T) {
 		response := models.DocumentList{
 			Items: []models.Document{
 				{
-					ID:        "doc1",
-					Title:     "Test Document",
-					CreatedAt: time.Now(),
+					ID:             "doc1",
+					Title:          "Test Document",
+					CreatedAt:      time.Now(),
 					LastModifiedAt: time.Now(),
 				},
 			},
@@ -261,6 +261,40 @@ func TestClient_CreateDocument(t *testing.T) {
 	}
 }
 
+func TestClient_CreateDocumentsRaw(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/documents" {
+			t.Errorf("Expected path /documents, got %s", r.URL.Path)
+		}
+		if r.Method != "POST" {
+			t.Errorf("Expected POST method, got %s", r.Method)
+		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("failed to decode request body: %v", err)
+		}
+		docs, ok := body["documents"].([]interface{})
+		if !ok || len(docs) != 1 {
+			t.Fatalf("documents payload = %#v", body["documents"])
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"items": []map[string]string{{"id": "doc1", "title": "Raw Doc"}},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	docs, err := client.CreateDocumentsRaw(map[string]interface{}{
+		"documents": []interface{}{map[string]interface{}{"title": "Raw Doc"}},
+	})
+	if err != nil {
+		t.Fatalf("CreateDocumentsRaw() error = %v", err)
+	}
+	if len(docs) != 1 || docs[0].ID != "doc1" {
+		t.Fatalf("CreateDocumentsRaw() docs = %#v", docs)
+	}
+}
+
 func TestClient_UpdateDocument(t *testing.T) {
 	t.Run("title only update succeeds", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -392,6 +426,146 @@ func TestClient_DeleteDocument(t *testing.T) {
 		err := client.DeleteDocument("doc1")
 		if err != nil {
 			t.Fatalf("DeleteDocument() error = %v", err)
+		}
+	})
+}
+
+func TestClient_MoveDocument(t *testing.T) {
+	t.Run("moves to folder using documented endpoint and payload", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != "PUT" {
+				t.Errorf("Expected PUT method, got %s", r.Method)
+			}
+			if r.URL.Path != "/documents/move" {
+				t.Errorf("Expected path /documents/move, got %s", r.URL.Path)
+			}
+
+			var body struct {
+				DocumentIDs []string `json:"documentIds"`
+				Destination struct {
+					FolderID    string `json:"folderId"`
+					Destination string `json:"destination"`
+				} `json:"destination"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("Failed to decode request body: %v", err)
+			}
+			if len(body.DocumentIDs) != 1 || body.DocumentIDs[0] != "doc1" {
+				t.Fatalf("Expected documentIds [doc1], got %#v", body.DocumentIDs)
+			}
+			if body.Destination.FolderID != "folder1" {
+				t.Errorf("Expected destination.folderId folder1, got %s", body.Destination.FolderID)
+			}
+			if body.Destination.Destination != "" {
+				t.Errorf("Expected no virtual destination, got %s", body.Destination.Destination)
+			}
+
+			json.NewEncoder(w).Encode(map[string]interface{}{"items": []map[string]string{{"id": "doc1"}}})
+		}))
+		defer server.Close()
+
+		client := NewClient(server.URL)
+		if err := client.MoveDocument("doc1", "folder1", ""); err != nil {
+			t.Fatalf("MoveDocument() error = %v", err)
+		}
+	})
+
+	t.Run("moves to virtual location using documented endpoint and payload", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != "/documents/move" {
+				t.Errorf("Expected path /documents/move, got %s", r.URL.Path)
+			}
+
+			var body struct {
+				DocumentIDs []string `json:"documentIds"`
+				Destination struct {
+					Destination string `json:"destination"`
+				} `json:"destination"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("Failed to decode request body: %v", err)
+			}
+			if len(body.DocumentIDs) != 1 || body.DocumentIDs[0] != "doc1" {
+				t.Fatalf("Expected documentIds [doc1], got %#v", body.DocumentIDs)
+			}
+			if body.Destination.Destination != "unsorted" {
+				t.Errorf("Expected destination.destination unsorted, got %s", body.Destination.Destination)
+			}
+
+			json.NewEncoder(w).Encode(map[string]interface{}{"items": []map[string]string{{"id": "doc1"}}})
+		}))
+		defer server.Close()
+
+		client := NewClient(server.URL)
+		if err := client.MoveDocument("doc1", "", "unsorted"); err != nil {
+			t.Fatalf("MoveDocument() error = %v", err)
+		}
+	})
+}
+
+func TestClient_MoveFolder(t *testing.T) {
+	t.Run("moves to parent using documented endpoint and payload", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != "PUT" {
+				t.Errorf("Expected PUT method, got %s", r.Method)
+			}
+			if r.URL.Path != "/folders/move" {
+				t.Errorf("Expected path /folders/move, got %s", r.URL.Path)
+			}
+
+			var body struct {
+				FolderIDs   []string `json:"folderIds"`
+				Destination struct {
+					ParentFolderID string `json:"parentFolderId"`
+				} `json:"destination"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("Failed to decode request body: %v", err)
+			}
+			if len(body.FolderIDs) != 1 || body.FolderIDs[0] != "folder1" {
+				t.Fatalf("Expected folderIds [folder1], got %#v", body.FolderIDs)
+			}
+			if body.Destination.ParentFolderID != "parent1" {
+				t.Errorf("Expected parentFolderId parent1, got %s", body.Destination.ParentFolderID)
+			}
+
+			json.NewEncoder(w).Encode(map[string]interface{}{"items": []map[string]string{{"id": "folder1"}}})
+		}))
+		defer server.Close()
+
+		client := NewClient(server.URL)
+		if err := client.MoveFolder("folder1", "parent1"); err != nil {
+			t.Fatalf("MoveFolder() error = %v", err)
+		}
+	})
+
+	t.Run("moves to root using documented endpoint and payload", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != "/folders/move" {
+				t.Errorf("Expected path /folders/move, got %s", r.URL.Path)
+			}
+
+			var body struct {
+				FolderIDs   []string    `json:"folderIds"`
+				Destination interface{} `json:"destination"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("Failed to decode request body: %v", err)
+			}
+			if len(body.FolderIDs) != 1 || body.FolderIDs[0] != "folder1" {
+				t.Fatalf("Expected folderIds [folder1], got %#v", body.FolderIDs)
+			}
+			if body.Destination != "root" {
+				t.Errorf("Expected destination root, got %#v", body.Destination)
+			}
+
+			json.NewEncoder(w).Encode(map[string]interface{}{"items": []map[string]string{{"id": "folder1"}}})
+		}))
+		defer server.Close()
+
+		client := NewClient(server.URL)
+		if err := client.MoveFolder("folder1", ""); err != nil {
+			t.Fatalf("MoveFolder() error = %v", err)
 		}
 	})
 }
@@ -689,6 +863,210 @@ func TestClient_UpdateBlocksJSON(t *testing.T) {
 		err := client.UpdateBlocksJSON(blocks)
 		if err != nil {
 			t.Fatalf("UpdateBlocksJSON() error = %v", err)
+		}
+	})
+}
+
+func TestClient_TaskPayloads(t *testing.T) {
+	t.Run("adds task with nested taskInfo and location", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != "POST" {
+				t.Errorf("Expected POST method, got %s", r.Method)
+			}
+			if r.URL.Path != "/tasks" {
+				t.Errorf("Expected path /tasks, got %s", r.URL.Path)
+			}
+
+			var body struct {
+				Tasks []struct {
+					Markdown string `json:"markdown"`
+					TaskInfo struct {
+						ScheduleDate string `json:"scheduleDate"`
+						DeadlineDate string `json:"deadlineDate"`
+					} `json:"taskInfo"`
+					Location struct {
+						Type       string `json:"type"`
+						DocumentID string `json:"documentId"`
+					} `json:"location"`
+				} `json:"tasks"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("Failed to decode request body: %v", err)
+			}
+			if len(body.Tasks) != 1 {
+				t.Fatalf("Expected 1 task, got %d", len(body.Tasks))
+			}
+			task := body.Tasks[0]
+			if task.Markdown != "Review PR" {
+				t.Errorf("Expected markdown Review PR, got %s", task.Markdown)
+			}
+			if task.TaskInfo.ScheduleDate != "2026-02-01" {
+				t.Errorf("Expected scheduleDate 2026-02-01, got %s", task.TaskInfo.ScheduleDate)
+			}
+			if task.TaskInfo.DeadlineDate != "2026-02-15" {
+				t.Errorf("Expected deadlineDate 2026-02-15, got %s", task.TaskInfo.DeadlineDate)
+			}
+			if task.Location.Type != "document" {
+				t.Errorf("Expected location.type document, got %s", task.Location.Type)
+			}
+			if task.Location.DocumentID != "doc1" {
+				t.Errorf("Expected location.documentId doc1, got %s", task.Location.DocumentID)
+			}
+
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"items": []map[string]interface{}{
+					{
+						"id":       "task1",
+						"markdown": "Review PR",
+						"taskInfo": map[string]interface{}{
+							"state":        "todo",
+							"scheduleDate": "2026-02-01",
+							"deadlineDate": "2026-02-15",
+						},
+					},
+				},
+			})
+		}))
+		defer server.Close()
+
+		client := NewClient(server.URL)
+		task, err := client.AddTask("Review PR", "document", "doc1", "2026-02-01", "2026-02-15")
+		if err != nil {
+			t.Fatalf("AddTask() error = %v", err)
+		}
+		if task.State != "todo" {
+			t.Errorf("Expected state todo, got %s", task.State)
+		}
+		if task.ScheduleDate != "2026-02-01" {
+			t.Errorf("Expected scheduleDate 2026-02-01, got %s", task.ScheduleDate)
+		}
+	})
+
+	t.Run("updates task with tasksToUpdate and nested taskInfo", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != "PUT" {
+				t.Errorf("Expected PUT method, got %s", r.Method)
+			}
+			if r.URL.Path != "/tasks" {
+				t.Errorf("Expected path /tasks, got %s", r.URL.Path)
+			}
+
+			var body struct {
+				TasksToUpdate []struct {
+					ID       string `json:"id"`
+					TaskInfo struct {
+						State        string `json:"state"`
+						ScheduleDate string `json:"scheduleDate"`
+					} `json:"taskInfo"`
+				} `json:"tasksToUpdate"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("Failed to decode request body: %v", err)
+			}
+			if len(body.TasksToUpdate) != 1 {
+				t.Fatalf("Expected 1 task update, got %d", len(body.TasksToUpdate))
+			}
+			update := body.TasksToUpdate[0]
+			if update.ID != "task1" {
+				t.Errorf("Expected id task1, got %s", update.ID)
+			}
+			if update.TaskInfo.State != "done" {
+				t.Errorf("Expected state done, got %s", update.TaskInfo.State)
+			}
+			if update.TaskInfo.ScheduleDate != "2026-02-01" {
+				t.Errorf("Expected scheduleDate 2026-02-01, got %s", update.TaskInfo.ScheduleDate)
+			}
+
+			json.NewEncoder(w).Encode(map[string]interface{}{"items": []map[string]string{{"id": "task1"}}})
+		}))
+		defer server.Close()
+
+		client := NewClient(server.URL)
+		if err := client.UpdateTask("task1", "done", "2026-02-01", ""); err != nil {
+			t.Fatalf("UpdateTask() error = %v", err)
+		}
+	})
+
+	t.Run("deletes task with idsToDelete", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != "DELETE" {
+				t.Errorf("Expected DELETE method, got %s", r.Method)
+			}
+			if r.URL.Path != "/tasks" {
+				t.Errorf("Expected path /tasks, got %s", r.URL.Path)
+			}
+
+			var body struct {
+				IDsToDelete []string `json:"idsToDelete"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("Failed to decode request body: %v", err)
+			}
+			if len(body.IDsToDelete) != 1 || body.IDsToDelete[0] != "task1" {
+				t.Fatalf("Expected idsToDelete [task1], got %#v", body.IDsToDelete)
+			}
+
+			json.NewEncoder(w).Encode(map[string]interface{}{"items": []map[string]string{{"id": "task1"}}})
+		}))
+		defer server.Close()
+
+		client := NewClient(server.URL)
+		if err := client.DeleteTask("task1"); err != nil {
+			t.Fatalf("DeleteTask() error = %v", err)
+		}
+	})
+
+	t.Run("raw task methods pass documented envelopes", func(t *testing.T) {
+		seen := map[string]bool{}
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != "/tasks" {
+				t.Errorf("Expected path /tasks, got %s", r.URL.Path)
+			}
+			var body map[string]interface{}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("Failed to decode request body: %v", err)
+			}
+			switch r.Method {
+			case "POST":
+				seen["post"] = true
+				if _, ok := body["tasks"].([]interface{}); !ok {
+					t.Fatalf("Expected raw tasks envelope, got %#v", body)
+				}
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"items": []map[string]interface{}{{"id": "task1", "markdown": "Raw task"}},
+				})
+			case "PUT":
+				seen["put"] = true
+				if _, ok := body["tasksToUpdate"].([]interface{}); !ok {
+					t.Fatalf("Expected raw tasksToUpdate envelope, got %#v", body)
+				}
+				json.NewEncoder(w).Encode(map[string]interface{}{"ok": true})
+			case "DELETE":
+				seen["delete"] = true
+				if _, ok := body["idsToDelete"].([]interface{}); !ok {
+					t.Fatalf("Expected raw idsToDelete envelope, got %#v", body)
+				}
+				json.NewEncoder(w).Encode(map[string]interface{}{"ok": true})
+			default:
+				t.Fatalf("Unexpected method %s", r.Method)
+			}
+		}))
+		defer server.Close()
+
+		client := NewClient(server.URL)
+		if _, err := client.AddTasksRaw(map[string]interface{}{"tasks": []interface{}{map[string]interface{}{"markdown": "Raw task"}}}); err != nil {
+			t.Fatalf("AddTasksRaw() error = %v", err)
+		}
+		if err := client.UpdateTasksRaw(map[string]interface{}{"tasksToUpdate": []interface{}{map[string]interface{}{"id": "task1"}}}); err != nil {
+			t.Fatalf("UpdateTasksRaw() error = %v", err)
+		}
+		if err := client.DeleteTasksRaw(map[string]interface{}{"idsToDelete": []interface{}{"task1"}}); err != nil {
+			t.Fatalf("DeleteTasksRaw() error = %v", err)
+		}
+		for _, key := range []string{"post", "put", "delete"} {
+			if !seen[key] {
+				t.Fatalf("Expected raw %s request", key)
+			}
 		}
 	})
 }

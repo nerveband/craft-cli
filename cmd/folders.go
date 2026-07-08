@@ -48,14 +48,49 @@ var foldersListCmd = &cobra.Command{
 
 var (
 	folderParentID string
+	folderJSON     string
+	folderStdin    bool
 )
 
 var foldersCreateCmd = &cobra.Command{
 	Use:   "create [name]",
 	Short: "Create a new folder",
 	Long:  "Create a new folder in your Craft space",
-	Args:  cobra.ExactArgs(1),
+	Args: func(cmd *cobra.Command, args []string) error {
+		if folderJSON != "" || folderStdin {
+			return cobra.NoArgs(cmd, args)
+		}
+		return cobra.ExactArgs(1)(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if folderJSON != "" || folderStdin {
+			payload, err := readRawPayload(folderJSON, folderStdin)
+			if err != nil {
+				return err
+			}
+			name := payloadString(payload, "name")
+			if name == "" {
+				return fmt.Errorf("raw folder create payload must include \"name\"")
+			}
+			parentID := payloadString(payload, "parentId", "parentID", "parent")
+			if isDryRun() {
+				return dryRunOutput("create folder", map[string]interface{}{"payload": payload})
+			}
+			client, err := getAPIClient()
+			if err != nil {
+				return err
+			}
+			folder, err := client.CreateFolder(name, parentID)
+			if err != nil {
+				return err
+			}
+			if isQuiet() {
+				fmt.Println(folder.ID)
+				return nil
+			}
+			return outputFolder(folder, getOutputFormat())
+		}
+
 		client, err := getAPIClient()
 		if err != nil {
 			return err
@@ -78,7 +113,10 @@ var foldersCreateCmd = &cobra.Command{
 }
 
 var (
-	folderTargetID string
+	folderTargetID    string
+	folderIconOffset  int
+	folderDeleteJSON  string
+	folderDeleteStdin bool
 )
 
 var foldersMoveCmd = &cobra.Command{
@@ -89,8 +127,55 @@ var foldersMoveCmd = &cobra.Command{
 Examples:
   craft folders move abc123 --to def456   # Move to another folder
   craft folders move abc123 --to root     # Move to root level`,
-	Args: cobra.ExactArgs(1),
+	Args: func(cmd *cobra.Command, args []string) error {
+		if folderJSON != "" || folderStdin {
+			return cobra.NoArgs(cmd, args)
+		}
+		return cobra.ExactArgs(1)(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if folderJSON != "" || folderStdin {
+			payload, err := readRawPayload(folderJSON, folderStdin)
+			if err != nil {
+				return err
+			}
+			ids, ok := payloadArray(payload, "folderIds")
+			if !ok {
+				if id := payloadString(payload, "id", "folderId"); id != "" {
+					ids = []interface{}{id}
+					ok = true
+				}
+			}
+			if !ok || len(ids) == 0 {
+				return fmt.Errorf("raw folder move payload must include non-empty \"folderIds\" array or \"id\"")
+			}
+			targetID := payloadString(payload, "parentFolderId", "parentId", "to", "destination")
+			if targetID == "root" {
+				targetID = ""
+			}
+			if isDryRun() {
+				return dryRunOutput("move folders", map[string]interface{}{"payload": payload, "count": len(ids)})
+			}
+			client, err := getAPIClient()
+			if err != nil {
+				return err
+			}
+			for _, id := range ids {
+				folderID, ok := id.(string)
+				if !ok || folderID == "" {
+					return fmt.Errorf("folderIds must contain strings")
+				}
+				if err := client.MoveFolder(folderID, targetID); err != nil {
+					return err
+				}
+			}
+			return outputJSON(map[string]interface{}{"moved": len(ids)})
+		}
+
+		if folderTargetID == "" {
+			return fmt.Errorf("--to is required")
+		}
+
 		client, err := getAPIClient()
 		if err != nil {
 			return err
@@ -121,8 +206,47 @@ var foldersDeleteCmd = &cobra.Command{
 	Use:   "delete [folder-id]",
 	Short: "Delete a folder",
 	Long:  "Delete a folder. Contents will be moved to the parent folder.",
-	Args:  cobra.ExactArgs(1),
+	Args: func(cmd *cobra.Command, args []string) error {
+		if folderDeleteJSON != "" || folderDeleteStdin {
+			return cobra.NoArgs(cmd, args)
+		}
+		return cobra.ExactArgs(1)(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if folderDeleteJSON != "" || folderDeleteStdin {
+			payload, err := readRawPayload(folderDeleteJSON, folderDeleteStdin)
+			if err != nil {
+				return err
+			}
+			ids, ok := payloadArray(payload, "folderIds")
+			if !ok {
+				if id := payloadString(payload, "id", "folderId"); id != "" {
+					ids = []interface{}{id}
+					ok = true
+				}
+			}
+			if !ok || len(ids) == 0 {
+				return fmt.Errorf("raw folder delete payload must include non-empty \"folderIds\" array or \"id\"")
+			}
+			if isDryRun() {
+				return dryRunOutput("delete folders", map[string]interface{}{"payload": payload, "count": len(ids), "destructive": true})
+			}
+			client, err := getAPIClient()
+			if err != nil {
+				return err
+			}
+			for _, id := range ids {
+				folderID, ok := id.(string)
+				if !ok || folderID == "" {
+					return fmt.Errorf("folderIds must contain strings")
+				}
+				if err := client.DeleteFolder(folderID); err != nil {
+					return err
+				}
+			}
+			return outputJSON(map[string]interface{}{"deleted": len(ids)})
+		}
+
 		if isDryRun() {
 			return dryRunOutput("delete folder", map[string]interface{}{
 				"id": args[0], "destructive": true,
@@ -146,6 +270,20 @@ var foldersDeleteCmd = &cobra.Command{
 	},
 }
 
+var foldersExploreIconsCmd = &cobra.Command{
+	Use:   "explore-icons [query]",
+	Short: "Search Craft folder icons through MCP",
+	Long:  "Search Craft folder icons through the Craft MCP server.",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		command := "folders explore-icons " + quoteMCPArg(args[0])
+		if folderIconOffset > 0 {
+			command += fmt.Sprintf(" --offset %d", folderIconOffset)
+		}
+		return runMCPReadCommand(command)
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(foldersCmd)
 
@@ -153,12 +291,20 @@ func init() {
 
 	foldersCmd.AddCommand(foldersCreateCmd)
 	foldersCreateCmd.Flags().StringVar(&folderParentID, "parent", "", "Parent folder ID (optional)")
+	foldersCreateCmd.Flags().StringVar(&folderJSON, "json", "", "Raw folder create payload JSON")
+	foldersCreateCmd.Flags().BoolVar(&folderStdin, "stdin", false, "Read raw folder create payload from stdin")
 
 	foldersCmd.AddCommand(foldersMoveCmd)
 	foldersMoveCmd.Flags().StringVar(&folderTargetID, "to", "", "Target parent folder ID (use 'root' for root level)")
-	foldersMoveCmd.MarkFlagRequired("to")
+	foldersMoveCmd.Flags().StringVar(&folderJSON, "json", "", "Raw folder move payload JSON")
+	foldersMoveCmd.Flags().BoolVar(&folderStdin, "stdin", false, "Read raw folder move payload from stdin")
 
 	foldersCmd.AddCommand(foldersDeleteCmd)
+	foldersDeleteCmd.Flags().StringVar(&folderDeleteJSON, "json", "", "Raw folder delete payload JSON")
+	foldersDeleteCmd.Flags().BoolVar(&folderDeleteStdin, "stdin", false, "Read raw folder delete payload from stdin")
+
+	foldersCmd.AddCommand(foldersExploreIconsCmd)
+	foldersExploreIconsCmd.Flags().IntVar(&folderIconOffset, "offset", 0, "Result offset for pagination")
 }
 
 // outputFolders prints folders in the specified format

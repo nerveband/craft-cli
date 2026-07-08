@@ -1,9 +1,10 @@
 # craft-cli Agent DX Score Card
 
-**Date:** 2026-04-01
-**Version:** v1.8.0
-**Current Score: 8/21 — Agent-tolerant**
-**Target Score: 16/21 — Agent-first**
+**Date:** 2026-07-08
+**Version:** v1.9.0
+**Current Runnable Audit:** `craft audit agent-dx --format json`
+**Current Score:** 85/85 — Agent-native on the v2 repo-local audit
+**Target Floor:** 85/85 — No regression
 
 ---
 
@@ -17,9 +18,9 @@
 **What exists:** `--json` flag on blocks add/update. `--stdin` for reading from pipe. Some commands accept structured input.
 **Gap:** Not all mutating commands accept raw JSON payloads (e.g., `craft create`, `craft tasks add`, `craft folders create` use individual flags). No API-schema-aligned raw input across the board.
 
-### 3. Schema Introspection — Score: 0/3
-**What exists:** `--help` text only. `craft llm` and `craft llm styles` provide LLM reference docs (human-readable).
-**Gap:** No `craft schema` command. No machine-readable command manifest. No way for an agent to discover params, types, required fields as JSON at runtime.
+### 3. Schema Introspection — Score: 2/3
+**What exists:** `craft schema` emits a versioned machine-readable command manifest with flags, safety metadata, backend metadata, and capability metadata. `craft llm` and `craft llm styles` provide human-readable LLM reference docs.
+**Gap:** Per-command request/response JSON Schemas are not available yet.
 
 ### 4. Context Window Discipline — Score: 1/3
 **What exists:** `--output-only <field>`, `--id-only`, `--quiet`, `--raw`, `--no-headers` to reduce output.
@@ -39,18 +40,28 @@
 
 ---
 
-## Total: 8/21 — Agent-tolerant
+## Current 50-Point Audit
+
+Run:
+
+```bash
+craft audit agent-dx --format json
+```
+
+Current local result: **85/85** on the v2 audit. This includes the legacy defensive baseline plus the compounding checks for introspection, profiles, artifacts, contract discipline, Unix restraint, API-native payload ergonomics, and domain proof gates.
+
+## Legacy 21-Point Estimate: 12/21 — Agent-ready
 
 | Axis | Current | Target | Priority |
 |------|---------|--------|----------|
 | Machine-Readable Output | 2 | 3 | Medium |
 | Raw Payload Input | 1 | 3 | High |
-| Schema Introspection | 0 | 2 | High |
+| Schema Introspection | 2 | 3 | Medium |
 | Context Window Discipline | 1 | 2 | Medium |
 | Input Hardening | 0 | 2 | Medium |
 | Safety Rails | 2 | 3 | Low |
 | Agent Knowledge Packaging | 2 | 3 | Medium |
-| **Total** | **8** | **18** | |
+| **Total** | **12** | **18** | |
 
 ---
 
@@ -81,7 +92,7 @@
 ## Roadmap to Agent-First (16+/21)
 
 ### Phase 1: Quick Wins (+4 points, target 12/21)
-1. Add `craft schema` command outputting JSON command manifest → Schema Introspection 0→2
+1. Keep `craft schema` command outputting JSON command manifest → Schema Introspection 2→3 with request/response schemas
 2. Auto-detect non-TTY and default to JSON → Machine-Readable Output 2→3
 3. Add `--limit` / `--page` flags → Context Window Discipline 1→2
 

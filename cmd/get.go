@@ -11,8 +11,9 @@ import (
 )
 
 var (
-	outputFile  string
-	getMaxDepth int
+	outputFile      string
+	getMaxDepth     int
+	allowOutsideCWD bool
 )
 
 var getCmd = &cobra.Command{
@@ -55,6 +56,9 @@ Examples:
 
 			// If output file is specified, write to file
 			if outputFile != "" {
+				if err := validateOutputPath(outputFile, allowOutsideCWD); err != nil {
+					return err
+				}
 				return writeBlocksToFile(&blocksResp, format)
 			}
 
@@ -76,6 +80,9 @@ Examples:
 
 		// If output file is specified, write markdown to file
 		if outputFile != "" {
+			if err := validateOutputPath(outputFile, allowOutsideCWD); err != nil {
+				return err
+			}
 			content := doc.Markdown
 			if content == "" {
 				content = doc.Content
@@ -131,4 +138,5 @@ func init() {
 	rootCmd.AddCommand(getCmd)
 	getCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Write document content to file")
 	getCmd.Flags().IntVar(&getMaxDepth, "max-depth", -1, "Maximum block nesting depth (-1 = all, 0 = top level only)")
+	getCmd.Flags().BoolVar(&allowOutsideCWD, "allow-outside-cwd", false, "Allow --output paths outside the current working directory")
 }

@@ -71,6 +71,8 @@ var (
 	taskScheduleDate string
 	taskDeadlineDate string
 	taskState        string
+	taskJSON         string
+	taskStdin        bool
 )
 
 var tasksAddCmd = &cobra.Command{
@@ -86,9 +88,23 @@ Examples:
   craft tasks add "Buy groceries"
   craft tasks add "Review PR" --schedule 2026-02-01
   craft tasks add "Submit report" --deadline 2026-02-15
-  craft tasks add "Meeting notes" --location document --document ID`,
-	Args: cobra.ExactArgs(1),
+  craft tasks add "Meeting notes" --location document --document ID
+  craft tasks add --json '{"tasks":[{"markdown":"Buy groceries","location":{"type":"inbox"}}]}' --dry-run`,
+	Args: func(cmd *cobra.Command, args []string) error {
+		if taskJSON != "" || taskStdin {
+			return cobra.NoArgs(cmd, args)
+		}
+		return cobra.ExactArgs(1)(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if taskJSON != "" || taskStdin {
+			payload, err := readTaskPayload(taskJSON, taskStdin)
+			if err != nil {
+				return err
+			}
+			return runTasksAddRaw(payload)
+		}
+
 		client, err := getAPIClient()
 		if err != nil {
 			return err
@@ -131,9 +147,23 @@ States:
 Examples:
   craft tasks update ID --state done
   craft tasks update ID --schedule 2026-02-01
-  craft tasks update ID --deadline 2026-02-15`,
-	Args: cobra.ExactArgs(1),
+  craft tasks update ID --deadline 2026-02-15
+  craft tasks update --json '{"tasksToUpdate":[{"id":"ID","taskInfo":{"state":"done"}}]}' --dry-run`,
+	Args: func(cmd *cobra.Command, args []string) error {
+		if taskJSON != "" || taskStdin {
+			return cobra.NoArgs(cmd, args)
+		}
+		return cobra.ExactArgs(1)(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if taskJSON != "" || taskStdin {
+			payload, err := readTaskPayload(taskJSON, taskStdin)
+			if err != nil {
+				return err
+			}
+			return runTasksUpdateRaw(payload)
+		}
+
 		if taskState == "" && taskScheduleDate == "" && taskDeadlineDate == "" {
 			return fmt.Errorf("at least one of --state, --schedule, or --deadline is required")
 		}
@@ -162,9 +192,26 @@ Examples:
 var tasksDeleteCmd = &cobra.Command{
 	Use:   "delete [task-id]",
 	Short: "Delete a task",
-	Long:  "Delete a task by its ID",
-	Args:  cobra.ExactArgs(1),
+	Long: `Delete a task by its ID.
+
+Examples:
+  craft tasks delete ID
+  craft tasks delete --json '{"idsToDelete":["ID"]}' --dry-run`,
+	Args: func(cmd *cobra.Command, args []string) error {
+		if taskJSON != "" || taskStdin {
+			return cobra.NoArgs(cmd, args)
+		}
+		return cobra.ExactArgs(1)(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if taskJSON != "" || taskStdin {
+			payload, err := readTaskPayload(taskJSON, taskStdin)
+			if err != nil {
+				return err
+			}
+			return runTasksDeleteRaw(payload)
+		}
+
 		if isDryRun() {
 			return dryRunOutput("delete task", map[string]interface{}{
 				"id": args[0], "destructive": true,
@@ -200,13 +247,88 @@ func init() {
 	tasksAddCmd.Flags().StringVar(&taskDocumentID, "document", "", "Document ID (required for location=document)")
 	tasksAddCmd.Flags().StringVar(&taskScheduleDate, "schedule", "", "Schedule date (YYYY-MM-DD)")
 	tasksAddCmd.Flags().StringVar(&taskDeadlineDate, "deadline", "", "Deadline date (YYYY-MM-DD)")
+	tasksAddCmd.Flags().StringVar(&taskJSON, "json", "", "Raw REST add tasks payload JSON")
+	tasksAddCmd.Flags().BoolVar(&taskStdin, "stdin", false, "Read raw REST add tasks payload from stdin")
 
 	tasksCmd.AddCommand(tasksUpdateCmd)
 	tasksUpdateCmd.Flags().StringVar(&taskState, "state", "", "New state: todo, done, canceled")
 	tasksUpdateCmd.Flags().StringVar(&taskScheduleDate, "schedule", "", "Schedule date (YYYY-MM-DD)")
 	tasksUpdateCmd.Flags().StringVar(&taskDeadlineDate, "deadline", "", "Deadline date (YYYY-MM-DD)")
+	tasksUpdateCmd.Flags().StringVar(&taskJSON, "json", "", "Raw REST update tasks payload JSON")
+	tasksUpdateCmd.Flags().BoolVar(&taskStdin, "stdin", false, "Read raw REST update tasks payload from stdin")
 
 	tasksCmd.AddCommand(tasksDeleteCmd)
+	tasksDeleteCmd.Flags().StringVar(&taskJSON, "json", "", "Raw REST delete tasks payload JSON")
+	tasksDeleteCmd.Flags().BoolVar(&taskStdin, "stdin", false, "Read raw REST delete tasks payload from stdin")
+}
+
+func readTaskPayload(jsonPayload string, stdin bool) (map[string]interface{}, error) {
+	if jsonPayload != "" && stdin {
+		return nil, fmt.Errorf("--json and --stdin are mutually exclusive")
+	}
+	if stdin {
+		input, err := readStdinString()
+		if err != nil {
+			return nil, err
+		}
+		return parseJSONObject(input)
+	}
+	return parseJSONObject(jsonPayload)
+}
+
+func runTasksAddRaw(payload map[string]interface{}) error {
+	tasks, ok := payload["tasks"].([]interface{})
+	if !ok || len(tasks) == 0 {
+		return fmt.Errorf("raw tasks add payload must include non-empty \"tasks\" array")
+	}
+	if isDryRun() {
+		return dryRunOutput("add tasks", map[string]interface{}{"payload": payload, "count": len(tasks)})
+	}
+	client, err := getAPIClient()
+	if err != nil {
+		return err
+	}
+	result, err := client.AddTasksRaw(payload)
+	if err != nil {
+		return err
+	}
+	if isQuiet() {
+		for _, task := range result {
+			fmt.Println(task.ID)
+		}
+		return nil
+	}
+	return outputJSON(result)
+}
+
+func runTasksUpdateRaw(payload map[string]interface{}) error {
+	tasks, ok := payload["tasksToUpdate"].([]interface{})
+	if !ok || len(tasks) == 0 {
+		return fmt.Errorf("raw tasks update payload must include non-empty \"tasksToUpdate\" array")
+	}
+	if isDryRun() {
+		return dryRunOutput("update tasks", map[string]interface{}{"payload": payload, "count": len(tasks)})
+	}
+	client, err := getAPIClient()
+	if err != nil {
+		return err
+	}
+	return client.UpdateTasksRaw(payload)
+}
+
+func runTasksDeleteRaw(payload map[string]interface{}) error {
+	ids, ok := payload["idsToDelete"].([]interface{})
+	if !ok || len(ids) == 0 {
+		return fmt.Errorf("raw tasks delete payload must include non-empty \"idsToDelete\" array")
+	}
+	if isDryRun() {
+		return dryRunOutput("delete tasks", map[string]interface{}{"payload": payload, "count": len(ids), "destructive": true})
+	}
+	client, err := getAPIClient()
+	if err != nil {
+		return err
+	}
+	return client.DeleteTasksRaw(payload)
 }
 
 // outputTasks prints tasks in the specified format

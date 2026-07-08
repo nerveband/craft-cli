@@ -171,6 +171,64 @@ func TestClient_GetCollectionSchema(t *testing.T) {
 	})
 }
 
+func TestClient_CreateCollectionRaw(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			t.Errorf("Expected POST method, got %s", r.Method)
+		}
+		if r.URL.Path != "/collections" {
+			t.Errorf("Expected path /collections, got %s", r.URL.Path)
+		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("Failed to decode request body: %v", err)
+		}
+		if body["name"] != "Tasks" {
+			t.Errorf("Expected collection name Tasks, got %v", body["name"])
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{"id": "col1", "name": "Tasks"})
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	result, err := client.CreateCollectionRaw(map[string]interface{}{"name": "Tasks"})
+	if err != nil {
+		t.Fatalf("CreateCollectionRaw() error = %v", err)
+	}
+	if result["id"] != "col1" {
+		t.Errorf("Expected id col1, got %v", result["id"])
+	}
+}
+
+func TestClient_UpdateCollectionSchemaRaw(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "PUT" {
+			t.Errorf("Expected PUT method, got %s", r.Method)
+		}
+		if r.URL.Path != "/collections/col1/schema" {
+			t.Errorf("Expected path /collections/col1/schema, got %s", r.URL.Path)
+		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("Failed to decode request body: %v", err)
+		}
+		if _, ok := body["properties"]; !ok {
+			t.Errorf("Expected properties in raw schema update payload")
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{"ok": true})
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	result, err := client.UpdateCollectionSchemaRaw("col1", map[string]interface{}{"properties": []interface{}{}})
+	if err != nil {
+		t.Fatalf("UpdateCollectionSchemaRaw() error = %v", err)
+	}
+	if result["ok"] != true {
+		t.Errorf("Expected ok true, got %v", result["ok"])
+	}
+}
+
 func TestClient_GetCollectionItems(t *testing.T) {
 	t.Run("without maxDepth", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

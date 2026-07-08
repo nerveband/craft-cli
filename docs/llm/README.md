@@ -6,6 +6,7 @@ Quick index for LLMs, agents, and automation tools.
 
 - `styling-and-markdown.md` -- Complete styling reference with JSON examples for every block type, formatting option, decoration, card layout, divider style, highlight color, and more
 - `output-parity.md` -- MCP/API/CLI parity notes + differences chart
+- `../command-reference.json` -- Generated `craft schema` command/capability/safety manifest
 
 ## CLI Discovery
 
@@ -14,7 +15,18 @@ LLMs can discover styling documentation directly via the CLI:
 ```bash
 craft llm              # Full command reference as JSON
 craft llm styles       # Complete styling and formatting guide
+craft schema           # Machine-readable command/capability/safety manifest
+craft audit agent-dx   # Agent-native CLI scorecard
 ```
+
+## Backend Selection
+
+- Use REST profiles for deterministic list/get/search/create/update/delete payloads.
+- Use MCP profiles for link resolution, block revert metadata, style/theme exploration, collection views, and `ui://craft/edit-review` metadata.
+- Use `craft mcp read-resource URI --metadata-only` before requesting full MCP resource contents.
+- Use `craft batch --dry-run` to inspect multi-command MCP execution before running writes.
+- Use `--fields` with `list` and `search` to keep JSON payloads small, for example `craft list --fields id,title --limit 5`.
+- Use MCP for page style flags and reversible block edits; explicit `--backend rest` with MCP-only style flags returns `CAPABILITY_UNAVAILABLE`.
 
 ## Reference Payloads
 
