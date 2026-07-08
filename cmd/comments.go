@@ -16,7 +16,11 @@ Examples:
   craft comments add BLOCK_ID --content "LGTM" --format json`,
 }
 
-var commentContent string
+var (
+	commentContent string
+	commentJSON    string
+	commentStdin   bool
+)
 
 var commentsAddCmd = &cobra.Command{
 	Use:   "add [block-id]",
@@ -26,10 +30,42 @@ var commentsAddCmd = &cobra.Command{
 Examples:
   craft comments add BLOCK_ID --content "This needs review"
   craft comments add BLOCK_ID --content "LGTM" --format json
-  craft comments add BLOCK_ID --content "Note" --dry-run`,
-	Args: cobra.ExactArgs(1),
+  craft comments add BLOCK_ID --content "Note" --dry-run
+  craft comments add --json '{"comments":[{"blockId":"BLOCK_ID","content":"Note"}]}' --dry-run`,
+	Args: func(cmd *cobra.Command, args []string) error {
+		if commentJSON != "" || commentStdin {
+			return cobra.NoArgs(cmd, args)
+		}
+		return cobra.ExactArgs(1)(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if commentJSON != "" || commentStdin {
+			payload, err := readRawPayload(commentJSON, commentStdin)
+			if err != nil {
+				return err
+			}
+			comments, ok := payloadArray(payload, "comments")
+			if !ok || len(comments) == 0 {
+				return fmt.Errorf("raw comments add payload must include non-empty \"comments\" array")
+			}
+			if isDryRun() {
+				return dryRunOutput("add comments", map[string]interface{}{"payload": payload, "count": len(comments)})
+			}
+			client, err := getAPIClient()
+			if err != nil {
+				return err
+			}
+			result, err := client.AddCommentsRaw(payload)
+			if err != nil {
+				return err
+			}
+			return outputJSON(result)
+		}
+
 		blockID := args[0]
+		if commentContent == "" {
+			return fmt.Errorf("--content is required")
+		}
 
 		if isDryRun() {
 			return dryRunOutput("add comment", map[string]interface{}{
@@ -73,5 +109,6 @@ func init() {
 
 	commentsCmd.AddCommand(commentsAddCmd)
 	commentsAddCmd.Flags().StringVar(&commentContent, "content", "", "Comment content (required)")
-	commentsAddCmd.MarkFlagRequired("content")
+	commentsAddCmd.Flags().StringVar(&commentJSON, "json", "", "Raw REST add comments payload JSON")
+	commentsAddCmd.Flags().BoolVar(&commentStdin, "stdin", false, "Read raw REST add comments payload from stdin")
 }

@@ -61,6 +61,9 @@ Examples:
 			if len(args) == 0 {
 				return fmt.Errorf("block-id is required when not using --date")
 			}
+			if err := validateResourceID(args[0], "block-id"); err != nil {
+				return err
+			}
 			block, err = client.GetBlockWithOptions(args[0], blockDepth, blockMetadata)
 		}
 		if err != nil {
@@ -102,28 +105,49 @@ var (
 	blockStdin bool
 
 	// Styling flags (shared between add and update)
-	blockType             string
-	blockTextStyle        string
-	blockListStyle        string
-	blockDecorations      string
-	blockColor            string
-	blockFont             string
-	blockTextAlignment    string
-	blockIndentationLevel string
-	blockLineStyle        string
-	blockLanguage         string
-	blockRawCode          string
-	blockURL              string
-	blockAltText          string
-	blockFileName         string
-	blockTitle            string
-	blockDescription      string
-	blockLayout           string
-	blockBlockLayout      string
-	blockCardLayout       string
-	blockTaskState        string
-	blockScheduleDate     string
-	blockDeadlineDate     string
+	blockType              string
+	blockTextStyle         string
+	blockListStyle         string
+	blockDecorations       string
+	blockColor             string
+	blockFont              string
+	blockTextAlignment     string
+	blockIndentationLevel  string
+	blockLineStyle         string
+	blockLanguage          string
+	blockRawCode           string
+	blockURL               string
+	blockAltText           string
+	blockFileName          string
+	blockTitle             string
+	blockDescription       string
+	blockLayout            string
+	blockBlockLayout       string
+	blockCardLayout        string
+	blockTaskState         string
+	blockScheduleDate      string
+	blockDeadlineDate      string
+	blockThemeType         string
+	blockUnsplashPage      int
+	blockRevertInfo        string
+	blockRevertInfoFile    string
+	blockSaveRevert        string
+	blockDiff              bool
+	blockThemeID           string
+	blockTextColor         string
+	blockBGColor           string
+	blockThemeColor        string
+	blockCoverURL          string
+	blockCoverCrop         string
+	blockCoverAttribution  string
+	blockBackdropType      string
+	blockBackdropColor     string
+	blockBackdropColors    string
+	blockBackdropDirection string
+	blockBackdropURL       string
+	blockSeparator         string
+	blockWashiPattern      string
+	blockWashiColor        string
 )
 
 var blocksAddCmd = &cobra.Command{
@@ -160,12 +184,8 @@ JSON Examples:
   echo '[{"type":"text","markdown":"piped"}]' | craft blocks add PAGE_ID --stdin`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := getAPIClient()
-		if err != nil {
-			return err
-		}
-
 		var blocks []map[string]interface{}
+		var err error
 
 		switch {
 		case blockStdin:
@@ -187,6 +207,29 @@ JSON Examples:
 		}
 
 		position, err := buildAddPosition(cmd, args)
+		if err != nil {
+			return err
+		}
+		if id, ok := position["pageId"].(string); ok {
+			if err := validateResourceID(id, "page-id"); err != nil {
+				return err
+			}
+		}
+		if id, ok := position["siblingId"].(string); ok {
+			if err := validateResourceID(id, "sibling-id"); err != nil {
+				return err
+			}
+		}
+
+		useMCP, err := shouldUseMCPBlocks(cmd)
+		if err != nil {
+			return err
+		}
+		if useMCP {
+			return runMCPBlocksMutation(cmd, "add", blocks, position)
+		}
+
+		client, err := getAPIClient()
 		if err != nil {
 			return err
 		}
@@ -249,6 +292,11 @@ JSON Examples:
 				if _, ok := b["id"]; !ok {
 					return fmt.Errorf("each block in JSON must have an \"id\" field for update")
 				}
+				if id, ok := b["id"].(string); ok {
+					if err := validateResourceID(id, "block-id"); err != nil {
+						return err
+					}
+				}
 			}
 		case blockJSON != "":
 			blocks, err = parseBlocksJSON(blockJSON)
@@ -259,16 +307,32 @@ JSON Examples:
 				if _, ok := b["id"]; !ok {
 					return fmt.Errorf("each block in JSON must have an \"id\" field for update")
 				}
+				if id, ok := b["id"].(string); ok {
+					if err := validateResourceID(id, "block-id"); err != nil {
+						return err
+					}
+				}
 			}
 		default:
 			if len(args) == 0 {
 				return fmt.Errorf("block-id argument is required when not using --json or --stdin")
+			}
+			if err := validateResourceID(args[0], "block-id"); err != nil {
+				return err
 			}
 			block := buildUpdateFromFlags(cmd, args[0])
 			if len(block) <= 1 { // only "id" present
 				return fmt.Errorf("at least one property to update is required (e.g. --markdown, --color, --text-style)")
 			}
 			blocks = []map[string]interface{}{block}
+		}
+
+		useMCP, err := shouldUseMCPBlocks(cmd)
+		if err != nil {
+			return err
+		}
+		if useMCP {
+			return runMCPBlocksMutation(cmd, "update", blocks, nil)
 		}
 
 		if isDryRun() {
@@ -309,6 +373,9 @@ var blocksDeleteCmd = &cobra.Command{
 	Long:  "Delete a specific block from a document",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(args[0], "block-id"); err != nil {
+			return err
+		}
 		if isDryRun() {
 			return dryRunOutput("delete block", map[string]interface{}{
 				"id": args[0], "destructive": true,
@@ -345,6 +412,12 @@ Examples:
 		if blockTargetPage == "" {
 			return fmt.Errorf("--to is required")
 		}
+		if err := validateResourceID(args[0], "block-id"); err != nil {
+			return err
+		}
+		if err := validateResourceID(blockTargetPage, "page-id"); err != nil {
+			return err
+		}
 		if blockPosition == "" {
 			blockPosition = "end"
 		}
@@ -369,6 +442,70 @@ Examples:
 			fmt.Printf("Block %s moved to %s\n", blockID, blockTargetPage)
 		}
 		return nil
+	},
+}
+
+var blocksExploreThemesCmd = &cobra.Command{
+	Use:   "explore-themes",
+	Short: "Explore Craft block themes through MCP",
+	Long:  "Explore Craft block themes through the Craft MCP server.",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		command := "blocks explore-themes"
+		if blockThemeType != "" {
+			command += " --type " + quoteMCPArg(blockThemeType)
+		}
+		return runMCPReadCommand(command)
+	},
+}
+
+var blocksExploreWashiCmd = &cobra.Command{
+	Use:   "explore-washi",
+	Short: "Explore Craft washi styles through MCP",
+	Long:  "Explore Craft washi styles through the Craft MCP server.",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runMCPReadCommand("blocks explore-washi")
+	},
+}
+
+var blocksSearchUnsplashCmd = &cobra.Command{
+	Use:   "search-unsplash [query]",
+	Short: "Search Unsplash images through Craft MCP",
+	Long:  "Search Unsplash images through the Craft MCP server.",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		command := "blocks search-unsplash " + quoteMCPArg(args[0])
+		if blockUnsplashPage > 0 {
+			command += fmt.Sprintf(" --page %d", blockUnsplashPage)
+		}
+		return runMCPReadCommand(command)
+	},
+}
+
+var blocksRevertCmd = &cobra.Command{
+	Use:   "revert",
+	Short: "Revert MCP block mutations",
+	Long: `Revert a prior MCP block mutation using revertInfo metadata.
+
+Examples:
+  craft blocks revert --revert-info '{"operation":"add","blockIds":["..."],"expectedStamps":{}}'
+  craft blocks revert --revert-info-file revert.json --dry-run`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		payload, err := readRevertInfoPayload()
+		if err != nil {
+			return err
+		}
+		if isDryRun() {
+			return dryRunOutput("blocks revert", map[string]interface{}{"revertInfo": payload["revertInfo"]})
+		}
+		client, err := getMCPClient()
+		if err != nil {
+			return err
+		}
+		result, err := client.CallTool("blocks_revert", payload)
+		if err != nil {
+			return err
+		}
+		return outputRawJSON(result)
 	},
 }
 
@@ -502,6 +639,51 @@ func addStylingToMap(cmd *cobra.Command, block map[string]interface{}) {
 	if cmd.Flags().Changed("font") {
 		block["font"] = blockFont
 	}
+	if cmd.Flags().Changed("theme-id") {
+		block["themeId"] = blockThemeID
+	}
+	if cmd.Flags().Changed("text-color") {
+		block["textColor"] = blockTextColor
+	}
+	if cmd.Flags().Changed("bg-color") {
+		block["bgColor"] = blockBGColor
+	}
+	if cmd.Flags().Changed("theme-color") {
+		block["themeColor"] = blockThemeColor
+	}
+	if cmd.Flags().Changed("cover-url") {
+		block["coverURL"] = blockCoverURL
+	}
+	if cmd.Flags().Changed("cover-crop") {
+		block["coverCrop"] = blockCoverCrop
+	}
+	if cmd.Flags().Changed("cover-attribution") {
+		block["coverAttribution"] = blockCoverAttribution
+	}
+	if cmd.Flags().Changed("backdrop-type") {
+		block["backdropType"] = blockBackdropType
+	}
+	if cmd.Flags().Changed("backdrop-color") {
+		block["backdropColor"] = blockBackdropColor
+	}
+	if cmd.Flags().Changed("backdrop-colors") {
+		block["backdropColors"] = blockBackdropColors
+	}
+	if cmd.Flags().Changed("backdrop-direction") {
+		block["backdropDirection"] = blockBackdropDirection
+	}
+	if cmd.Flags().Changed("backdrop-url") {
+		block["backdropURL"] = blockBackdropURL
+	}
+	if cmd.Flags().Changed("separator") {
+		block["separator"] = blockSeparator
+	}
+	if cmd.Flags().Changed("washi-pattern") {
+		block["washiPattern"] = blockWashiPattern
+	}
+	if cmd.Flags().Changed("washi-color") {
+		block["washiColor"] = blockWashiColor
+	}
 	if cmd.Flags().Changed("text-alignment") {
 		block["textAlignment"] = blockTextAlignment
 	}
@@ -560,6 +742,203 @@ func addStylingToMap(cmd *cobra.Command, block map[string]interface{}) {
 	}
 }
 
+func shouldUseMCPBlocks(cmd *cobra.Command) (bool, error) {
+	needsMCP := blockSaveRevert != "" || blockDiff
+	for _, flag := range []string{
+		"theme-id", "text-color", "bg-color", "theme-color", "cover-url",
+		"cover-crop", "cover-attribution", "backdrop-type", "backdrop-color",
+		"backdrop-colors", "backdrop-direction", "backdrop-url", "separator",
+		"washi-pattern", "washi-color",
+	} {
+		if cmd.Flags().Changed(flag) {
+			needsMCP = true
+			break
+		}
+	}
+	if backendName == "mcp" {
+		return true, nil
+	}
+	if needsMCP && backendName == "rest" {
+		return false, newCLIError("CAPABILITY_UNAVAILABLE", "operation requires MCP capabilities: blocks.style or blocks.revert")
+	}
+	if needsMCP {
+		return true, nil
+	}
+	return false, nil
+}
+
+func runMCPBlocksMutation(cmd *cobra.Command, action string, blocks []map[string]interface{}, position map[string]interface{}) error {
+	command, err := buildMCPBlocksCommand(action, blocks, position)
+	if err != nil {
+		return err
+	}
+	target := map[string]interface{}{
+		"backend":      "mcp",
+		"tool":         "craft_write",
+		"command":      command,
+		"capabilities": []string{"mcp", "write", "blocks.revert", "blocks.style"},
+	}
+	if blockSaveRevert != "" {
+		target["save_revert"] = blockSaveRevert
+	}
+	if blockDiff {
+		target["diff"] = map[string]interface{}{
+			"available": false,
+			"hint":      "MCP edit-review metadata is captured from real craft_write results; dry-run shows the planned command.",
+		}
+	}
+	if isDryRun() {
+		return dryRunOutput("blocks "+action, target)
+	}
+	if !yesFlag {
+		return fmt.Errorf("blocks %s with --backend mcp uses craft_write; rerun with --yes after reviewing --dry-run", action)
+	}
+	client, err := getMCPClient()
+	if err != nil {
+		return err
+	}
+	result, err := client.CallTool("craft_write", map[string]interface{}{"command": command})
+	if err != nil {
+		return err
+	}
+	if blockSaveRevert != "" {
+		if err := saveRevertInfo(result, blockSaveRevert); err != nil {
+			return err
+		}
+	}
+	return outputRawJSON(result)
+}
+
+func buildMCPBlocksCommand(action string, blocks []map[string]interface{}, position map[string]interface{}) (string, error) {
+	if len(blocks) != 1 {
+		return "", fmt.Errorf("--backend mcp currently accepts exactly one block per command")
+	}
+	block := blocks[0]
+	var parts []string
+	switch action {
+	case "add":
+		parts = []string{"blocks add"}
+		if pageID, _ := position["pageId"].(string); pageID != "" {
+			parts = append(parts, "--id", quoteMCPArg(pageID))
+		}
+		if siblingID, _ := position["siblingId"].(string); siblingID != "" {
+			parts = append(parts, "--siblingId", quoteMCPArg(siblingID))
+		}
+		if date, _ := position["date"].(string); date != "" {
+			parts = append(parts, "--date", quoteMCPArg(date))
+		}
+		if pos, _ := position["position"].(string); pos != "" {
+			parts = append(parts, "--position", quoteMCPArg(pos))
+		}
+	case "update":
+		id, _ := block["id"].(string)
+		if id == "" {
+			return "", fmt.Errorf("MCP block update requires an id")
+		}
+		parts = []string{"blocks update", "--id", quoteMCPArg(id)}
+	default:
+		return "", fmt.Errorf("unsupported MCP blocks action %q", action)
+	}
+	for _, flag := range mcpBlockFlagOrder() {
+		value, ok := block[flag.JSONKey]
+		if !ok {
+			continue
+		}
+		if flag.JSONKey == "id" || flag.JSONKey == "type" {
+			continue
+		}
+		parts = append(parts, "--"+flag.FlagName, quoteMCPArg(fmt.Sprint(value)))
+	}
+	return strings.Join(parts, " "), nil
+}
+
+type mcpBlockFlag struct {
+	JSONKey  string
+	FlagName string
+}
+
+func mcpBlockFlagOrder() []mcpBlockFlag {
+	return []mcpBlockFlag{
+		{"markdown", "markdown"},
+		{"textStyle", "text-style"},
+		{"listStyle", "list-style"},
+		{"color", "color"},
+		{"font", "font"},
+		{"themeId", "theme-id"},
+		{"textColor", "text-color"},
+		{"bgColor", "bg-color"},
+		{"themeColor", "theme-color"},
+		{"coverURL", "cover-url"},
+		{"coverCrop", "cover-crop"},
+		{"coverAttribution", "cover-attribution"},
+		{"backdropType", "backdrop-type"},
+		{"backdropColor", "backdrop-color"},
+		{"backdropColors", "backdrop-colors"},
+		{"backdropDirection", "backdrop-direction"},
+		{"backdropURL", "backdrop-url"},
+		{"separator", "separator"},
+		{"washiPattern", "washi-pattern"},
+		{"washiColor", "washi-color"},
+		{"textAlignment", "text-alignment"},
+		{"lineStyle", "line-style"},
+		{"language", "language"},
+		{"rawCode", "raw-code"},
+		{"url", "url"},
+		{"altText", "alt-text"},
+		{"fileName", "file-name"},
+		{"title", "title"},
+		{"description", "description"},
+		{"layout", "layout"},
+		{"blockLayout", "block-layout"},
+		{"cardLayout", "card-layout"},
+	}
+}
+
+func saveRevertInfo(raw json.RawMessage, path string) error {
+	if err := validateOutputPath(path, allowOutsideCWD); err != nil {
+		return err
+	}
+	var data interface{}
+	if err := json.Unmarshal(raw, &data); err != nil {
+		return fmt.Errorf("failed to decode MCP result for revertInfo: %w", err)
+	}
+	revertInfo, ok := findRevertInfo(data)
+	if !ok {
+		return fmt.Errorf("MCP result did not include revertInfo")
+	}
+	encoded, err := json.MarshalIndent(map[string]interface{}{"revertInfo": revertInfo}, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, append(encoded, '\n'), 0644)
+}
+
+func findRevertInfo(value interface{}) (interface{}, bool) {
+	switch v := value.(type) {
+	case map[string]interface{}:
+		if info, ok := v["revertInfo"]; ok {
+			return info, true
+		}
+		for _, child := range v {
+			if info, ok := findRevertInfo(child); ok {
+				return info, true
+			}
+		}
+	case []interface{}:
+		for _, child := range v {
+			if info, ok := findRevertInfo(child); ok {
+				return info, true
+			}
+		}
+	case string:
+		var parsed interface{}
+		if err := json.Unmarshal([]byte(v), &parsed); err == nil {
+			return findRevertInfo(parsed)
+		}
+	}
+	return nil, false
+}
+
 // registerStylingFlags adds all styling flags to a command.
 // includeType controls whether --type is registered (add yes, update no since type is immutable).
 func registerStylingFlags(cmd *cobra.Command, includeType bool) {
@@ -571,6 +950,21 @@ func registerStylingFlags(cmd *cobra.Command, includeType bool) {
 	cmd.Flags().StringVar(&blockDecorations, "decorations", "", "Decorations (comma-separated): callout, quote")
 	cmd.Flags().StringVar(&blockColor, "color", "", "Block color as #RRGGBB hex (e.g. #ef052a)")
 	cmd.Flags().StringVar(&blockFont, "font", "", "Font: system, serif, mono, rounded")
+	cmd.Flags().StringVar(&blockThemeID, "theme-id", "", "MCP page theme ID")
+	cmd.Flags().StringVar(&blockTextColor, "text-color", "", "MCP page text color")
+	cmd.Flags().StringVar(&blockBGColor, "bg-color", "", "MCP page background color")
+	cmd.Flags().StringVar(&blockThemeColor, "theme-color", "", "MCP page theme color")
+	cmd.Flags().StringVar(&blockCoverURL, "cover-url", "", "MCP page cover image URL")
+	cmd.Flags().StringVar(&blockCoverCrop, "cover-crop", "", "MCP page cover crop JSON/string")
+	cmd.Flags().StringVar(&blockCoverAttribution, "cover-attribution", "", "MCP page cover attribution")
+	cmd.Flags().StringVar(&blockBackdropType, "backdrop-type", "", "MCP backdrop type")
+	cmd.Flags().StringVar(&blockBackdropColor, "backdrop-color", "", "MCP backdrop color")
+	cmd.Flags().StringVar(&blockBackdropColors, "backdrop-colors", "", "MCP backdrop colors")
+	cmd.Flags().StringVar(&blockBackdropDirection, "backdrop-direction", "", "MCP backdrop direction")
+	cmd.Flags().StringVar(&blockBackdropURL, "backdrop-url", "", "MCP backdrop URL")
+	cmd.Flags().StringVar(&blockSeparator, "separator", "", "MCP page separator")
+	cmd.Flags().StringVar(&blockWashiPattern, "washi-pattern", "", "MCP washi pattern")
+	cmd.Flags().StringVar(&blockWashiColor, "washi-color", "", "MCP washi color")
 	cmd.Flags().StringVar(&blockTextAlignment, "text-alignment", "", "Text alignment: left, center, right, justify")
 	cmd.Flags().StringVar(&blockIndentationLevel, "indentation-level", "", "Indentation level: 0-5")
 	cmd.Flags().StringVar(&blockLineStyle, "line-style", "", "Line/divider style: strong, regular, light, extraLight, pageBreak")
@@ -604,12 +998,16 @@ func init() {
 	blocksAddCmd.Flags().StringVar(&blockDate, "date", "", "Daily note date (today, tomorrow, yesterday, YYYY-MM-DD)")
 	blocksAddCmd.Flags().StringVar(&blockJSON, "json", "", "Block(s) as JSON (array or single object)")
 	blocksAddCmd.Flags().BoolVar(&blockStdin, "stdin", false, "Read block JSON from stdin")
+	blocksAddCmd.Flags().StringVar(&blockSaveRevert, "save-revert", "", "Save MCP revertInfo JSON to a file")
+	blocksAddCmd.Flags().BoolVar(&blockDiff, "diff", false, "Include review/diff metadata in dry-run output when possible")
 	registerStylingFlags(blocksAddCmd, true)
 
 	blocksCmd.AddCommand(blocksUpdateCmd)
 	blocksUpdateCmd.Flags().StringVarP(&blockMarkdown, "markdown", "m", "", "New markdown content")
 	blocksUpdateCmd.Flags().StringVar(&blockJSON, "json", "", "Block(s) as JSON with \"id\" fields (array or single object)")
 	blocksUpdateCmd.Flags().BoolVar(&blockStdin, "stdin", false, "Read block JSON from stdin")
+	blocksUpdateCmd.Flags().StringVar(&blockSaveRevert, "save-revert", "", "Save MCP revertInfo JSON to a file")
+	blocksUpdateCmd.Flags().BoolVar(&blockDiff, "diff", false, "Include review/diff metadata in dry-run output when possible")
 	registerStylingFlags(blocksUpdateCmd, false)
 
 	blocksCmd.AddCommand(blocksDeleteCmd)
@@ -618,4 +1016,41 @@ func init() {
 	blocksMoveCmd.Flags().StringVar(&blockTargetPage, "to", "", "Target page ID")
 	blocksMoveCmd.Flags().StringVarP(&blockPosition, "position", "p", "end", "Position: start, end")
 	blocksMoveCmd.MarkFlagRequired("to")
+
+	blocksCmd.AddCommand(blocksExploreThemesCmd)
+	blocksExploreThemesCmd.Flags().StringVar(&blockThemeType, "type", "", "Theme type filter")
+
+	blocksCmd.AddCommand(blocksExploreWashiCmd)
+
+	blocksCmd.AddCommand(blocksSearchUnsplashCmd)
+	blocksSearchUnsplashCmd.Flags().IntVar(&blockUnsplashPage, "page", 0, "Unsplash result page")
+
+	blocksCmd.AddCommand(blocksRevertCmd)
+	blocksRevertCmd.Flags().StringVar(&blockRevertInfo, "revert-info", "", "Revert info JSON object or wrapper with revertInfo")
+	blocksRevertCmd.Flags().StringVar(&blockRevertInfoFile, "revert-info-file", "", "Path to revert info JSON file")
+}
+
+func readRevertInfoPayload() (map[string]interface{}, error) {
+	if blockRevertInfo != "" && blockRevertInfoFile != "" {
+		return nil, fmt.Errorf("--revert-info and --revert-info-file are mutually exclusive")
+	}
+	input := blockRevertInfo
+	if blockRevertInfoFile != "" {
+		data, err := os.ReadFile(blockRevertInfoFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read revert info file: %w", err)
+		}
+		input = string(data)
+	}
+	if input == "" {
+		return nil, fmt.Errorf("--revert-info or --revert-info-file is required")
+	}
+	payload, err := parseJSONObject(input)
+	if err != nil {
+		return nil, err
+	}
+	if _, ok := payload["revertInfo"]; ok {
+		return payload, nil
+	}
+	return map[string]interface{}{"revertInfo": payload}, nil
 }

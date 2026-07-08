@@ -8,6 +8,8 @@ A powerful command-line interface for interacting with Craft Documents. Built fo
 
 - **Multi-Profile Support** - Store multiple Craft API connections and switch between them
 - **API Key Authentication** - Support for API keys with secure storage per profile
+- **Craft MCP Support** - Inspect and call Craft MCP tools with `craft mcp`
+- **Agent DX Audit** - Score CLI agent-readiness with `craft audit agent-dx`
 - **Multiple Output Formats** - JSON (default, full API payloads), Compact (legacy), Table, and Markdown outputs
 - **LLM/Script Friendly** - Quiet mode, JSON errors, field extraction, stdin support
 - **Local Craft Integration** - Open documents, create new docs, search directly in Craft app (macOS)
@@ -131,6 +133,13 @@ craft delete <document-id> --dry-run
 Store and switch between multiple Craft API connections:
 
 ```bash
+# Add typed REST and MCP profiles
+craft profiles add-rest work --api-url https://connect.craft.do/links/WORK_LINK/api/v1
+craft profiles add-mcp work-mcp --mcp-url https://mcp.craft.do/links/WORK_LINK/mcp
+craft profiles list
+craft profiles use work
+
+# Legacy REST config commands remain supported
 # Add profiles
 craft config add work https://connect.craft.do/links/WORK_LINK/api/v1
 craft config add personal https://connect.craft.do/links/PERSONAL_LINK/api/v1
@@ -151,11 +160,30 @@ craft config remove old-profile
 craft config reset
 
 # Override profile for single command
+craft list --profile work
+craft mcp tools --profile work-mcp
 craft list --api-url https://connect.craft.do/links/OTHER_LINK/api/v1
 
 # Use API key for single command (without saving to profile)
 craft list --api-url https://connect.craft.do/.../api/v1 --api-key pdk_your_key
 ```
+
+### Craft MCP
+
+Some Craft capabilities are exposed through Craft MCP before they are available in the direct REST workflow, including link resolution, theme/style exploration, richer collection view controls, and reversible block edits. Configure MCP per command with `--mcp-url` or through `CRAFT_MCP_URL`.
+
+```bash
+# List available MCP tools
+craft mcp tools --mcp-url https://mcp.craft.do/links/YOUR_LINK/mcp
+
+# Call a Craft MCP read command
+craft mcp call craft_read --command "connection info"
+
+# Call with raw JSON arguments
+craft mcp call craft_write --arguments '{"command":"documents create --title Test"}'
+```
+
+Use REST/API profiles for deterministic direct API calls. Use MCP when an operation needs MCP-only capabilities such as `documents resolve-link`, page themes/covers/backdrops, edit-review/revert metadata, or richer collection view controls.
 
 ### Local Craft App Commands (macOS)
 
@@ -194,6 +222,9 @@ craft list --json-errors
 # Extract specific fields
 craft list --output-only id
 craft list --id-only
+craft list --fields id,title,lastModifiedAt --limit 5
+craft search "api" --fields documentId,markdown --limit 5
+craft list --count
 
 # Raw content output
 craft get <doc-id> --raw
@@ -204,9 +235,49 @@ craft list --format table --no-headers
 # Dry-run mode
 craft create --title "Test" --dry-run
 
+# Agent-readiness scorecard
+craft audit agent-dx --format json
+
+# MCP inspection and batch execution
+craft mcp tools
+craft mcp read-resource ui://craft/edit-review --metadata-only
+craft batch --command "connection info" --dry-run
+
+# MCP-ahead collection view controls
+craft collections views list <collection-id>
+craft collections active-view set <collection-id> --view <view-id> --dry-run
+
+# MCP page styling and reversible block mutations
+craft blocks update <page-id> --theme-id fire-horse --dry-run
+craft blocks add <page-id> --markdown "Test" --backend mcp --save-revert revert.json --dry-run
+craft list --backend mcp --cursor <cursor> --limit 5
+
 # Read content from stdin
 cat document.md | craft create --title "Imported" --stdin
 echo "New content" | craft update <doc-id> --stdin
+```
+
+### Live Test Matrix
+
+Live tests are opt-in and skip by default:
+
+```bash
+# Read-only REST and MCP live checks
+CRAFT_LIVE_TESTS=1 \
+CRAFT_LIVE_REST_URL="https://connect.craft.do/links/<id>/api/v1" \
+CRAFT_LIVE_REST_KEY="$CRAFT_API_KEY" \
+CRAFT_LIVE_MCP_URL="https://mcp.craft.do/links/<id>/mcp" \
+go test ./... -run Live
+
+# Optional write-only state check
+CRAFT_LIVE_TESTS=1 \
+CRAFT_LIVE_WRITEONLY_URL="https://connect.craft.do/links/<id>/api/v1" \
+go test ./internal/api -run LiveRESTWriteOnlyState
+
+# Mutations require an explicit second gate and only create temp artifacts
+CRAFT_LIVE_TESTS=1 CRAFT_LIVE_MUTATION_TESTS=1 \
+CRAFT_LIVE_REST_URL="https://connect.craft.do/links/<id>/api/v1" \
+go test ./internal/api -run LiveRESTMutation
 ```
 
 ### Output Formats
@@ -453,6 +524,18 @@ craft-cli/
 ├── cmd/                    # CLI commands
 │   ├── root.go             # Root command and global flags
 │   ├── config.go           # Profile management (add, use, list, remove)
+│   ├── profiles.go         # Typed REST/MCP profiles
+│   ├── mcp.go              # Craft MCP client commands
+│   ├── documents.go        # Document helpers such as resolve-link
+│   ├── blocks.go           # Block CRUD, styling, exploration, revert
+│   ├── collections.go      # Collections, items, schema, MCP-backed views
+│   ├── folders.go          # Folder CRUD and MCP icon exploration
+│   ├── tasks.go            # Task list/add/update/delete
+│   ├── upload.go           # File upload and raw upload payloads
+│   ├── whiteboards.go      # Whiteboard commands
+│   ├── audit.go            # Agent-DX audit scorecard
+│   ├── schema.go           # Machine-readable command manifest
+│   ├── validate.go         # Local proof-of-behavior checks
 │   ├── setup.go            # Interactive setup wizard
 │   ├── list.go             # List documents
 │   ├── get.go              # Get document details
@@ -468,13 +551,21 @@ craft-cli/
 │   └── info.go             # API info command
 ├── internal/
 │   ├── api/
-│   │   ├── client.go       # Craft API client
+│   │   ├── client.go       # Craft REST API client
+│   │   └── client_test.go
+│   ├── mcp/
+│   │   ├── client.go       # Streamable HTTP MCP client
 │   │   └── client_test.go
 │   ├── config/
 │   │   ├── config.go       # Configuration management
 │   │   └── config_test.go
 │   └── models/
 │       └── document.go     # Document data structures
+├── docs/
+│   ├── capabilities/       # REST vs MCP capability maps
+│   ├── contracts/          # Captured REST/MCP contract snapshots
+│   ├── command-reference.json
+│   └── llm/                # Agent-facing docs and output parity notes
 ├── install.sh              # One-line installer script
 ├── .goreleaser.yml         # Release configuration
 └── README.md
@@ -503,6 +594,22 @@ goreleaser release --clean
 ```bash
 go test ./... -v
 go test ./... -cover
+
+# Agent readiness
+craft audit agent-dx --format json
+
+# Public live REST/MCP checks
+CRAFT_LIVE_TESTS=1 \
+CRAFT_LIVE_REST_URL=https://connect.craft.do/links/HHRuPxZZTJ6/api/v1 \
+CRAFT_LIVE_MCP_URL=https://mcp.craft.do/links/wlYPoWSB9T/mcp \
+CRAFT_LIVE_WRITEONLY_URL=https://connect.craft.do/links/Dfl9gELEXWY/api/v1 \
+go test ./... -run Live
+
+# Approved mutation fixture, key supplied only through environment
+CRAFT_LIVE_TESTS=1 CRAFT_LIVE_MUTATION_TESTS=1 \
+CRAFT_LIVE_REST_URL=https://connect.craft.do/links/5VruASgpXo0/api/v1 \
+CRAFT_LIVE_REST_KEY=<redacted> \
+go test ./internal/api -run LiveRESTMutation
 ```
 
 ## License
@@ -516,4 +623,4 @@ Contributions welcome! Please open an issue or submit a pull request.
 ## Support
 
 - GitHub Issues: https://github.com/nerveband/craft-cli/issues
-- Craft API Docs: https://support.craft.do/hc/en-us/articles/23702897811612
+- Craft API Docs: https://connect.craft.do/api-docs

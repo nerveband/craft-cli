@@ -30,7 +30,14 @@ Run the full local verification pass and docs/content audit. Do these steps:
 11. For any output format changes: verify all format modes still work (`--format json`, `--format table`, `--format markdown`)
 
 **Agent DX audit:**
-12. Check the change against the repo's agent-DX goals:
+12. Run the built-in scorecard:
+    - `./craft-cli audit agent-dx --format json`
+    - Confirm the score is 85/85 on the v2 audit and there is no regression from the previous run
+13. Run live checks only when explicitly configured:
+    - `CRAFT_LIVE_TESTS=1 CRAFT_LIVE_REST_URL=... CRAFT_LIVE_MCP_URL=... go test ./... -run Live`
+    - `CRAFT_LIVE_TESTS=1 CRAFT_LIVE_WRITEONLY_URL=... go test ./internal/api -run LiveRESTWriteOnlyState`
+    - `CRAFT_LIVE_TESTS=1 CRAFT_LIVE_MUTATION_TESTS=1 CRAFT_LIVE_REST_URL=... go test ./internal/api -run LiveRESTMutation`
+14. Check the change against the repo's agent-DX goals:
     - All commands produce structured JSON by default
     - Errors are structured and actionable (not just prose)
     - `--dry-run` exists for destructive commands
@@ -39,4 +46,4 @@ Run the full local verification pass and docs/content audit. Do these steps:
     - Progressive help discovery works (`craft`, `craft <cmd>`, `craft <cmd> --help`)
 
 **Reporting:**
-13. Report what passed, what failed, what was skipped, and any agent-DX regressions or wins.
+15. Report what passed, what failed, what was skipped, and any agent-DX regressions or wins.

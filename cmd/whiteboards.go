@@ -25,6 +25,13 @@ Examples:
   craft whiteboards delete WHITEBOARD_ID --ids "id1,id2" # Delete elements`,
 }
 
+var (
+	whiteboardCreateJSON  string
+	whiteboardCreateStdin bool
+	whiteboardDeleteJSON  string
+	whiteboardDeleteStdin bool
+)
+
 var whiteboardCreateCmd = &cobra.Command{
 	Use:   "create PAGE_ID",
 	Short: "Create a new whiteboard in a document",
@@ -32,15 +39,34 @@ var whiteboardCreateCmd = &cobra.Command{
 
 Examples:
   craft whiteboards create abc123
-  craft whiteboards create abc123 --dry-run`,
-	Args: cobra.ExactArgs(1),
+  craft whiteboards create abc123 --dry-run
+  craft whiteboards create --json '{"pageId":"abc123"}' --dry-run`,
+	Args: func(cmd *cobra.Command, args []string) error {
+		if whiteboardCreateJSON != "" || whiteboardCreateStdin {
+			return cobra.NoArgs(cmd, args)
+		}
+		return cobra.ExactArgs(1)(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := validateResourceID(args[0], "page-id"); err != nil {
+		pageID := ""
+		if whiteboardCreateJSON != "" || whiteboardCreateStdin {
+			payload, err := readRawPayload(whiteboardCreateJSON, whiteboardCreateStdin)
+			if err != nil {
+				return err
+			}
+			pageID = payloadString(payload, "pageId", "pageID", "id")
+			if pageID == "" {
+				return fmt.Errorf("raw whiteboard create payload must include \"pageId\"")
+			}
+		} else {
+			pageID = args[0]
+		}
+		if err := validateResourceID(pageID, "page-id"); err != nil {
 			return err
 		}
 		if isDryRun() {
 			return dryRunOutput("create whiteboard", map[string]interface{}{
-				"page_id": args[0],
+				"page_id": pageID,
 			})
 		}
 
@@ -49,7 +75,7 @@ Examples:
 			return err
 		}
 
-		result, err := client.CreateWhiteboard(args[0])
+		result, err := client.CreateWhiteboard(pageID)
 		if err != nil {
 			return err
 		}
@@ -207,16 +233,39 @@ var whiteboardDeleteCmd = &cobra.Command{
 
 Examples:
   craft whiteboards delete WB_ID --ids "elem1,elem2"
-  craft whiteboards delete WB_ID --ids "elem1" --dry-run`,
+  craft whiteboards delete WB_ID --ids "elem1" --dry-run
+  craft whiteboards delete WB_ID --json '{"idsToDelete":["elem1"]}' --dry-run`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if whiteboardIDs == "" {
-			return fmt.Errorf("--ids is required: comma-separated element IDs to delete")
-		}
+		var ids []string
+		if whiteboardDeleteJSON != "" || whiteboardDeleteStdin {
+			payload, err := readRawPayload(whiteboardDeleteJSON, whiteboardDeleteStdin)
+			if err != nil {
+				return err
+			}
+			rawIDs, ok := payloadArray(payload, "idsToDelete")
+			if !ok {
+				rawIDs, ok = payloadArray(payload, "ids")
+			}
+			if !ok || len(rawIDs) == 0 {
+				return fmt.Errorf("raw whiteboard delete payload must include non-empty \"idsToDelete\" array")
+			}
+			for _, id := range rawIDs {
+				value, ok := id.(string)
+				if !ok || value == "" {
+					return fmt.Errorf("idsToDelete must contain strings")
+				}
+				ids = append(ids, value)
+			}
+		} else {
+			if whiteboardIDs == "" {
+				return fmt.Errorf("--ids is required: comma-separated element IDs to delete")
+			}
 
-		ids := strings.Split(whiteboardIDs, ",")
-		for i := range ids {
-			ids[i] = strings.TrimSpace(ids[i])
+			ids = strings.Split(whiteboardIDs, ",")
+			for i := range ids {
+				ids[i] = strings.TrimSpace(ids[i])
+			}
 		}
 
 		if isDryRun() {
@@ -250,6 +299,9 @@ func init() {
 	whiteboardsCmd.AddCommand(whiteboardUpdateCmd)
 	whiteboardsCmd.AddCommand(whiteboardDeleteCmd)
 
+	whiteboardCreateCmd.Flags().StringVar(&whiteboardCreateJSON, "json", "", "Raw whiteboard create payload JSON")
+	whiteboardCreateCmd.Flags().BoolVar(&whiteboardCreateStdin, "stdin", false, "Read raw whiteboard create payload from stdin")
+
 	whiteboardAddCmd.Flags().StringVar(&whiteboardJSON, "json", "", "JSON element data (Excalidraw format)")
 	whiteboardAddCmd.Flags().Bool("stdin", false, "Read element data from stdin")
 
@@ -257,6 +309,8 @@ func init() {
 	whiteboardUpdateCmd.Flags().Bool("stdin", false, "Read element data from stdin")
 
 	whiteboardDeleteCmd.Flags().StringVar(&whiteboardIDs, "ids", "", "Comma-separated element IDs to delete")
+	whiteboardDeleteCmd.Flags().StringVar(&whiteboardDeleteJSON, "json", "", "Raw whiteboard delete payload JSON")
+	whiteboardDeleteCmd.Flags().BoolVar(&whiteboardDeleteStdin, "stdin", false, "Read raw whiteboard delete payload from stdin")
 }
 
 func readStdinString() (string, error) {

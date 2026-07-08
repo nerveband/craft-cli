@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"strings"
 
 	"github.com/ashrafali/craft-cli/internal/api"
@@ -17,6 +19,7 @@ var (
 	updateMode       string
 	updateSection    string
 	updateChunkBytes int
+	updateJSON       string
 )
 
 var updateCmd = &cobra.Command{
@@ -31,6 +34,7 @@ Use --section to replace a specific section by heading (requires --mode replace)
 Content can be provided via:
   --file <path>     Read content from a file (use - for stdin)
   --markdown <text> Provide content as argument
+  --json <payload>  Structured update payload
   <stdin>           Pipe content directly
 
 Examples:
@@ -38,6 +42,7 @@ Examples:
   craft update abc123 --file content.md
   craft update abc123 --mode replace --file content.md
   craft update abc123 --mode replace --section "Overview" --file overview.md
+  craft update abc123 --json '{"title":"New Title","markdown":"# Body","mode":"replace"}'
   echo "# Updated" | craft update abc123
   cat doc.md | craft update abc123 --title "Updated Doc"`,
 	Args: cobra.ExactArgs(1),
@@ -48,6 +53,31 @@ Examples:
 		}
 
 		docID := args[0]
+		if err := validateResourceID(docID, "document-id"); err != nil {
+			return err
+		}
+		if updateJSON != "" {
+			payload, err := parseJSONObject(updateJSON)
+			if err != nil {
+				return err
+			}
+			applyUpdatePayload(payload)
+		}
+
+		if updateStdin {
+			if updateFile != "" {
+				return fmt.Errorf("--stdin cannot be used with --file")
+			}
+			data, err := io.ReadAll(os.Stdin)
+			if err != nil {
+				return fmt.Errorf("failed to read stdin: %w", err)
+			}
+			if payload, err := parseJSONObject(string(data)); err == nil && updateJSON == "" && updateTitle == "" && updateMarkdown == "" {
+				applyUpdatePayload(payload)
+			} else {
+				updateMarkdown = string(data)
+			}
+		}
 
 		mode := updateMode
 		if mode == "" {
@@ -57,13 +87,6 @@ Examples:
 		case "append", "replace":
 		default:
 			return fmt.Errorf("invalid --mode %q (expected append or replace)", mode)
-		}
-
-		if updateStdin {
-			if updateFile != "" {
-				return fmt.Errorf("--stdin cannot be used with --file")
-			}
-			updateFile = "-"
 		}
 
 		// Read content from various sources
@@ -173,7 +196,29 @@ func init() {
 	updateCmd.Flags().StringVar(&updateFile, "file", "", "Read content from file (use - for stdin)")
 	updateCmd.Flags().StringVar(&updateMarkdown, "markdown", "", "Markdown content")
 	updateCmd.Flags().BoolVar(&updateStdin, "stdin", false, "Read content from stdin")
+	updateCmd.Flags().StringVar(&updateJSON, "json", "", "Structured update payload JSON")
 	updateCmd.Flags().StringVar(&updateMode, "mode", "append", "Update mode (append, replace)")
 	updateCmd.Flags().StringVar(&updateSection, "section", "", "Replace a section by heading (requires --mode replace)")
 	updateCmd.Flags().IntVar(&updateChunkBytes, "chunk-bytes", 30000, "Max bytes per insert chunk (helps avoid API payload limits)")
+}
+
+func applyUpdatePayload(payload map[string]interface{}) {
+	if title, ok := payload["title"].(string); ok {
+		updateTitle = title
+	}
+	if markdown, ok := payload["markdown"].(string); ok {
+		updateMarkdown = markdown
+	}
+	if content, ok := payload["content"].(string); ok && updateMarkdown == "" {
+		updateMarkdown = content
+	}
+	if mode, ok := payload["mode"].(string); ok {
+		updateMode = mode
+	}
+	if section, ok := payload["section"].(string); ok {
+		updateSection = section
+	}
+	if chunkBytes, ok := payload["chunkBytes"].(float64); ok {
+		updateChunkBytes = int(chunkBytes)
+	}
 }

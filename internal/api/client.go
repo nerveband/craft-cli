@@ -374,6 +374,25 @@ func (c *Client) CreateDocument(req *models.CreateDocumentRequest) (*models.Docu
 	return doc, nil
 }
 
+// CreateDocumentsRaw creates one or more documents using the documented REST payload shape.
+func (c *Client) CreateDocumentsRaw(req map[string]interface{}) ([]models.Document, error) {
+	data, err := c.doRequest("POST", "/documents", req)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp createDocumentsResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, fmt.Errorf("invalid response from API: %w", err)
+	}
+
+	docs := make([]models.Document, 0, len(resp.Items))
+	for _, item := range resp.Items {
+		docs = append(docs, models.Document{ID: item.ID, Title: item.Title})
+	}
+	return docs, nil
+}
+
 // blockPosition specifies where to insert a block
 type blockPosition struct {
 	PageID   string `json:"pageId"`
@@ -630,22 +649,22 @@ func (c *Client) CreateFolder(name string, parentID string) (*models.Folder, err
 
 // moveFolderRequest wraps the move folder request
 type moveFolderRequest struct {
-	Folders []struct {
-		ID       string `json:"id"`
-		ParentID string `json:"parentId"`
-	} `json:"folders"`
+	FolderIDs   []string    `json:"folderIds"`
+	Destination interface{} `json:"destination"`
 }
 
 // MoveFolder moves a folder to a new parent
 func (c *Client) MoveFolder(folderID, targetParentID string) error {
 	req := moveFolderRequest{
-		Folders: []struct {
-			ID       string `json:"id"`
-			ParentID string `json:"parentId"`
-		}{{ID: folderID, ParentID: targetParentID}},
+		FolderIDs: []string{folderID},
+	}
+	if targetParentID == "" {
+		req.Destination = "root"
+	} else {
+		req.Destination = map[string]string{"parentFolderId": targetParentID}
 	}
 
-	_, err := c.doRequest("PUT", "/folders", req)
+	_, err := c.doRequest("PUT", "/folders/move", req)
 	return err
 }
 
@@ -668,37 +687,22 @@ func (c *Client) DeleteFolder(folderID string) error {
 
 // moveDocumentRequest wraps the move document request
 type moveDocumentRequest struct {
-	Documents []struct {
-		ID       string `json:"id"`
-		FolderID string `json:"folderId,omitempty"`
-		Location string `json:"location,omitempty"` // unsorted, trash, etc.
-	} `json:"documents"`
+	DocumentIDs []string    `json:"documentIds"`
+	Destination interface{} `json:"destination"`
 }
 
 // MoveDocument moves a document to a folder or location
 func (c *Client) MoveDocument(docID, folderID, location string) error {
-	docMove := struct {
-		ID       string `json:"id"`
-		FolderID string `json:"folderId,omitempty"`
-		Location string `json:"location,omitempty"`
-	}{ID: docID}
-
-	if folderID != "" {
-		docMove.FolderID = folderID
-	}
-	if location != "" {
-		docMove.Location = location
-	}
-
 	req := moveDocumentRequest{
-		Documents: []struct {
-			ID       string `json:"id"`
-			FolderID string `json:"folderId,omitempty"`
-			Location string `json:"location,omitempty"`
-		}{docMove},
+		DocumentIDs: []string{docID},
+	}
+	if folderID != "" {
+		req.Destination = map[string]string{"folderId": folderID}
+	} else {
+		req.Destination = map[string]string{"destination": location}
 	}
 
-	_, err := c.doRequest("PUT", "/documents", req)
+	_, err := c.doRequest("PUT", "/documents/move", req)
 	return err
 }
 
@@ -867,40 +871,51 @@ func (c *Client) GetDocumentTasks(docID string) (*models.TaskList, error) {
 // addTaskRequest is the request body for adding tasks
 type addTaskRequest struct {
 	Tasks []struct {
-		Markdown     string `json:"markdown"`
-		Location     string `json:"location,omitempty"` // inbox, document
-		DocumentID   string `json:"documentId,omitempty"`
-		ScheduleDate string `json:"scheduleDate,omitempty"`
-		DeadlineDate string `json:"deadlineDate,omitempty"`
+		Markdown string                 `json:"markdown"`
+		TaskInfo map[string]interface{} `json:"taskInfo,omitempty"`
+		Location map[string]string      `json:"location,omitempty"`
 	} `json:"tasks"`
 }
 
 // addTaskResponse is the response from adding tasks
 type addTaskResponse struct {
 	Items []struct {
-		ID         string `json:"id"`
-		BlockID    string `json:"blockId"`
-		DocumentID string `json:"documentId"`
-		Markdown   string `json:"markdown"`
-		State      string `json:"state"`
+		ID         string           `json:"id"`
+		BlockID    string           `json:"blockId"`
+		DocumentID string           `json:"documentId"`
+		Markdown   string           `json:"markdown"`
+		State      string           `json:"state"`
+		TaskInfo   *models.TaskInfo `json:"taskInfo,omitempty"`
 	} `json:"items"`
 }
 
 // AddTask creates a new task
 func (c *Client) AddTask(markdown, location, docID, scheduleDate, deadlineDate string) (*models.Task, error) {
+	taskInfo := map[string]interface{}{}
+	if scheduleDate != "" {
+		taskInfo["scheduleDate"] = scheduleDate
+	}
+	if deadlineDate != "" {
+		taskInfo["deadlineDate"] = deadlineDate
+	}
+	if len(taskInfo) == 0 {
+		taskInfo = nil
+	}
+
+	locationObj := map[string]string{"type": location}
+	if location == "document" && docID != "" {
+		locationObj["documentId"] = docID
+	}
+
 	req := addTaskRequest{
 		Tasks: []struct {
-			Markdown     string `json:"markdown"`
-			Location     string `json:"location,omitempty"`
-			DocumentID   string `json:"documentId,omitempty"`
-			ScheduleDate string `json:"scheduleDate,omitempty"`
-			DeadlineDate string `json:"deadlineDate,omitempty"`
+			Markdown string                 `json:"markdown"`
+			TaskInfo map[string]interface{} `json:"taskInfo,omitempty"`
+			Location map[string]string      `json:"location,omitempty"`
 		}{{
-			Markdown:     markdown,
-			Location:     location,
-			DocumentID:   docID,
-			ScheduleDate: scheduleDate,
-			DeadlineDate: deadlineDate,
+			Markdown: markdown,
+			TaskInfo: taskInfo,
+			Location: locationObj,
 		}},
 	}
 
@@ -919,38 +934,96 @@ func (c *Client) AddTask(markdown, location, docID, scheduleDate, deadlineDate s
 	}
 
 	item := resp.Items[0]
+	state := item.State
+	schedule := ""
+	deadline := ""
+	completedAt := ""
+	canceledAt := ""
+	if item.TaskInfo != nil {
+		if item.TaskInfo.State != "" {
+			state = item.TaskInfo.State
+		}
+		schedule = item.TaskInfo.ScheduleDate
+		deadline = item.TaskInfo.DeadlineDate
+		completedAt = item.TaskInfo.CompletedAt
+		canceledAt = item.TaskInfo.CanceledAt
+	}
 	return &models.Task{
-		ID:         item.ID,
-		BlockID:    item.BlockID,
-		DocumentID: item.DocumentID,
-		Markdown:   item.Markdown,
-		State:      item.State,
+		ID:           item.ID,
+		BlockID:      item.BlockID,
+		DocumentID:   item.DocumentID,
+		Markdown:     item.Markdown,
+		State:        state,
+		ScheduleDate: schedule,
+		DeadlineDate: deadline,
+		CompletedAt:  completedAt,
+		CanceledAt:   canceledAt,
 	}, nil
+}
+
+// AddTasksRaw creates tasks using the documented REST payload shape.
+func (c *Client) AddTasksRaw(req map[string]interface{}) ([]models.Task, error) {
+	data, err := c.doRequest("POST", "/tasks", req)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp addTaskResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, fmt.Errorf("invalid response from API: %w", err)
+	}
+
+	tasks := make([]models.Task, 0, len(resp.Items))
+	for _, item := range resp.Items {
+		task := models.Task{
+			ID:         item.ID,
+			BlockID:    item.BlockID,
+			DocumentID: item.DocumentID,
+			Markdown:   item.Markdown,
+			State:      item.State,
+		}
+		if item.TaskInfo != nil {
+			if item.TaskInfo.State != "" {
+				task.State = item.TaskInfo.State
+			}
+			task.ScheduleDate = item.TaskInfo.ScheduleDate
+			task.DeadlineDate = item.TaskInfo.DeadlineDate
+			task.CompletedAt = item.TaskInfo.CompletedAt
+			task.CanceledAt = item.TaskInfo.CanceledAt
+		}
+		tasks = append(tasks, task)
+	}
+	return tasks, nil
 }
 
 // updateTaskRequest is the request body for updating tasks
 type updateTaskRequest struct {
-	Tasks []struct {
-		ID           string `json:"id"`
-		State        string `json:"state,omitempty"`
-		ScheduleDate string `json:"scheduleDate,omitempty"`
-		DeadlineDate string `json:"deadlineDate,omitempty"`
-	} `json:"tasks"`
+	TasksToUpdate []struct {
+		ID       string                 `json:"id"`
+		TaskInfo map[string]interface{} `json:"taskInfo,omitempty"`
+	} `json:"tasksToUpdate"`
 }
 
 // UpdateTask updates a task's state or dates
 func (c *Client) UpdateTask(taskID, state, scheduleDate, deadlineDate string) error {
+	taskInfo := map[string]interface{}{}
+	if state != "" {
+		taskInfo["state"] = state
+	}
+	if scheduleDate != "" {
+		taskInfo["scheduleDate"] = scheduleDate
+	}
+	if deadlineDate != "" {
+		taskInfo["deadlineDate"] = deadlineDate
+	}
+
 	req := updateTaskRequest{
-		Tasks: []struct {
-			ID           string `json:"id"`
-			State        string `json:"state,omitempty"`
-			ScheduleDate string `json:"scheduleDate,omitempty"`
-			DeadlineDate string `json:"deadlineDate,omitempty"`
+		TasksToUpdate: []struct {
+			ID       string                 `json:"id"`
+			TaskInfo map[string]interface{} `json:"taskInfo,omitempty"`
 		}{{
-			ID:           taskID,
-			State:        state,
-			ScheduleDate: scheduleDate,
-			DeadlineDate: deadlineDate,
+			ID:       taskID,
+			TaskInfo: taskInfo,
 		}},
 	}
 
@@ -958,17 +1031,29 @@ func (c *Client) UpdateTask(taskID, state, scheduleDate, deadlineDate string) er
 	return err
 }
 
+// UpdateTasksRaw updates tasks using the documented REST payload shape.
+func (c *Client) UpdateTasksRaw(req map[string]interface{}) error {
+	_, err := c.doRequest("PUT", "/tasks", req)
+	return err
+}
+
 // deleteTaskRequest is the request body for deleting tasks
 type deleteTaskRequest struct {
-	TaskIDs []string `json:"taskIds"`
+	IDsToDelete []string `json:"idsToDelete"`
 }
 
 // DeleteTask deletes a task
 func (c *Client) DeleteTask(taskID string) error {
 	req := deleteTaskRequest{
-		TaskIDs: []string{taskID},
+		IDsToDelete: []string{taskID},
 	}
 
+	_, err := c.doRequest("DELETE", "/tasks", req)
+	return err
+}
+
+// DeleteTasksRaw deletes tasks using the documented REST payload shape.
+func (c *Client) DeleteTasksRaw(req map[string]interface{}) error {
 	_, err := c.doRequest("DELETE", "/tasks", req)
 	return err
 }
@@ -1013,6 +1098,25 @@ func (c *Client) GetCollectionSchema(collectionID, format string) (*models.Colle
 	}
 
 	return &result, nil
+}
+
+// CreateCollectionRaw creates a collection using the documented/raw REST payload shape.
+func (c *Client) CreateCollectionRaw(req map[string]interface{}) (map[string]interface{}, error) {
+	data, err := c.doRequest("POST", "/collections", req)
+	if err != nil {
+		return nil, err
+	}
+	return decodeObjectResponse(data)
+}
+
+// UpdateCollectionSchemaRaw updates a collection schema using the documented/raw REST payload shape.
+func (c *Client) UpdateCollectionSchemaRaw(collectionID string, req map[string]interface{}) (map[string]interface{}, error) {
+	path := fmt.Sprintf("/collections/%s/schema", url.PathEscape(collectionID))
+	data, err := c.doRequest("PUT", path, req)
+	if err != nil {
+		return nil, err
+	}
+	return decodeObjectResponse(data)
 }
 
 // GetCollectionItems retrieves items from a collection
@@ -1066,6 +1170,20 @@ func (c *Client) AddCollectionItem(collectionID, title string, properties map[st
 	return &result, nil
 }
 
+// AddCollectionItemsRaw adds collection items using the documented REST payload shape.
+func (c *Client) AddCollectionItemsRaw(collectionID string, req map[string]interface{}) (*models.CollectionItemList, error) {
+	path := fmt.Sprintf("/collections/%s/items", url.PathEscape(collectionID))
+	data, err := c.doRequest("POST", path, req)
+	if err != nil {
+		return nil, err
+	}
+	var result models.CollectionItemList
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, fmt.Errorf("invalid response from API: %w", err)
+	}
+	return &result, nil
+}
+
 // UpdateCollectionItem updates an item in a collection
 func (c *Client) UpdateCollectionItem(collectionID, itemID string, properties map[string]interface{}, allowNewOptions bool) error {
 	path := fmt.Sprintf("/collections/%s/items", url.PathEscape(collectionID))
@@ -1088,6 +1206,13 @@ func (c *Client) UpdateCollectionItem(collectionID, itemID string, properties ma
 	return err
 }
 
+// UpdateCollectionItemsRaw updates collection items using the documented REST payload shape.
+func (c *Client) UpdateCollectionItemsRaw(collectionID string, req map[string]interface{}) error {
+	path := fmt.Sprintf("/collections/%s/items", url.PathEscape(collectionID))
+	_, err := c.doRequest("PUT", path, req)
+	return err
+}
+
 // DeleteCollectionItem deletes an item from a collection
 func (c *Client) DeleteCollectionItem(collectionID, itemID string) error {
 	path := fmt.Sprintf("/collections/%s/items", url.PathEscape(collectionID))
@@ -1100,6 +1225,24 @@ func (c *Client) DeleteCollectionItem(collectionID, itemID string) error {
 
 	_, err := c.doRequest("DELETE", path, req)
 	return err
+}
+
+// DeleteCollectionItemsRaw deletes collection items using the documented REST payload shape.
+func (c *Client) DeleteCollectionItemsRaw(collectionID string, req map[string]interface{}) error {
+	path := fmt.Sprintf("/collections/%s/items", url.PathEscape(collectionID))
+	_, err := c.doRequest("DELETE", path, req)
+	return err
+}
+
+func decodeObjectResponse(data []byte) (map[string]interface{}, error) {
+	if len(strings.TrimSpace(string(data))) == 0 {
+		return map[string]interface{}{"ok": true}, nil
+	}
+	var result map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, fmt.Errorf("invalid response from API: %w", err)
+	}
+	return result, nil
 }
 
 // ========== Connection ==========
@@ -1151,6 +1294,19 @@ func (c *Client) AddComment(blockID, content string) (*models.CommentResponse, e
 	return &result, nil
 }
 
+// AddCommentsRaw adds comments using the documented REST payload shape.
+func (c *Client) AddCommentsRaw(req map[string]interface{}) (*models.CommentResponse, error) {
+	data, err := c.doRequest("POST", "/comments", req)
+	if err != nil {
+		return nil, err
+	}
+	var result models.CommentResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, fmt.Errorf("invalid response from API: %w", err)
+	}
+	return &result, nil
+}
+
 // ========== Block Search ==========
 
 // SearchBlocks searches for blocks matching a pattern within a document.
@@ -1183,17 +1339,17 @@ func (c *Client) SearchBlocks(blockID, pattern string, caseSensitive bool, befor
 
 // SearchOptions contains optional parameters for advanced document search.
 type SearchOptions struct {
-	Regexps              string
-	Location             string
-	FolderIDs            string
-	DocumentIDs          string
-	FetchMetadata        bool
-	CreatedDateGte       string
-	CreatedDateLte       string
-	LastModifiedDateGte  string
-	LastModifiedDateLte  string
-	DailyNoteDateGte     string
-	DailyNoteDateLte     string
+	Regexps             string
+	Location            string
+	FolderIDs           string
+	DocumentIDs         string
+	FetchMetadata       bool
+	CreatedDateGte      string
+	CreatedDateLte      string
+	LastModifiedDateGte string
+	LastModifiedDateLte string
+	DailyNoteDateGte    string
+	DailyNoteDateLte    string
 }
 
 // SearchDocumentsAdvanced searches for documents with full option support.
@@ -1254,15 +1410,15 @@ func (c *Client) SearchDocumentsAdvanced(query string, opts SearchOptions) (*mod
 
 // ListDocumentsOptions contains optional parameters for advanced document listing.
 type ListDocumentsOptions struct {
-	FolderID             string
-	Location             string
-	FetchMetadata        bool
-	CreatedDateGte       string
-	CreatedDateLte       string
-	LastModifiedDateGte  string
-	LastModifiedDateLte  string
-	DailyNoteDateGte     string
-	DailyNoteDateLte     string
+	FolderID            string
+	Location            string
+	FetchMetadata       bool
+	CreatedDateGte      string
+	CreatedDateLte      string
+	LastModifiedDateGte string
+	LastModifiedDateLte string
+	DailyNoteDateGte    string
+	DailyNoteDateLte    string
 }
 
 // GetDocumentsAdvanced retrieves documents with full option support.

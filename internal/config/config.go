@@ -15,8 +15,13 @@ const (
 
 // Profile represents a named API configuration
 type Profile struct {
-	URL    string `json:"url"`
-	APIKey string `json:"api_key,omitempty"`
+	Type          string `json:"type,omitempty"` // rest or mcp; empty means rest for legacy profiles
+	URL           string `json:"url,omitempty"`
+	MCPURL        string `json:"mcp_url,omitempty"`
+	APIKey        string `json:"api_key,omitempty"`
+	AccessMode    string `json:"access_mode,omitempty"`    // public or api_key
+	Permission    string `json:"permission,omitempty"`     // read-only, write-only, read-write
+	DocumentScope string `json:"document_scope,omitempty"` // all-documents, selected-documents, daily-notes, connection-defined
 }
 
 // Config represents the application configuration
@@ -103,12 +108,62 @@ func (m *Manager) AddProfile(name, url string) error {
 
 // AddProfileWithKey adds or updates a named profile with an optional API key
 func (m *Manager) AddProfileWithKey(name, url, apiKey string) error {
+	return m.AddRESTProfile(name, url, apiKey, "", "", "")
+}
+
+// AddRESTProfile adds or updates a REST API profile.
+func (m *Manager) AddRESTProfile(name, url, apiKey, accessMode, permission, documentScope string) error {
 	cfg, err := m.Load()
 	if err != nil {
 		return err
 	}
 
-	cfg.Profiles[name] = Profile{URL: url, APIKey: apiKey}
+	if accessMode == "" {
+		if apiKey != "" {
+			accessMode = "api-key"
+		} else {
+			accessMode = "public"
+		}
+	}
+
+	cfg.Profiles[name] = Profile{
+		Type:          "rest",
+		URL:           url,
+		APIKey:        apiKey,
+		AccessMode:    accessMode,
+		Permission:    permission,
+		DocumentScope: documentScope,
+	}
+
+	// If this is the first profile, make it active
+	if len(cfg.Profiles) == 1 {
+		cfg.ActiveProfile = name
+	}
+
+	return m.Save(cfg)
+}
+
+// AddMCPProfile adds or updates a Craft MCP profile.
+func (m *Manager) AddMCPProfile(name, mcpURL, accessMode, permission, documentScope string) error {
+	cfg, err := m.Load()
+	if err != nil {
+		return err
+	}
+
+	if accessMode == "" {
+		accessMode = "public"
+	}
+	if documentScope == "" {
+		documentScope = "connection-defined"
+	}
+
+	cfg.Profiles[name] = Profile{
+		Type:          "mcp",
+		MCPURL:        mcpURL,
+		AccessMode:    accessMode,
+		Permission:    permission,
+		DocumentScope: documentScope,
+	}
 
 	// If this is the first profile, make it active
 	if len(cfg.Profiles) == 1 {
@@ -164,10 +219,15 @@ func (m *Manager) ListProfiles() ([]ProfileInfo, error) {
 	var profiles []ProfileInfo
 	for name, profile := range cfg.Profiles {
 		profiles = append(profiles, ProfileInfo{
-			Name:      name,
-			URL:       profile.URL,
-			Active:    name == cfg.ActiveProfile,
-			HasAPIKey: profile.APIKey != "",
+			Name:          name,
+			Type:          profile.TypeOrDefault(),
+			URL:           profile.URL,
+			MCPURL:        profile.MCPURL,
+			Active:        name == cfg.ActiveProfile,
+			HasAPIKey:     profile.APIKey != "",
+			AccessMode:    profile.AccessMode,
+			Permission:    profile.Permission,
+			DocumentScope: profile.DocumentScope,
 		})
 	}
 
@@ -181,10 +241,52 @@ func (m *Manager) ListProfiles() ([]ProfileInfo, error) {
 
 // ProfileInfo contains profile details for display
 type ProfileInfo struct {
-	Name      string
-	URL       string
-	Active    bool
-	HasAPIKey bool
+	Name          string `json:"name"`
+	Type          string `json:"type"`
+	URL           string `json:"url,omitempty"`
+	MCPURL        string `json:"mcp_url,omitempty"`
+	Active        bool   `json:"active"`
+	HasAPIKey     bool   `json:"has_api_key"`
+	AccessMode    string `json:"access_mode,omitempty"`
+	Permission    string `json:"permission,omitempty"`
+	DocumentScope string `json:"document_scope,omitempty"`
+}
+
+// TypeOrDefault returns the profile type, defaulting legacy profiles to REST.
+func (p Profile) TypeOrDefault() string {
+	if p.Type == "" {
+		return "rest"
+	}
+	return p.Type
+}
+
+// GetProfile returns a named profile.
+func (m *Manager) GetProfile(name string) (Profile, error) {
+	cfg, err := m.Load()
+	if err != nil {
+		return Profile{}, err
+	}
+	profile, exists := cfg.Profiles[name]
+	if !exists {
+		return Profile{}, fmt.Errorf("profile '%s' not found", name)
+	}
+	return profile, nil
+}
+
+// GetActiveProfile returns the active profile.
+func (m *Manager) GetActiveProfile() (Profile, error) {
+	cfg, err := m.Load()
+	if err != nil {
+		return Profile{}, err
+	}
+	if cfg.ActiveProfile == "" {
+		return Profile{}, fmt.Errorf("no active profile. Run 'craft config add <name> <url>' first")
+	}
+	profile, exists := cfg.Profiles[cfg.ActiveProfile]
+	if !exists {
+		return Profile{}, fmt.Errorf("active profile '%s' not found. Run 'craft config add <name> <url>' first", cfg.ActiveProfile)
+	}
+	return profile, nil
 }
 
 // GetActiveURL returns the URL of the active profile
@@ -201,6 +303,9 @@ func (m *Manager) GetActiveURL() (string, error) {
 	profile, exists := cfg.Profiles[cfg.ActiveProfile]
 	if !exists {
 		return "", fmt.Errorf("active profile '%s' not found. Run 'craft config add <name> <url>' first", cfg.ActiveProfile)
+	}
+	if profile.TypeOrDefault() != "rest" {
+		return "", fmt.Errorf("active profile '%s' is not a REST profile", cfg.ActiveProfile)
 	}
 
 	return profile.URL, nil
@@ -219,6 +324,9 @@ func (m *Manager) GetActiveAPIKey() (string, error) {
 
 	profile, exists := cfg.Profiles[cfg.ActiveProfile]
 	if !exists {
+		return "", nil
+	}
+	if profile.TypeOrDefault() != "rest" {
 		return "", nil
 	}
 

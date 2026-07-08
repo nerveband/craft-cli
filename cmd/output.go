@@ -132,6 +132,75 @@ func outputJSON(data interface{}) error {
 	return encoder.Encode(data)
 }
 
+func projectItems[T any](items []T, fields string) ([]map[string]interface{}, error) {
+	fieldNames := strings.Split(fields, ",")
+	for i := range fieldNames {
+		fieldNames[i] = strings.TrimSpace(fieldNames[i])
+	}
+	projected := make([]map[string]interface{}, 0, len(items))
+	for _, item := range items {
+		data, err := structToJSONMap(item)
+		if err != nil {
+			return nil, err
+		}
+		entry := map[string]interface{}{}
+		for _, field := range fieldNames {
+			if field == "" {
+				continue
+			}
+			value, ok := lookupProjectedField(data, field)
+			if !ok {
+				return nil, fmt.Errorf("unknown field: %s", field)
+			}
+			entry[field] = value
+		}
+		projected = append(projected, entry)
+	}
+	return projected, nil
+}
+
+func structToJSONMap(value interface{}) (map[string]interface{}, error) {
+	data, err := json.Marshal(value)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func lookupProjectedField(data map[string]interface{}, field string) (interface{}, bool) {
+	if value, ok := data[field]; ok {
+		return value, true
+	}
+	normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(field, "_", ""), "-", ""))
+	for key, value := range data {
+		keyNorm := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(key, "_", ""), "-", ""))
+		if keyNorm == normalized {
+			return value, true
+		}
+	}
+	return nil, false
+}
+
+func payloadWithMetadata(items interface{}, total int, truncated bool, originalReturned int, returned int, suggested string) map[string]interface{} {
+	payload := map[string]interface{}{
+		"items": items,
+		"total": total,
+	}
+	if truncated {
+		payload["_metadata"] = map[string]interface{}{
+			"truncated":         true,
+			"returned":          returned,
+			"available_in_page": originalReturned,
+			"suggested_command": suggested,
+		}
+	}
+	return payload
+}
+
 // outputTable prints documents as a table
 func outputTable(docs []models.Document) error {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
@@ -286,6 +355,14 @@ func outputSearchResultsPayload(payload *models.SearchResult, format string) err
 		return fmt.Errorf("unsupported format: %s", format)
 	}
 	return outputJSON(payload)
+}
+
+func outputCount(count int) error {
+	if isJSONFormat(getOutputFormat()) {
+		return outputJSON(map[string]int{"count": count})
+	}
+	fmt.Println(count)
+	return nil
 }
 
 // outputSearchTable prints search results as a table

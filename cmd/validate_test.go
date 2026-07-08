@@ -31,3 +31,23 @@ func TestValidateResourceID(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateOutputPath(t *testing.T) {
+	t.Run("inside cwd", func(t *testing.T) {
+		if err := validateOutputPath("out.md", false); err != nil {
+			t.Fatalf("validateOutputPath() error = %v", err)
+		}
+	})
+
+	t.Run("outside cwd rejected", func(t *testing.T) {
+		if err := validateOutputPath("../out.md", false); err == nil {
+			t.Fatal("expected outside cwd path to be rejected")
+		}
+	})
+
+	t.Run("outside cwd allowed with override", func(t *testing.T) {
+		if err := validateOutputPath("../out.md", true); err != nil {
+			t.Fatalf("validateOutputPath() with override error = %v", err)
+		}
+	})
+}

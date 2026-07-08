@@ -17,6 +17,7 @@ var (
 	createParentID string
 	batchCreate    bool
 	createStdin    bool
+	createJSON     string
 )
 
 var createCmd = &cobra.Command{
@@ -25,10 +26,11 @@ var createCmd = &cobra.Command{
 	Long: `Create a new document in Craft.
 
 Content can be provided via:
-  --file <path>     Read content from a file (use - for stdin)
-  --markdown <text> Provide content as argument
-  <stdin>           Pipe content directly
-  --batch           Read JSON array of documents from stdin
+	  --file <path>     Read content from a file (use - for stdin)
+	  --markdown <text> Provide content as argument
+	  --json <payload>  Raw REST create payload
+	  <stdin>           Pipe content directly
+	  --batch           Read JSON array of documents from stdin
 
 Examples:
   craft create --title "Note" --file content.md
@@ -36,24 +38,29 @@ Examples:
   echo "# Hello" | craft create --title "Note"      # Pipe content
   cat doc.md | craft create --title "Imported"
 
-  # Batch create
-  echo '[{"title":"Doc1"},{"title":"Doc2"}]' | craft create --batch
+	  # Batch create
+	  echo '[{"title":"Doc1"},{"title":"Doc2"}]' | craft create --batch
+	  echo '{"documents":[{"title":"Doc1"}]}' | craft create --stdin --dry-run
 
-  # Chain-friendly (returns just the ID)
-  ID=$(craft create -q --title "Note")
-  craft update $ID --file content.md`,
+	  # Chain-friendly (returns just the ID)
+	  ID=$(craft create -q --title "Note")
+	  craft update $ID --file content.md`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if createJSON != "" {
+			payload, err := parseJSONObject(createJSON)
+			if err != nil {
+				return err
+			}
+			return runCreateRaw(payload)
+		}
+
 		// Handle batch mode
 		if batchCreate {
 			if createStdin {
 				return fmt.Errorf("--stdin cannot be used with --batch")
 			}
 			return runBatchCreate()
-		}
-
-		client, err := getAPIClient()
-		if err != nil {
-			return err
 		}
 
 		req := &models.CreateDocumentRequest{
@@ -65,7 +72,14 @@ Examples:
 			if createFile != "" {
 				return fmt.Errorf("--stdin cannot be used with --file")
 			}
-			createFile = "-"
+			data, err := io.ReadAll(os.Stdin)
+			if err != nil {
+				return fmt.Errorf("failed to read stdin: %w", err)
+			}
+			if payload, err := parseJSONObject(string(data)); err == nil && createTitle == "" && createMarkdown == "" && createParentID == "" {
+				return runCreateRaw(payload)
+			}
+			createMarkdown = string(data)
 		}
 		// Read content from various sources
 		content, err := readContent(createFile, createMarkdown)
@@ -93,6 +107,10 @@ Examples:
 			return dryRunOutput("create", target)
 		}
 
+		client, err := getAPIClient()
+		if err != nil {
+			return err
+		}
 		doc, err := client.CreateDocument(req)
 		if err != nil {
 			return err
@@ -114,8 +132,37 @@ func init() {
 	createCmd.Flags().StringVar(&createFile, "file", "", "Read content from file (use - for stdin)")
 	createCmd.Flags().StringVar(&createMarkdown, "markdown", "", "Markdown content")
 	createCmd.Flags().BoolVar(&createStdin, "stdin", false, "Read content from stdin")
+	createCmd.Flags().StringVar(&createJSON, "json", "", "Raw REST create payload JSON, e.g. {\"documents\":[...]}")
 	createCmd.Flags().StringVar(&createParentID, "parent", "", "Parent document ID")
 	createCmd.Flags().BoolVar(&batchCreate, "batch", false, "Batch create from JSON array on stdin")
+}
+
+func runCreateRaw(payload map[string]interface{}) error {
+	docs, ok := payload["documents"].([]interface{})
+	if !ok || len(docs) == 0 {
+		return fmt.Errorf("raw create payload must include non-empty \"documents\" array")
+	}
+	if isDryRun() {
+		return dryRunOutput("create documents", map[string]interface{}{
+			"payload": payload,
+			"count":   len(docs),
+		})
+	}
+	client, err := getAPIClient()
+	if err != nil {
+		return err
+	}
+	created, err := client.CreateDocumentsRaw(payload)
+	if err != nil {
+		return err
+	}
+	if isQuiet() {
+		for _, doc := range created {
+			fmt.Println(doc.ID)
+		}
+		return nil
+	}
+	return outputDocuments(created, getOutputFormat())
 }
 
 // readContent reads content from file, argument, or stdin

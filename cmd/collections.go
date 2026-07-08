@@ -26,13 +26,19 @@ Examples:
 }
 
 var (
-	collectionDocumentID    string
-	collectionSchemaFormat  string
-	collectionItemDepth     int
-	collectionItemTitle     string
-	collectionItemProps     string
-	collectionAllowNew      bool
-	collectionItemID        string
+	collectionDocumentID   string
+	collectionSchemaFormat string
+	collectionItemDepth    int
+	collectionItemTitle    string
+	collectionItemProps    string
+	collectionAllowNew     bool
+	collectionItemID       string
+	collectionJSON         string
+	collectionStdin        bool
+	collectionName         string
+	collectionViewID       string
+	collectionViewName     string
+	collectionViewType     string
 )
 
 var collectionsListCmd = &cobra.Command{
@@ -84,6 +90,75 @@ Schema formats:
 	},
 }
 
+var collectionsCreateCmd = &cobra.Command{
+	Use:   "create",
+	Short: "Create a collection",
+	Long: `Create a Craft collection.
+
+Use --json or --stdin for raw REST payloads. Use --backend mcp to route a
+collection creation command through Craft MCP when richer property flags are
+needed by the current MCP server.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if backendName == "mcp" {
+			command := "collections create"
+			if collectionName != "" {
+				command += " --name " + quoteMCPArg(collectionName)
+			}
+			if collectionJSON != "" {
+				command += " --json " + quoteMCPArg(collectionJSON)
+			}
+			if collectionStdin {
+				return fmt.Errorf("--stdin is not supported with --backend mcp for collections create; use --json")
+			}
+			return runMCPCollectionCommand("collections.create", command, "craft_write")
+		}
+
+		payload, err := readRawPayload(collectionJSON, collectionStdin)
+		if err != nil {
+			if collectionName == "" {
+				return fmt.Errorf("collections create requires --json/--stdin, or --name with --backend mcp")
+			}
+			payload = map[string]interface{}{"name": collectionName}
+		}
+		if isDryRun() {
+			return dryRunOutput("create collection", map[string]interface{}{"backend": "rest", "payload": payload})
+		}
+		client, err := getAPIClient()
+		if err != nil {
+			return err
+		}
+		result, err := client.CreateCollectionRaw(payload)
+		if err != nil {
+			return err
+		}
+		return outputJSON(result)
+	},
+}
+
+var collectionsSchemaUpdateCmd = &cobra.Command{
+	Use:   "update [collection-id]",
+	Short: "Update collection schema",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		payload, err := readRawPayload(collectionJSON, collectionStdin)
+		if err != nil {
+			return err
+		}
+		if isDryRun() {
+			return dryRunOutput("update collection schema", map[string]interface{}{"backend": "rest", "collection_id": args[0], "payload": payload})
+		}
+		client, err := getAPIClient()
+		if err != nil {
+			return err
+		}
+		result, err := client.UpdateCollectionSchemaRaw(args[0], payload)
+		if err != nil {
+			return err
+		}
+		return outputJSON(result)
+	},
+}
+
 var collectionsItemsCmd = &cobra.Command{
 	Use:   "items [collection-id]",
 	Short: "List items in a collection",
@@ -120,10 +195,37 @@ var collectionsAddCmd = &cobra.Command{
 Examples:
   craft collections add COLLECTION_ID --title "New Item"
   craft collections add COLLECTION_ID --title "Item" --properties '{"Status":"Active","Priority":"High"}'
-  craft collections add COLLECTION_ID --title "Item" --properties '{"Tag":"new-value"}' --allow-new-options`,
+  craft collections add COLLECTION_ID --title "Item" --properties '{"Tag":"new-value"}' --allow-new-options
+  craft collections add COLLECTION_ID --json '{"items":[{"title":"New Item"}]}' --dry-run`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if collectionJSON != "" || collectionStdin {
+			payload, err := readRawPayload(collectionJSON, collectionStdin)
+			if err != nil {
+				return err
+			}
+			items, ok := payloadArray(payload, "items")
+			if !ok || len(items) == 0 {
+				return fmt.Errorf("raw collection add payload must include non-empty \"items\" array")
+			}
+			if isDryRun() {
+				return dryRunOutput("add collection items", map[string]interface{}{"collection_id": args[0], "payload": payload, "count": len(items)})
+			}
+			client, err := getAPIClient()
+			if err != nil {
+				return err
+			}
+			result, err := client.AddCollectionItemsRaw(args[0], payload)
+			if err != nil {
+				return err
+			}
+			return outputJSON(result)
+		}
+
 		if isDryRun() {
+			if collectionItemTitle == "" {
+				return fmt.Errorf("--title is required")
+			}
 			return dryRunOutput("add collection item", map[string]interface{}{
 				"collection_id": args[0], "title": collectionItemTitle,
 			})
@@ -135,6 +237,9 @@ Examples:
 		}
 
 		collectionID := args[0]
+		if collectionItemTitle == "" {
+			return fmt.Errorf("--title is required")
+		}
 
 		var props map[string]interface{}
 		if collectionItemProps != "" {
@@ -176,10 +281,36 @@ var collectionsUpdateCmd = &cobra.Command{
 
 Examples:
   craft collections update COLLECTION_ID --item ITEM_ID --properties '{"Status":"Done"}'
-  craft collections update COLLECTION_ID --item ITEM_ID --properties '{"Tag":"new"}' --allow-new-options`,
+  craft collections update COLLECTION_ID --item ITEM_ID --properties '{"Tag":"new"}' --allow-new-options
+  craft collections update COLLECTION_ID --json '{"itemsToUpdate":[{"id":"ITEM_ID","properties":{"Status":"Done"}}]}' --dry-run`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if collectionJSON != "" || collectionStdin {
+			payload, err := readRawPayload(collectionJSON, collectionStdin)
+			if err != nil {
+				return err
+			}
+			items, ok := payloadArray(payload, "itemsToUpdate")
+			if !ok || len(items) == 0 {
+				return fmt.Errorf("raw collection update payload must include non-empty \"itemsToUpdate\" array")
+			}
+			if isDryRun() {
+				return dryRunOutput("update collection items", map[string]interface{}{"collection_id": args[0], "payload": payload, "count": len(items)})
+			}
+			client, err := getAPIClient()
+			if err != nil {
+				return err
+			}
+			return client.UpdateCollectionItemsRaw(args[0], payload)
+		}
+
 		if isDryRun() {
+			if collectionItemID == "" {
+				return fmt.Errorf("--item is required")
+			}
+			if collectionItemProps == "" {
+				return fmt.Errorf("--properties is required")
+			}
 			return dryRunOutput("update collection item", map[string]interface{}{
 				"collection_id": args[0], "item_id": collectionItemID,
 			})
@@ -191,6 +322,12 @@ Examples:
 		}
 
 		collectionID := args[0]
+		if collectionItemID == "" {
+			return fmt.Errorf("--item is required")
+		}
+		if collectionItemProps == "" {
+			return fmt.Errorf("--properties is required")
+		}
 
 		var props map[string]interface{}
 		if err := json.Unmarshal([]byte(collectionItemProps), &props); err != nil {
@@ -211,10 +348,36 @@ Examples:
 var collectionsDeleteCmd = &cobra.Command{
 	Use:   "delete [collection-id]",
 	Short: "Delete an item from a collection",
-	Long:  "Delete an item from a collection by its ID.",
-	Args:  cobra.ExactArgs(1),
+	Long: `Delete an item from a collection by its ID.
+
+Examples:
+  craft collections delete COLLECTION_ID --item ITEM_ID
+  craft collections delete COLLECTION_ID --json '{"idsToDelete":["ITEM_ID"]}' --dry-run`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if collectionJSON != "" || collectionStdin {
+			payload, err := readRawPayload(collectionJSON, collectionStdin)
+			if err != nil {
+				return err
+			}
+			ids, ok := payloadArray(payload, "idsToDelete")
+			if !ok || len(ids) == 0 {
+				return fmt.Errorf("raw collection delete payload must include non-empty \"idsToDelete\" array")
+			}
+			if isDryRun() {
+				return dryRunOutput("delete collection items", map[string]interface{}{"collection_id": args[0], "payload": payload, "count": len(ids), "destructive": true})
+			}
+			client, err := getAPIClient()
+			if err != nil {
+				return err
+			}
+			return client.DeleteCollectionItemsRaw(args[0], payload)
+		}
+
 		if isDryRun() {
+			if collectionItemID == "" {
+				return fmt.Errorf("--item is required")
+			}
 			return dryRunOutput("delete collection item", map[string]interface{}{
 				"collection_id": args[0], "item_id": collectionItemID, "destructive": true,
 			})
@@ -226,6 +389,9 @@ var collectionsDeleteCmd = &cobra.Command{
 		}
 
 		collectionID := args[0]
+		if collectionItemID == "" {
+			return fmt.Errorf("--item is required")
+		}
 		if err := client.DeleteCollectionItem(collectionID, collectionItemID); err != nil {
 			return err
 		}
@@ -237,6 +403,103 @@ var collectionsDeleteCmd = &cobra.Command{
 	},
 }
 
+var collectionsViewsCmd = &cobra.Command{
+	Use:   "views",
+	Short: "Manage collection views through Craft MCP",
+	Long: `Manage collection views through Craft MCP.
+
+The captured REST docs do not expose stable collection view endpoints, while
+Craft MCP exposes the collection view command surface. These commands use
+craft_read for list and craft_write for create/update/delete.`,
+}
+
+var collectionsViewsListCmd = &cobra.Command{
+	Use:   "list [collection-id]",
+	Short: "List collection views",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runMCPCollectionCommand("collections.views.list", "collections views list "+quoteMCPArg(args[0]), "craft_read")
+	},
+}
+
+var collectionsViewsCreateCmd = &cobra.Command{
+	Use:   "create [collection-id]",
+	Short: "Create a collection view",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		command := "collections views create " + quoteMCPArg(args[0])
+		if collectionViewName != "" {
+			command += " --name " + quoteMCPArg(collectionViewName)
+		}
+		if collectionViewType != "" {
+			command += " --type " + quoteMCPArg(collectionViewType)
+		}
+		if collectionJSON != "" {
+			command += " --json " + quoteMCPArg(collectionJSON)
+		}
+		if collectionStdin {
+			return fmt.Errorf("--stdin is not supported for MCP collection view commands; use --json")
+		}
+		return runMCPCollectionCommand("collections.views.create", command, "craft_write")
+	},
+}
+
+var collectionsViewsUpdateCmd = &cobra.Command{
+	Use:   "update [collection-id]",
+	Short: "Update a collection view",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if collectionViewID == "" {
+			return fmt.Errorf("--view is required")
+		}
+		command := "collections views update " + quoteMCPArg(args[0]) + " --view " + quoteMCPArg(collectionViewID)
+		if collectionViewName != "" {
+			command += " --name " + quoteMCPArg(collectionViewName)
+		}
+		if collectionViewType != "" {
+			command += " --type " + quoteMCPArg(collectionViewType)
+		}
+		if collectionJSON != "" {
+			command += " --json " + quoteMCPArg(collectionJSON)
+		}
+		if collectionStdin {
+			return fmt.Errorf("--stdin is not supported for MCP collection view commands; use --json")
+		}
+		return runMCPCollectionCommand("collections.views.update", command, "craft_write")
+	},
+}
+
+var collectionsViewsDeleteCmd = &cobra.Command{
+	Use:   "delete [collection-id]",
+	Short: "Delete a collection view",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if collectionViewID == "" {
+			return fmt.Errorf("--view is required")
+		}
+		command := "collections views delete " + quoteMCPArg(args[0]) + " --view " + quoteMCPArg(collectionViewID)
+		return runMCPCollectionCommand("collections.views.delete", command, "craft_write")
+	},
+}
+
+var collectionsActiveViewCmd = &cobra.Command{
+	Use:   "active-view",
+	Short: "Manage active collection view through Craft MCP",
+}
+
+var collectionsActiveViewSetCmd = &cobra.Command{
+	Use:   "set [collection-id]",
+	Short: "Set active collection view",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if collectionViewID == "" {
+			return fmt.Errorf("--view is required")
+		}
+		command := "collections active-view set " + quoteMCPArg(args[0]) + " --view " + quoteMCPArg(collectionViewID)
+		return runMCPCollectionCommand("collections.active-view.set", command, "craft_write")
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(collectionsCmd)
 
@@ -245,6 +508,14 @@ func init() {
 
 	collectionsCmd.AddCommand(collectionsSchemaCmd)
 	collectionsSchemaCmd.Flags().StringVar(&collectionSchemaFormat, "schema-format", "schema", "Schema format (default: schema)")
+	collectionsSchemaCmd.AddCommand(collectionsSchemaUpdateCmd)
+	collectionsSchemaUpdateCmd.Flags().StringVar(&collectionJSON, "json", "", "Raw REST update collection schema payload JSON")
+	collectionsSchemaUpdateCmd.Flags().BoolVar(&collectionStdin, "stdin", false, "Read raw REST update collection schema payload from stdin")
+
+	collectionsCmd.AddCommand(collectionsCreateCmd)
+	collectionsCreateCmd.Flags().StringVar(&collectionName, "name", "", "Collection name")
+	collectionsCreateCmd.Flags().StringVar(&collectionJSON, "json", "", "Raw REST create collection payload JSON")
+	collectionsCreateCmd.Flags().BoolVar(&collectionStdin, "stdin", false, "Read raw REST create collection payload from stdin")
 
 	collectionsCmd.AddCommand(collectionsItemsCmd)
 	collectionsItemsCmd.Flags().IntVar(&collectionItemDepth, "depth", -1, "Max depth of nested content (-1 for no limit)")
@@ -253,18 +524,63 @@ func init() {
 	collectionsAddCmd.Flags().StringVar(&collectionItemTitle, "title", "", "Item title (required)")
 	collectionsAddCmd.Flags().StringVar(&collectionItemProps, "properties", "", "Item properties as JSON string")
 	collectionsAddCmd.Flags().BoolVar(&collectionAllowNew, "allow-new-options", false, "Allow creating new options for select properties")
-	collectionsAddCmd.MarkFlagRequired("title")
+	collectionsAddCmd.Flags().StringVar(&collectionJSON, "json", "", "Raw REST add collection items payload JSON")
+	collectionsAddCmd.Flags().BoolVar(&collectionStdin, "stdin", false, "Read raw REST add collection items payload from stdin")
 
 	collectionsCmd.AddCommand(collectionsUpdateCmd)
 	collectionsUpdateCmd.Flags().StringVar(&collectionItemID, "item", "", "Item ID to update (required)")
 	collectionsUpdateCmd.Flags().StringVar(&collectionItemProps, "properties", "", "Item properties as JSON string (required)")
 	collectionsUpdateCmd.Flags().BoolVar(&collectionAllowNew, "allow-new-options", false, "Allow creating new options for select properties")
-	collectionsUpdateCmd.MarkFlagRequired("item")
-	collectionsUpdateCmd.MarkFlagRequired("properties")
+	collectionsUpdateCmd.Flags().StringVar(&collectionJSON, "json", "", "Raw REST update collection items payload JSON")
+	collectionsUpdateCmd.Flags().BoolVar(&collectionStdin, "stdin", false, "Read raw REST update collection items payload from stdin")
 
 	collectionsCmd.AddCommand(collectionsDeleteCmd)
 	collectionsDeleteCmd.Flags().StringVar(&collectionItemID, "item", "", "Item ID to delete (required)")
-	collectionsDeleteCmd.MarkFlagRequired("item")
+	collectionsDeleteCmd.Flags().StringVar(&collectionJSON, "json", "", "Raw REST delete collection items payload JSON")
+	collectionsDeleteCmd.Flags().BoolVar(&collectionStdin, "stdin", false, "Read raw REST delete collection items payload from stdin")
+
+	collectionsCmd.AddCommand(collectionsViewsCmd)
+	collectionsViewsCmd.AddCommand(collectionsViewsListCmd)
+	collectionsViewsCmd.AddCommand(collectionsViewsCreateCmd)
+	collectionsViewsCreateCmd.Flags().StringVar(&collectionViewName, "name", "", "View name")
+	collectionsViewsCreateCmd.Flags().StringVar(&collectionViewType, "type", "", "View type")
+	collectionsViewsCreateCmd.Flags().StringVar(&collectionJSON, "json", "", "Raw MCP collection view payload JSON")
+	collectionsViewsCreateCmd.Flags().BoolVar(&collectionStdin, "stdin", false, "Read raw MCP collection view payload from stdin")
+	collectionsViewsCmd.AddCommand(collectionsViewsUpdateCmd)
+	collectionsViewsUpdateCmd.Flags().StringVar(&collectionViewID, "view", "", "View ID")
+	collectionsViewsUpdateCmd.Flags().StringVar(&collectionViewName, "name", "", "View name")
+	collectionsViewsUpdateCmd.Flags().StringVar(&collectionViewType, "type", "", "View type")
+	collectionsViewsUpdateCmd.Flags().StringVar(&collectionJSON, "json", "", "Raw MCP collection view payload JSON")
+	collectionsViewsUpdateCmd.Flags().BoolVar(&collectionStdin, "stdin", false, "Read raw MCP collection view payload from stdin")
+	collectionsViewsCmd.AddCommand(collectionsViewsDeleteCmd)
+	collectionsViewsDeleteCmd.Flags().StringVar(&collectionViewID, "view", "", "View ID")
+
+	collectionsCmd.AddCommand(collectionsActiveViewCmd)
+	collectionsActiveViewCmd.AddCommand(collectionsActiveViewSetCmd)
+	collectionsActiveViewSetCmd.Flags().StringVar(&collectionViewID, "view", "", "View ID")
+}
+
+func runMCPCollectionCommand(operation, command, tool string) error {
+	if isDryRun() {
+		return dryRunOutput(operation, map[string]interface{}{
+			"backend":      "mcp",
+			"tool":         tool,
+			"command":      command,
+			"capabilities": []string{"mcp", "collections.views"},
+		})
+	}
+	if tool == "craft_write" && !yesFlag {
+		return fmt.Errorf("%s uses craft_write; rerun with --yes after reviewing --dry-run", operation)
+	}
+	client, err := getMCPClient()
+	if err != nil {
+		return err
+	}
+	result, err := client.CallTool(tool, map[string]interface{}{"command": command})
+	if err != nil {
+		return err
+	}
+	return outputRawJSON(result)
 }
 
 // outputCollections prints collections in the specified format

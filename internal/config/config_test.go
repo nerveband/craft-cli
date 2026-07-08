@@ -109,6 +109,75 @@ func TestManager_AddProfile(t *testing.T) {
 	if cfg.Profiles["work"].URL != testURL {
 		t.Errorf("Profile URL = %v, want %v", cfg.Profiles["work"].URL, testURL)
 	}
+	if cfg.Profiles["work"].TypeOrDefault() != "rest" {
+		t.Errorf("Profile type = %v, want rest", cfg.Profiles["work"].TypeOrDefault())
+	}
+}
+
+func TestManager_AddTypedProfiles(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	mgr := &Manager{
+		configDir:  tmpDir,
+		configPath: filepath.Join(tmpDir, ConfigFileName),
+	}
+
+	err := mgr.AddRESTProfile("work", "https://connect.craft.do/links/work/api/v1", "pdk_test", "api-key", "read-write", "all-documents")
+	if err != nil {
+		t.Fatalf("AddRESTProfile() error = %v", err)
+	}
+	err = mgr.AddMCPProfile("mcp", "https://mcp.craft.do/links/work/mcp", "public", "read-write", "connection-defined")
+	if err != nil {
+		t.Fatalf("AddMCPProfile() error = %v", err)
+	}
+
+	rest, err := mgr.GetProfile("work")
+	if err != nil {
+		t.Fatalf("GetProfile(work) error = %v", err)
+	}
+	if rest.TypeOrDefault() != "rest" {
+		t.Errorf("REST profile type = %v, want rest", rest.TypeOrDefault())
+	}
+	if rest.APIKey != "pdk_test" {
+		t.Errorf("REST API key not preserved")
+	}
+	if rest.Permission != "read-write" {
+		t.Errorf("REST permission = %v, want read-write", rest.Permission)
+	}
+
+	mcp, err := mgr.GetProfile("mcp")
+	if err != nil {
+		t.Fatalf("GetProfile(mcp) error = %v", err)
+	}
+	if mcp.TypeOrDefault() != "mcp" {
+		t.Errorf("MCP profile type = %v, want mcp", mcp.TypeOrDefault())
+	}
+	if mcp.MCPURL != "https://mcp.craft.do/links/work/mcp" {
+		t.Errorf("MCP URL = %v", mcp.MCPURL)
+	}
+
+	profiles, err := mgr.ListProfiles()
+	if err != nil {
+		t.Fatalf("ListProfiles() error = %v", err)
+	}
+	if len(profiles) != 2 {
+		t.Fatalf("Expected 2 profiles, got %d", len(profiles))
+	}
+	foundMCP := false
+	for _, p := range profiles {
+		if p.Name == "mcp" {
+			foundMCP = true
+			if p.Type != "mcp" {
+				t.Errorf("ProfileInfo type = %v, want mcp", p.Type)
+			}
+			if p.MCPURL == "" {
+				t.Errorf("ProfileInfo MCPURL should be set")
+			}
+		}
+	}
+	if !foundMCP {
+		t.Fatal("Expected MCP profile in list")
+	}
 }
 
 func TestManager_AddMultipleProfiles(t *testing.T) {

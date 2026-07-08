@@ -1,0 +1,3626 @@
+{
+  "schema_version": "2026-07-08",
+  "name": "craft",
+  "description": "Craft CLI - Interact with Craft Documents API",
+  "usage": "craft [flags]",
+  "flags": [
+    {
+      "name": "--api-key",
+      "type": "string",
+      "required": false,
+      "description": "API key for authentication (overrides config)"
+    },
+    {
+      "name": "--api-url",
+      "type": "string",
+      "required": false,
+      "description": "Craft API URL (overrides config)"
+    },
+    {
+      "name": "--backend",
+      "type": "string",
+      "default": "auto",
+      "required": false,
+      "description": "Backend preference: auto, rest, mcp, or local"
+    },
+    {
+      "name": "--data-source",
+      "type": "string",
+      "required": false,
+      "description": "Data source preference: local, live, or auto"
+    },
+    {
+      "name": "--deliver",
+      "type": "string",
+      "required": false,
+      "description": "Deliver output to stdout or file:\u003cpath\u003e (atomic file writes)"
+    },
+    {
+      "name": "--dry-run",
+      "type": "bool",
+      "required": false,
+      "description": "Show what would happen without making changes"
+    },
+    {
+      "name": "--format",
+      "type": "string",
+      "required": false,
+      "description": "Output format (json, compact=legacy JSON, table, markdown, raw, jsonl, yaml)"
+    },
+    {
+      "name": "--id-only",
+      "type": "bool",
+      "required": false,
+      "description": "Output only document IDs (shorthand for --output-only id)"
+    },
+    {
+      "name": "--json-errors",
+      "type": "bool",
+      "required": false,
+      "description": "Output errors as JSON"
+    },
+    {
+      "name": "--mcp-url",
+      "type": "string",
+      "required": false,
+      "description": "Craft MCP URL (overrides CRAFT_MCP_URL)"
+    },
+    {
+      "name": "--no-headers",
+      "type": "bool",
+      "required": false,
+      "description": "Omit headers in table output"
+    },
+    {
+      "name": "--output-only",
+      "type": "string",
+      "required": false,
+      "description": "Output only specified field (e.g., id, title)"
+    },
+    {
+      "name": "--profile",
+      "type": "string",
+      "required": false,
+      "description": "Named profile to use for this command"
+    },
+    {
+      "name": "--quiet",
+      "short": "-q",
+      "type": "bool",
+      "required": false,
+      "description": "Suppress status messages, output data only"
+    },
+    {
+      "name": "--raw",
+      "type": "bool",
+      "required": false,
+      "description": "Output raw content without formatting"
+    },
+    {
+      "name": "--request-schema",
+      "type": "bool",
+      "required": false,
+      "description": "Print request JSON Schema for supported commands"
+    },
+    {
+      "name": "--response-schema",
+      "type": "bool",
+      "required": false,
+      "description": "Print response JSON Schema for supported commands"
+    },
+    {
+      "name": "--transform",
+      "type": "string",
+      "required": false,
+      "description": "Extract a field/projection from structured output"
+    },
+    {
+      "name": "--yes",
+      "short": "-y",
+      "type": "bool",
+      "required": false,
+      "description": "Skip confirmation prompts"
+    }
+  ],
+  "subcommands": [
+    {
+      "name": "audit",
+      "description": "Run local craft-cli audits",
+      "usage": "craft audit",
+      "subcommands": [
+        {
+          "name": "agent-dx",
+          "description": "Score craft-cli against the 85-point agent-DX checklist",
+          "usage": "craft audit agent-dx [flags]",
+          "flags": [
+            {
+              "name": "--checks",
+              "type": "bool",
+              "required": false,
+              "description": "Include all pass/fail checks in JSON output"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "local"
+          ],
+          "required_capabilities": [
+            "audit"
+          ]
+        }
+      ],
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": false,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "local"
+      ],
+      "required_capabilities": [
+        "audit"
+      ]
+    },
+    {
+      "name": "batch",
+      "description": "Run multiple Craft commands through the selected backend",
+      "usage": "craft batch [flags]",
+      "flags": [
+        {
+          "name": "--command",
+          "type": "stringArray",
+          "default": "[]",
+          "required": false,
+          "description": "MCP command string (repeatable)"
+        },
+        {
+          "name": "--file",
+          "type": "string",
+          "required": false,
+          "description": "Read batch operations from file"
+        },
+        {
+          "name": "--stdin",
+          "type": "bool",
+          "required": false,
+          "description": "Read batch operations from stdin"
+        },
+        {
+          "name": "--tool",
+          "type": "string",
+          "default": "craft_read",
+          "required": false,
+          "description": "Default MCP tool: craft_read or craft_write"
+        }
+      ],
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": false,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "mcp"
+      ],
+      "required_capabilities": [
+        "mcp",
+        "batch"
+      ]
+    },
+    {
+      "name": "blocks",
+      "description": "Manage document blocks",
+      "usage": "craft blocks",
+      "subcommands": [
+        {
+          "name": "add",
+          "description": "Add a block to a document",
+          "usage": "craft blocks add [page-id] [flags]",
+          "flags": [
+            {
+              "name": "--alt-text",
+              "type": "string",
+              "required": false,
+              "description": "Alt text for image/video blocks"
+            },
+            {
+              "name": "--backdrop-color",
+              "type": "string",
+              "required": false,
+              "description": "MCP backdrop color"
+            },
+            {
+              "name": "--backdrop-colors",
+              "type": "string",
+              "required": false,
+              "description": "MCP backdrop colors"
+            },
+            {
+              "name": "--backdrop-direction",
+              "type": "string",
+              "required": false,
+              "description": "MCP backdrop direction"
+            },
+            {
+              "name": "--backdrop-type",
+              "type": "string",
+              "required": false,
+              "description": "MCP backdrop type"
+            },
+            {
+              "name": "--backdrop-url",
+              "type": "string",
+              "required": false,
+              "description": "MCP backdrop URL"
+            },
+            {
+              "name": "--bg-color",
+              "type": "string",
+              "required": false,
+              "description": "MCP page background color"
+            },
+            {
+              "name": "--block-layout",
+              "type": "string",
+              "required": false,
+              "description": "Layout for file blocks: small, regular, card"
+            },
+            {
+              "name": "--card-layout",
+              "type": "string",
+              "required": false,
+              "description": "Card layout: small, square, regular, large"
+            },
+            {
+              "name": "--color",
+              "type": "string",
+              "required": false,
+              "description": "Block color as #RRGGBB hex (e.g. #ef052a)"
+            },
+            {
+              "name": "--cover-attribution",
+              "type": "string",
+              "required": false,
+              "description": "MCP page cover attribution"
+            },
+            {
+              "name": "--cover-crop",
+              "type": "string",
+              "required": false,
+              "description": "MCP page cover crop JSON/string"
+            },
+            {
+              "name": "--cover-url",
+              "type": "string",
+              "required": false,
+              "description": "MCP page cover image URL"
+            },
+            {
+              "name": "--date",
+              "type": "string",
+              "required": false,
+              "description": "Daily note date (today, tomorrow, yesterday, YYYY-MM-DD)"
+            },
+            {
+              "name": "--deadline-date",
+              "type": "string",
+              "required": false,
+              "description": "Task deadline date (YYYY-MM-DD)"
+            },
+            {
+              "name": "--decorations",
+              "type": "string",
+              "required": false,
+              "description": "Decorations (comma-separated): callout, quote"
+            },
+            {
+              "name": "--description",
+              "type": "string",
+              "required": false,
+              "description": "Description for richUrl blocks"
+            },
+            {
+              "name": "--diff",
+              "type": "bool",
+              "required": false,
+              "description": "Include review/diff metadata in dry-run output when possible"
+            },
+            {
+              "name": "--file-name",
+              "type": "string",
+              "required": false,
+              "description": "File name for file blocks"
+            },
+            {
+              "name": "--font",
+              "type": "string",
+              "required": false,
+              "description": "Font: system, serif, mono, rounded"
+            },
+            {
+              "name": "--indentation-level",
+              "type": "string",
+              "required": false,
+              "description": "Indentation level: 0-5"
+            },
+            {
+              "name": "--json",
+              "type": "string",
+              "required": false,
+              "description": "Block(s) as JSON (array or single object)"
+            },
+            {
+              "name": "--language",
+              "type": "string",
+              "required": false,
+              "description": "Code block language (e.g. python, javascript, math_formula)"
+            },
+            {
+              "name": "--layout",
+              "type": "string",
+              "required": false,
+              "description": "Layout for richUrl: small, regular, card"
+            },
+            {
+              "name": "--line-style",
+              "type": "string",
+              "required": false,
+              "description": "Line/divider style: strong, regular, light, extraLight, pageBreak"
+            },
+            {
+              "name": "--list-style",
+              "type": "string",
+              "required": false,
+              "description": "List style: none, bullet, numbered, task, toggle"
+            },
+            {
+              "name": "--markdown",
+              "short": "-m",
+              "type": "string",
+              "required": false,
+              "description": "Markdown content for the block"
+            },
+            {
+              "name": "--position",
+              "short": "-p",
+              "type": "string",
+              "default": "end",
+              "required": false,
+              "description": "Position: start, end, before, after"
+            },
+            {
+              "name": "--raw-code",
+              "type": "string",
+              "required": false,
+              "description": "Raw code content for code blocks"
+            },
+            {
+              "name": "--save-revert",
+              "type": "string",
+              "required": false,
+              "description": "Save MCP revertInfo JSON to a file"
+            },
+            {
+              "name": "--schedule-date",
+              "type": "string",
+              "required": false,
+              "description": "Task schedule date (YYYY-MM-DD)"
+            },
+            {
+              "name": "--separator",
+              "type": "string",
+              "required": false,
+              "description": "MCP page separator"
+            },
+            {
+              "name": "--sibling",
+              "type": "string",
+              "required": false,
+              "description": "Sibling block ID for relative positioning"
+            },
+            {
+              "name": "--stdin",
+              "type": "bool",
+              "required": false,
+              "description": "Read block JSON from stdin"
+            },
+            {
+              "name": "--task-state",
+              "type": "string",
+              "required": false,
+              "description": "Task state: todo, done, canceled"
+            },
+            {
+              "name": "--text-alignment",
+              "type": "string",
+              "required": false,
+              "description": "Text alignment: left, center, right, justify"
+            },
+            {
+              "name": "--text-color",
+              "type": "string",
+              "required": false,
+              "description": "MCP page text color"
+            },
+            {
+              "name": "--text-style",
+              "type": "string",
+              "required": false,
+              "description": "Text style: h1, h2, h3, h4, caption, body, page, card"
+            },
+            {
+              "name": "--theme-color",
+              "type": "string",
+              "required": false,
+              "description": "MCP page theme color"
+            },
+            {
+              "name": "--theme-id",
+              "type": "string",
+              "required": false,
+              "description": "MCP page theme ID"
+            },
+            {
+              "name": "--title",
+              "type": "string",
+              "required": false,
+              "description": "Title for richUrl blocks"
+            },
+            {
+              "name": "--type",
+              "type": "string",
+              "default": "text",
+              "required": false,
+              "description": "Block type: text, page, code, line, richUrl, image, file"
+            },
+            {
+              "name": "--url",
+              "type": "string",
+              "required": false,
+              "description": "URL for richUrl, image, video, or file blocks"
+            },
+            {
+              "name": "--washi-color",
+              "type": "string",
+              "required": false,
+              "description": "MCP washi color"
+            },
+            {
+              "name": "--washi-pattern",
+              "type": "string",
+              "required": false,
+              "description": "MCP washi pattern"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest",
+            "mcp"
+          ],
+          "required_capabilities": [
+            "write"
+          ],
+          "optional_capabilities": [
+            "mcp",
+            "blocks.style",
+            "blocks.revert"
+          ]
+        },
+        {
+          "name": "delete",
+          "description": "Delete a block",
+          "usage": "craft blocks delete [block-id]",
+          "safety": {
+            "readonly": false,
+            "destructive": true,
+            "idempotent": true,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest",
+            "mcp"
+          ],
+          "required_capabilities": [
+            "write",
+            "delete"
+          ],
+          "optional_capabilities": [
+            "mcp",
+            "blocks.style",
+            "blocks.revert"
+          ]
+        },
+        {
+          "name": "explore-themes",
+          "description": "Explore Craft block themes through MCP",
+          "usage": "craft blocks explore-themes [flags]",
+          "flags": [
+            {
+              "name": "--type",
+              "type": "string",
+              "required": false,
+              "description": "Theme type filter"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "mcp"
+          ],
+          "required_capabilities": [
+            "mcp"
+          ]
+        },
+        {
+          "name": "explore-washi",
+          "description": "Explore Craft washi styles through MCP",
+          "usage": "craft blocks explore-washi",
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "mcp"
+          ],
+          "required_capabilities": [
+            "mcp"
+          ]
+        },
+        {
+          "name": "get",
+          "description": "Get a specific block",
+          "usage": "craft blocks get [block-id] [flags]",
+          "flags": [
+            {
+              "name": "--date",
+              "type": "string",
+              "required": false,
+              "description": "Daily note date (today, tomorrow, yesterday, YYYY-MM-DD)"
+            },
+            {
+              "name": "--depth",
+              "type": "int",
+              "default": "-1",
+              "required": false,
+              "description": "Max depth (-1 for all, 0 for block only)"
+            },
+            {
+              "name": "--metadata",
+              "type": "bool",
+              "required": false,
+              "description": "Include metadata (created/modified info)"
+            }
+          ],
+          "safety": {
+            "readonly": true,
+            "destructive": false,
+            "idempotent": true,
+            "supports_dry_run": false
+          },
+          "backends": [
+            "rest",
+            "mcp"
+          ],
+          "required_capabilities": [
+            "read"
+          ],
+          "optional_capabilities": [
+            "mcp",
+            "blocks.style",
+            "blocks.revert"
+          ]
+        },
+        {
+          "name": "move",
+          "description": "Move a block to a new location",
+          "usage": "craft blocks move [block-id] [flags]",
+          "flags": [
+            {
+              "name": "--position",
+              "short": "-p",
+              "type": "string",
+              "default": "end",
+              "required": false,
+              "description": "Position: start, end"
+            },
+            {
+              "name": "--to",
+              "type": "string",
+              "required": false,
+              "description": "Target page ID"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": true,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest",
+            "mcp"
+          ],
+          "required_capabilities": [
+            "write"
+          ],
+          "optional_capabilities": [
+            "mcp",
+            "blocks.style",
+            "blocks.revert"
+          ]
+        },
+        {
+          "name": "revert",
+          "description": "Revert MCP block mutations",
+          "usage": "craft blocks revert [flags]",
+          "flags": [
+            {
+              "name": "--revert-info",
+              "type": "string",
+              "required": false,
+              "description": "Revert info JSON object or wrapper with revertInfo"
+            },
+            {
+              "name": "--revert-info-file",
+              "type": "string",
+              "required": false,
+              "description": "Path to revert info JSON file"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "mcp"
+          ],
+          "required_capabilities": [
+            "mcp"
+          ]
+        },
+        {
+          "name": "search-unsplash",
+          "description": "Search Unsplash images through Craft MCP",
+          "usage": "craft blocks search-unsplash [query] [flags]",
+          "flags": [
+            {
+              "name": "--page",
+              "type": "int",
+              "default": "0",
+              "required": false,
+              "description": "Unsplash result page"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "mcp"
+          ],
+          "required_capabilities": [
+            "mcp"
+          ]
+        },
+        {
+          "name": "update",
+          "description": "Update a block's content or styling",
+          "usage": "craft blocks update [block-id] [flags]",
+          "flags": [
+            {
+              "name": "--alt-text",
+              "type": "string",
+              "required": false,
+              "description": "Alt text for image/video blocks"
+            },
+            {
+              "name": "--backdrop-color",
+              "type": "string",
+              "required": false,
+              "description": "MCP backdrop color"
+            },
+            {
+              "name": "--backdrop-colors",
+              "type": "string",
+              "required": false,
+              "description": "MCP backdrop colors"
+            },
+            {
+              "name": "--backdrop-direction",
+              "type": "string",
+              "required": false,
+              "description": "MCP backdrop direction"
+            },
+            {
+              "name": "--backdrop-type",
+              "type": "string",
+              "required": false,
+              "description": "MCP backdrop type"
+            },
+            {
+              "name": "--backdrop-url",
+              "type": "string",
+              "required": false,
+              "description": "MCP backdrop URL"
+            },
+            {
+              "name": "--bg-color",
+              "type": "string",
+              "required": false,
+              "description": "MCP page background color"
+            },
+            {
+              "name": "--block-layout",
+              "type": "string",
+              "required": false,
+              "description": "Layout for file blocks: small, regular, card"
+            },
+            {
+              "name": "--card-layout",
+              "type": "string",
+              "required": false,
+              "description": "Card layout: small, square, regular, large"
+            },
+            {
+              "name": "--color",
+              "type": "string",
+              "required": false,
+              "description": "Block color as #RRGGBB hex (e.g. #ef052a)"
+            },
+            {
+              "name": "--cover-attribution",
+              "type": "string",
+              "required": false,
+              "description": "MCP page cover attribution"
+            },
+            {
+              "name": "--cover-crop",
+              "type": "string",
+              "required": false,
+              "description": "MCP page cover crop JSON/string"
+            },
+            {
+              "name": "--cover-url",
+              "type": "string",
+              "required": false,
+              "description": "MCP page cover image URL"
+            },
+            {
+              "name": "--deadline-date",
+              "type": "string",
+              "required": false,
+              "description": "Task deadline date (YYYY-MM-DD)"
+            },
+            {
+              "name": "--decorations",
+              "type": "string",
+              "required": false,
+              "description": "Decorations (comma-separated): callout, quote"
+            },
+            {
+              "name": "--description",
+              "type": "string",
+              "required": false,
+              "description": "Description for richUrl blocks"
+            },
+            {
+              "name": "--diff",
+              "type": "bool",
+              "required": false,
+              "description": "Include review/diff metadata in dry-run output when possible"
+            },
+            {
+              "name": "--file-name",
+              "type": "string",
+              "required": false,
+              "description": "File name for file blocks"
+            },
+            {
+              "name": "--font",
+              "type": "string",
+              "required": false,
+              "description": "Font: system, serif, mono, rounded"
+            },
+            {
+              "name": "--indentation-level",
+              "type": "string",
+              "required": false,
+              "description": "Indentation level: 0-5"
+            },
+            {
+              "name": "--json",
+              "type": "string",
+              "required": false,
+              "description": "Block(s) as JSON with \"id\" fields (array or single object)"
+            },
+            {
+              "name": "--language",
+              "type": "string",
+              "required": false,
+              "description": "Code block language (e.g. python, javascript, math_formula)"
+            },
+            {
+              "name": "--layout",
+              "type": "string",
+              "required": false,
+              "description": "Layout for richUrl: small, regular, card"
+            },
+            {
+              "name": "--line-style",
+              "type": "string",
+              "required": false,
+              "description": "Line/divider style: strong, regular, light, extraLight, pageBreak"
+            },
+            {
+              "name": "--list-style",
+              "type": "string",
+              "required": false,
+              "description": "List style: none, bullet, numbered, task, toggle"
+            },
+            {
+              "name": "--markdown",
+              "short": "-m",
+              "type": "string",
+              "required": false,
+              "description": "New markdown content"
+            },
+            {
+              "name": "--raw-code",
+              "type": "string",
+              "required": false,
+              "description": "Raw code content for code blocks"
+            },
+            {
+              "name": "--save-revert",
+              "type": "string",
+              "required": false,
+              "description": "Save MCP revertInfo JSON to a file"
+            },
+            {
+              "name": "--schedule-date",
+              "type": "string",
+              "required": false,
+              "description": "Task schedule date (YYYY-MM-DD)"
+            },
+            {
+              "name": "--separator",
+              "type": "string",
+              "required": false,
+              "description": "MCP page separator"
+            },
+            {
+              "name": "--stdin",
+              "type": "bool",
+              "required": false,
+              "description": "Read block JSON from stdin"
+            },
+            {
+              "name": "--task-state",
+              "type": "string",
+              "required": false,
+              "description": "Task state: todo, done, canceled"
+            },
+            {
+              "name": "--text-alignment",
+              "type": "string",
+              "required": false,
+              "description": "Text alignment: left, center, right, justify"
+            },
+            {
+              "name": "--text-color",
+              "type": "string",
+              "required": false,
+              "description": "MCP page text color"
+            },
+            {
+              "name": "--text-style",
+              "type": "string",
+              "required": false,
+              "description": "Text style: h1, h2, h3, h4, caption, body, page, card"
+            },
+            {
+              "name": "--theme-color",
+              "type": "string",
+              "required": false,
+              "description": "MCP page theme color"
+            },
+            {
+              "name": "--theme-id",
+              "type": "string",
+              "required": false,
+              "description": "MCP page theme ID"
+            },
+            {
+              "name": "--title",
+              "type": "string",
+              "required": false,
+              "description": "Title for richUrl blocks"
+            },
+            {
+              "name": "--url",
+              "type": "string",
+              "required": false,
+              "description": "URL for richUrl, image, video, or file blocks"
+            },
+            {
+              "name": "--washi-color",
+              "type": "string",
+              "required": false,
+              "description": "MCP washi color"
+            },
+            {
+              "name": "--washi-pattern",
+              "type": "string",
+              "required": false,
+              "description": "MCP washi pattern"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": true,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest",
+            "mcp"
+          ],
+          "required_capabilities": [
+            "write"
+          ],
+          "optional_capabilities": [
+            "mcp",
+            "blocks.style",
+            "blocks.revert"
+          ]
+        }
+      ],
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": false,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "rest",
+        "mcp"
+      ],
+      "optional_capabilities": [
+        "mcp",
+        "blocks.style",
+        "blocks.revert"
+      ]
+    },
+    {
+      "name": "clear",
+      "description": "Delete all content blocks in a document",
+      "usage": "craft clear \u003cdocument-id\u003e [flags]",
+      "flags": [
+        {
+          "name": "--json",
+          "type": "string",
+          "required": false,
+          "description": "Raw clear payload JSON"
+        },
+        {
+          "name": "--stdin",
+          "type": "bool",
+          "required": false,
+          "description": "Read raw clear payload from stdin"
+        }
+      ],
+      "safety": {
+        "readonly": false,
+        "destructive": true,
+        "idempotent": true,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "rest"
+      ],
+      "required_capabilities": [
+        "write",
+        "delete"
+      ]
+    },
+    {
+      "name": "collections",
+      "description": "Manage collections",
+      "usage": "craft collections",
+      "subcommands": [
+        {
+          "name": "active-view",
+          "description": "Manage active collection view through Craft MCP",
+          "usage": "craft collections active-view",
+          "subcommands": [
+            {
+              "name": "set",
+              "description": "Set active collection view",
+              "usage": "craft collections active-view set [collection-id] [flags]",
+              "flags": [
+                {
+                  "name": "--view",
+                  "type": "string",
+                  "required": false,
+                  "description": "View ID"
+                }
+              ],
+              "safety": {
+                "readonly": false,
+                "destructive": false,
+                "idempotent": false,
+                "supports_dry_run": true
+              },
+              "backends": [
+                "mcp"
+              ],
+              "required_capabilities": [
+                "mcp",
+                "write",
+                "collections.views"
+              ]
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "mcp"
+          ],
+          "required_capabilities": [
+            "mcp",
+            "write",
+            "collections.views"
+          ]
+        },
+        {
+          "name": "add",
+          "description": "Add an item to a collection",
+          "usage": "craft collections add [collection-id] [flags]",
+          "flags": [
+            {
+              "name": "--allow-new-options",
+              "type": "bool",
+              "required": false,
+              "description": "Allow creating new options for select properties"
+            },
+            {
+              "name": "--json",
+              "type": "string",
+              "required": false,
+              "description": "Raw REST add collection items payload JSON"
+            },
+            {
+              "name": "--properties",
+              "type": "string",
+              "required": false,
+              "description": "Item properties as JSON string"
+            },
+            {
+              "name": "--stdin",
+              "type": "bool",
+              "required": false,
+              "description": "Read raw REST add collection items payload from stdin"
+            },
+            {
+              "name": "--title",
+              "type": "string",
+              "required": false,
+              "description": "Item title (required)"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "write"
+          ],
+          "optional_capabilities": [
+            "mcp",
+            "collections.views"
+          ]
+        },
+        {
+          "name": "create",
+          "description": "Create a collection",
+          "usage": "craft collections create [flags]",
+          "flags": [
+            {
+              "name": "--json",
+              "type": "string",
+              "required": false,
+              "description": "Raw REST create collection payload JSON"
+            },
+            {
+              "name": "--name",
+              "type": "string",
+              "required": false,
+              "description": "Collection name"
+            },
+            {
+              "name": "--stdin",
+              "type": "bool",
+              "required": false,
+              "description": "Read raw REST create collection payload from stdin"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "write"
+          ],
+          "optional_capabilities": [
+            "mcp",
+            "collections.views"
+          ]
+        },
+        {
+          "name": "delete",
+          "description": "Delete an item from a collection",
+          "usage": "craft collections delete [collection-id] [flags]",
+          "flags": [
+            {
+              "name": "--item",
+              "type": "string",
+              "required": false,
+              "description": "Item ID to delete (required)"
+            },
+            {
+              "name": "--json",
+              "type": "string",
+              "required": false,
+              "description": "Raw REST delete collection items payload JSON"
+            },
+            {
+              "name": "--stdin",
+              "type": "bool",
+              "required": false,
+              "description": "Read raw REST delete collection items payload from stdin"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": true,
+            "idempotent": true,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "write",
+            "delete"
+          ],
+          "optional_capabilities": [
+            "mcp",
+            "collections.views"
+          ]
+        },
+        {
+          "name": "items",
+          "description": "List items in a collection",
+          "usage": "craft collections items [collection-id] [flags]",
+          "flags": [
+            {
+              "name": "--depth",
+              "type": "int",
+              "default": "-1",
+              "required": false,
+              "description": "Max depth of nested content (-1 for no limit)"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
+          ],
+          "optional_capabilities": [
+            "mcp",
+            "collections.views"
+          ]
+        },
+        {
+          "name": "list",
+          "description": "List all collections",
+          "usage": "craft collections list [flags]",
+          "flags": [
+            {
+              "name": "--document",
+              "type": "string",
+              "required": false,
+              "description": "Filter by document ID"
+            }
+          ],
+          "safety": {
+            "readonly": true,
+            "destructive": false,
+            "idempotent": true,
+            "supports_dry_run": false
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "read"
+          ],
+          "optional_capabilities": [
+            "mcp",
+            "collections.views"
+          ]
+        },
+        {
+          "name": "schema",
+          "description": "Get collection schema",
+          "usage": "craft collections schema [collection-id] [flags]",
+          "flags": [
+            {
+              "name": "--schema-format",
+              "type": "string",
+              "default": "schema",
+              "required": false,
+              "description": "Schema format (default: schema)"
+            }
+          ],
+          "subcommands": [
+            {
+              "name": "update",
+              "description": "Update collection schema",
+              "usage": "craft collections schema update [collection-id] [flags]",
+              "flags": [
+                {
+                  "name": "--json",
+                  "type": "string",
+                  "required": false,
+                  "description": "Raw REST update collection schema payload JSON"
+                },
+                {
+                  "name": "--stdin",
+                  "type": "bool",
+                  "required": false,
+                  "description": "Read raw REST update collection schema payload from stdin"
+                }
+              ],
+              "safety": {
+                "readonly": false,
+                "destructive": false,
+                "idempotent": true,
+                "supports_dry_run": true
+              },
+              "backends": [
+                "rest"
+              ],
+              "required_capabilities": [
+                "write"
+              ],
+              "optional_capabilities": [
+                "mcp",
+                "collections.views"
+              ]
+            }
+          ],
+          "safety": {
+            "readonly": true,
+            "destructive": false,
+            "idempotent": true,
+            "supports_dry_run": false
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "read"
+          ],
+          "optional_capabilities": [
+            "mcp",
+            "collections.views"
+          ]
+        },
+        {
+          "name": "update",
+          "description": "Update an item in a collection",
+          "usage": "craft collections update [collection-id] [flags]",
+          "flags": [
+            {
+              "name": "--allow-new-options",
+              "type": "bool",
+              "required": false,
+              "description": "Allow creating new options for select properties"
+            },
+            {
+              "name": "--item",
+              "type": "string",
+              "required": false,
+              "description": "Item ID to update (required)"
+            },
+            {
+              "name": "--json",
+              "type": "string",
+              "required": false,
+              "description": "Raw REST update collection items payload JSON"
+            },
+            {
+              "name": "--properties",
+              "type": "string",
+              "required": false,
+              "description": "Item properties as JSON string (required)"
+            },
+            {
+              "name": "--stdin",
+              "type": "bool",
+              "required": false,
+              "description": "Read raw REST update collection items payload from stdin"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": true,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "write"
+          ],
+          "optional_capabilities": [
+            "mcp",
+            "collections.views"
+          ]
+        },
+        {
+          "name": "views",
+          "description": "Manage collection views through Craft MCP",
+          "usage": "craft collections views",
+          "subcommands": [
+            {
+              "name": "create",
+              "description": "Create a collection view",
+              "usage": "craft collections views create [collection-id] [flags]",
+              "flags": [
+                {
+                  "name": "--json",
+                  "type": "string",
+                  "required": false,
+                  "description": "Raw MCP collection view payload JSON"
+                },
+                {
+                  "name": "--name",
+                  "type": "string",
+                  "required": false,
+                  "description": "View name"
+                },
+                {
+                  "name": "--stdin",
+                  "type": "bool",
+                  "required": false,
+                  "description": "Read raw MCP collection view payload from stdin"
+                },
+                {
+                  "name": "--type",
+                  "type": "string",
+                  "required": false,
+                  "description": "View type"
+                }
+              ],
+              "safety": {
+                "readonly": false,
+                "destructive": false,
+                "idempotent": false,
+                "supports_dry_run": true
+              },
+              "backends": [
+                "mcp"
+              ],
+              "required_capabilities": [
+                "mcp",
+                "write",
+                "collections.views"
+              ]
+            },
+            {
+              "name": "delete",
+              "description": "Delete a collection view",
+              "usage": "craft collections views delete [collection-id] [flags]",
+              "flags": [
+                {
+                  "name": "--view",
+                  "type": "string",
+                  "required": false,
+                  "description": "View ID"
+                }
+              ],
+              "safety": {
+                "readonly": false,
+                "destructive": true,
+                "idempotent": true,
+                "supports_dry_run": true
+              },
+              "backends": [
+                "mcp"
+              ],
+              "required_capabilities": [
+                "mcp",
+                "write",
+                "collections.views"
+              ]
+            },
+            {
+              "name": "list",
+              "description": "List collection views",
+              "usage": "craft collections views list [collection-id]",
+              "safety": {
+                "readonly": true,
+                "destructive": false,
+                "idempotent": true,
+                "supports_dry_run": false
+              },
+              "backends": [
+                "mcp"
+              ],
+              "required_capabilities": [
+                "mcp",
+                "read",
+                "collections.views"
+              ]
+            },
+            {
+              "name": "update",
+              "description": "Update a collection view",
+              "usage": "craft collections views update [collection-id] [flags]",
+              "flags": [
+                {
+                  "name": "--json",
+                  "type": "string",
+                  "required": false,
+                  "description": "Raw MCP collection view payload JSON"
+                },
+                {
+                  "name": "--name",
+                  "type": "string",
+                  "required": false,
+                  "description": "View name"
+                },
+                {
+                  "name": "--stdin",
+                  "type": "bool",
+                  "required": false,
+                  "description": "Read raw MCP collection view payload from stdin"
+                },
+                {
+                  "name": "--type",
+                  "type": "string",
+                  "required": false,
+                  "description": "View type"
+                },
+                {
+                  "name": "--view",
+                  "type": "string",
+                  "required": false,
+                  "description": "View ID"
+                }
+              ],
+              "safety": {
+                "readonly": false,
+                "destructive": false,
+                "idempotent": true,
+                "supports_dry_run": true
+              },
+              "backends": [
+                "mcp"
+              ],
+              "required_capabilities": [
+                "mcp",
+                "write",
+                "collections.views"
+              ]
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "mcp"
+          ],
+          "required_capabilities": [
+            "mcp",
+            "write",
+            "collections.views"
+          ]
+        }
+      ],
+      "safety": {
+        "readonly": true,
+        "destructive": false,
+        "idempotent": true,
+        "supports_dry_run": false
+      },
+      "backends": [
+        "rest"
+      ],
+      "optional_capabilities": [
+        "mcp",
+        "collections.views"
+      ]
+    },
+    {
+      "name": "comments",
+      "description": "Manage comments (experimental)",
+      "usage": "craft comments",
+      "subcommands": [
+        {
+          "name": "add",
+          "description": "Add a comment to a block",
+          "usage": "craft comments add [block-id] [flags]",
+          "flags": [
+            {
+              "name": "--content",
+              "type": "string",
+              "required": false,
+              "description": "Comment content (required)"
+            },
+            {
+              "name": "--json",
+              "type": "string",
+              "required": false,
+              "description": "Raw REST add comments payload JSON"
+            },
+            {
+              "name": "--stdin",
+              "type": "bool",
+              "required": false,
+              "description": "Read raw REST add comments payload from stdin"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "write"
+          ]
+        }
+      ],
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": false,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "rest"
+      ]
+    },
+    {
+      "name": "completion",
+      "description": "Generate shell completion scripts",
+      "usage": "craft completion \u003cshell\u003e",
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": false,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "rest"
+      ],
+      "required_capabilities": [
+        "read"
+      ]
+    },
+    {
+      "name": "config",
+      "description": "Manage configuration",
+      "usage": "craft config",
+      "subcommands": [
+        {
+          "name": "add",
+          "description": "Add or update a profile",
+          "usage": "craft config add \u003cname\u003e \u003curl\u003e [flags]",
+          "flags": [
+            {
+              "name": "--key",
+              "short": "-k",
+              "type": "string",
+              "required": false,
+              "description": "API key for authentication"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "write"
+          ]
+        },
+        {
+          "name": "list",
+          "description": "List all profiles",
+          "usage": "craft config list",
+          "safety": {
+            "readonly": true,
+            "destructive": false,
+            "idempotent": true,
+            "supports_dry_run": false
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "read"
+          ]
+        },
+        {
+          "name": "remove",
+          "description": "Remove a profile",
+          "usage": "craft config remove \u003cname\u003e",
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "write",
+            "delete"
+          ]
+        },
+        {
+          "name": "reset",
+          "description": "Clear all configuration",
+          "usage": "craft config reset [flags]",
+          "flags": [
+            {
+              "name": "--force",
+              "short": "-f",
+              "type": "bool",
+              "required": false,
+              "description": "Skip confirmation prompt"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
+          ]
+        },
+        {
+          "name": "use",
+          "description": "Switch active profile",
+          "usage": "craft config use \u003cname\u003e",
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
+          ]
+        }
+      ],
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": false,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "rest"
+      ]
+    },
+    {
+      "name": "connection",
+      "description": "Show space connection info",
+      "usage": "craft connection",
+      "safety": {
+        "readonly": true,
+        "destructive": false,
+        "idempotent": true,
+        "supports_dry_run": false
+      },
+      "backends": [
+        "rest"
+      ],
+      "required_capabilities": [
+        "read"
+      ]
+    },
+    {
+      "name": "create",
+      "description": "Create a new document",
+      "usage": "craft create [flags]",
+      "flags": [
+        {
+          "name": "--batch",
+          "type": "bool",
+          "required": false,
+          "description": "Batch create from JSON array on stdin"
+        },
+        {
+          "name": "--file",
+          "type": "string",
+          "required": false,
+          "description": "Read content from file (use - for stdin)"
+        },
+        {
+          "name": "--json",
+          "type": "string",
+          "required": false,
+          "description": "Raw REST create payload JSON, e.g. {\"documents\":[...]}"
+        },
+        {
+          "name": "--markdown",
+          "type": "string",
+          "required": false,
+          "description": "Markdown content"
+        },
+        {
+          "name": "--parent",
+          "type": "string",
+          "required": false,
+          "description": "Parent document ID"
+        },
+        {
+          "name": "--stdin",
+          "type": "bool",
+          "required": false,
+          "description": "Read content from stdin"
+        },
+        {
+          "name": "--title",
+          "type": "string",
+          "required": false,
+          "description": "Document title (required)"
+        }
+      ],
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": false,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "rest"
+      ],
+      "required_capabilities": [
+        "write"
+      ]
+    },
+    {
+      "name": "delete",
+      "description": "Move a document to trash",
+      "usage": "craft delete \u003cdocument-id\u003e [flags]",
+      "flags": [
+        {
+          "name": "--json",
+          "type": "string",
+          "required": false,
+          "description": "Raw REST delete documents payload JSON"
+        },
+        {
+          "name": "--stdin",
+          "type": "bool",
+          "required": false,
+          "description": "Read raw REST delete documents payload from stdin"
+        }
+      ],
+      "safety": {
+        "readonly": false,
+        "destructive": true,
+        "idempotent": true,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "rest"
+      ],
+      "required_capabilities": [
+        "write",
+        "delete"
+      ]
+    },
+    {
+      "name": "docs",
+      "description": "Show available documents",
+      "usage": "craft docs",
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": false,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "rest"
+      ],
+      "required_capabilities": [
+        "read"
+      ]
+    },
+    {
+      "name": "documents",
+      "description": "Document helper commands",
+      "usage": "craft documents",
+      "subcommands": [
+        {
+          "name": "resolve-link",
+          "description": "Resolve a Craft app or web URL to a root block ID",
+          "usage": "craft documents resolve-link \u003ccraft-url\u003e",
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "mcp"
+          ],
+          "required_capabilities": [
+            "mcp"
+          ]
+        }
+      ],
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": false,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "rest"
+      ]
+    },
+    {
+      "name": "feedback",
+      "description": "Record local CLI feedback",
+      "usage": "craft feedback [message]",
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": false,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "rest"
+      ]
+    },
+    {
+      "name": "folders",
+      "description": "Manage folders",
+      "usage": "craft folders",
+      "subcommands": [
+        {
+          "name": "create",
+          "description": "Create a new folder",
+          "usage": "craft folders create [name] [flags]",
+          "flags": [
+            {
+              "name": "--json",
+              "type": "string",
+              "required": false,
+              "description": "Raw folder create payload JSON"
+            },
+            {
+              "name": "--parent",
+              "type": "string",
+              "required": false,
+              "description": "Parent folder ID (optional)"
+            },
+            {
+              "name": "--stdin",
+              "type": "bool",
+              "required": false,
+              "description": "Read raw folder create payload from stdin"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "write"
+          ]
+        },
+        {
+          "name": "delete",
+          "description": "Delete a folder",
+          "usage": "craft folders delete [folder-id] [flags]",
+          "flags": [
+            {
+              "name": "--json",
+              "type": "string",
+              "required": false,
+              "description": "Raw folder delete payload JSON"
+            },
+            {
+              "name": "--stdin",
+              "type": "bool",
+              "required": false,
+              "description": "Read raw folder delete payload from stdin"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": true,
+            "idempotent": true,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "write",
+            "delete"
+          ]
+        },
+        {
+          "name": "explore-icons",
+          "description": "Search Craft folder icons through MCP",
+          "usage": "craft folders explore-icons [query] [flags]",
+          "flags": [
+            {
+              "name": "--offset",
+              "type": "int",
+              "default": "0",
+              "required": false,
+              "description": "Result offset for pagination"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "mcp"
+          ],
+          "required_capabilities": [
+            "mcp"
+          ]
+        },
+        {
+          "name": "list",
+          "description": "List all folders",
+          "usage": "craft folders list",
+          "safety": {
+            "readonly": true,
+            "destructive": false,
+            "idempotent": true,
+            "supports_dry_run": false
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "read"
+          ]
+        },
+        {
+          "name": "move",
+          "description": "Move a folder to a new parent",
+          "usage": "craft folders move [folder-id] [flags]",
+          "flags": [
+            {
+              "name": "--json",
+              "type": "string",
+              "required": false,
+              "description": "Raw folder move payload JSON"
+            },
+            {
+              "name": "--stdin",
+              "type": "bool",
+              "required": false,
+              "description": "Read raw folder move payload from stdin"
+            },
+            {
+              "name": "--to",
+              "type": "string",
+              "required": false,
+              "description": "Target parent folder ID (use 'root' for root level)"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": true,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "write"
+          ]
+        }
+      ],
+      "safety": {
+        "readonly": true,
+        "destructive": false,
+        "idempotent": true,
+        "supports_dry_run": false
+      },
+      "backends": [
+        "rest"
+      ]
+    },
+    {
+      "name": "get",
+      "description": "Get a document by ID",
+      "usage": "craft get [document-id] [flags]",
+      "flags": [
+        {
+          "name": "--allow-outside-cwd",
+          "type": "bool",
+          "required": false,
+          "description": "Allow --output paths outside the current working directory"
+        },
+        {
+          "name": "--max-depth",
+          "type": "int",
+          "default": "-1",
+          "required": false,
+          "description": "Maximum block nesting depth (-1 = all, 0 = top level only)"
+        },
+        {
+          "name": "--output",
+          "short": "-o",
+          "type": "string",
+          "required": false,
+          "description": "Write document content to file"
+        }
+      ],
+      "safety": {
+        "readonly": true,
+        "destructive": false,
+        "idempotent": true,
+        "supports_dry_run": false
+      },
+      "backends": [
+        "rest"
+      ],
+      "required_capabilities": [
+        "read"
+      ]
+    },
+    {
+      "name": "info",
+      "description": "Show API information and scope",
+      "usage": "craft info [flags]",
+      "flags": [
+        {
+          "name": "--test-permissions",
+          "type": "bool",
+          "required": false,
+          "description": "Test read/write/delete permissions"
+        }
+      ],
+      "safety": {
+        "readonly": true,
+        "destructive": false,
+        "idempotent": true,
+        "supports_dry_run": false
+      },
+      "backends": [
+        "rest"
+      ],
+      "required_capabilities": [
+        "read"
+      ]
+    },
+    {
+      "name": "limits",
+      "description": "Show known API/CLI limits",
+      "usage": "craft limits",
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": false,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "rest"
+      ],
+      "required_capabilities": [
+        "read"
+      ]
+    },
+    {
+      "name": "list",
+      "description": "List all documents",
+      "usage": "craft list [flags]",
+      "flags": [
+        {
+          "name": "--count",
+          "type": "bool",
+          "required": false,
+          "description": "Output only the matching document count"
+        },
+        {
+          "name": "--created-after",
+          "type": "string",
+          "required": false,
+          "description": "Filter documents created on or after this date (YYYY-MM-DD)"
+        },
+        {
+          "name": "--created-before",
+          "type": "string",
+          "required": false,
+          "description": "Filter documents created on or before this date (YYYY-MM-DD)"
+        },
+        {
+          "name": "--cursor",
+          "type": "string",
+          "required": false,
+          "description": "MCP pagination cursor"
+        },
+        {
+          "name": "--fields",
+          "type": "string",
+          "required": false,
+          "description": "Comma-separated fields to include in JSON output (e.g. id,title,lastModifiedAt)"
+        },
+        {
+          "name": "--folder",
+          "type": "string",
+          "required": false,
+          "description": "Filter by folder ID"
+        },
+        {
+          "name": "--limit",
+          "type": "int",
+          "default": "0",
+          "required": false,
+          "description": "Maximum number of results to return (0 = all)"
+        },
+        {
+          "name": "--location",
+          "type": "string",
+          "required": false,
+          "description": "Filter by location: unsorted, trash, templates, daily_notes"
+        },
+        {
+          "name": "--metadata",
+          "type": "bool",
+          "required": false,
+          "description": "Fetch document metadata (dates, authors)"
+        },
+        {
+          "name": "--modified-after",
+          "type": "string",
+          "required": false,
+          "description": "Filter documents modified on or after this date (YYYY-MM-DD)"
+        },
+        {
+          "name": "--modified-before",
+          "type": "string",
+          "required": false,
+          "description": "Filter documents modified on or before this date (YYYY-MM-DD)"
+        },
+        {
+          "name": "--offset",
+          "type": "int",
+          "default": "0",
+          "required": false,
+          "description": "MCP pagination offset"
+        }
+      ],
+      "safety": {
+        "readonly": true,
+        "destructive": false,
+        "idempotent": true,
+        "supports_dry_run": false
+      },
+      "backends": [
+        "rest",
+        "mcp"
+      ],
+      "required_capabilities": [
+        "read"
+      ],
+      "optional_capabilities": [
+        "cursor"
+      ]
+    },
+    {
+      "name": "llm",
+      "description": "Machine-readable command reference",
+      "usage": "craft llm",
+      "subcommands": [
+        {
+          "name": "styles",
+          "description": "Complete styling and formatting reference for Craft documents",
+          "usage": "craft llm styles",
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
+          ]
+        }
+      ],
+      "safety": {
+        "readonly": true,
+        "destructive": false,
+        "idempotent": true,
+        "supports_dry_run": false
+      },
+      "backends": [
+        "rest"
+      ],
+      "required_capabilities": [
+        "read"
+      ]
+    },
+    {
+      "name": "local",
+      "description": "Local Craft app commands (macOS only)",
+      "usage": "craft local",
+      "flags": [
+        {
+          "name": "--space-id",
+          "type": "string",
+          "required": false,
+          "description": "Craft space ID (get from Copy Deeplink)"
+        }
+      ],
+      "subcommands": [
+        {
+          "name": "append",
+          "description": "Append content to a document",
+          "usage": "craft local append \u003cblockId\u003e \u003ccontent\u003e",
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "local"
+          ],
+          "required_capabilities": [
+            "craft-app"
+          ]
+        },
+        {
+          "name": "new",
+          "description": "Create a new document in Craft app",
+          "usage": "craft local new [flags]",
+          "flags": [
+            {
+              "name": "--content",
+              "type": "string",
+              "required": false,
+              "description": "Document content (markdown)"
+            },
+            {
+              "name": "--folder",
+              "type": "string",
+              "required": false,
+              "description": "Folder ID to create in"
+            },
+            {
+              "name": "--title",
+              "type": "string",
+              "required": false,
+              "description": "Document title"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "local"
+          ],
+          "required_capabilities": [
+            "craft-app"
+          ]
+        },
+        {
+          "name": "open",
+          "description": "Open a document in Craft app",
+          "usage": "craft local open \u003cblockId\u003e",
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "local"
+          ],
+          "required_capabilities": [
+            "craft-app"
+          ]
+        },
+        {
+          "name": "search",
+          "description": "Open search in Craft app",
+          "usage": "craft local search \u003cquery\u003e",
+          "safety": {
+            "readonly": true,
+            "destructive": false,
+            "idempotent": true,
+            "supports_dry_run": false
+          },
+          "backends": [
+            "local"
+          ],
+          "required_capabilities": [
+            "craft-app"
+          ]
+        },
+        {
+          "name": "space",
+          "description": "Open a space in Craft app",
+          "usage": "craft local space [flags]",
+          "flags": [
+            {
+              "name": "--tab",
+              "type": "string",
+              "required": false,
+              "description": "Tab to open (calendar, search, documents)"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "local"
+          ],
+          "required_capabilities": [
+            "craft-app"
+          ]
+        },
+        {
+          "name": "today",
+          "description": "Open today's daily note",
+          "usage": "craft local today",
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "local"
+          ],
+          "required_capabilities": [
+            "craft-app"
+          ]
+        },
+        {
+          "name": "tomorrow",
+          "description": "Open tomorrow's daily note",
+          "usage": "craft local tomorrow",
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "local"
+          ],
+          "required_capabilities": [
+            "craft-app"
+          ]
+        },
+        {
+          "name": "yesterday",
+          "description": "Open yesterday's daily note",
+          "usage": "craft local yesterday",
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "local"
+          ],
+          "required_capabilities": [
+            "craft-app"
+          ]
+        }
+      ],
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": false,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "local"
+      ],
+      "required_capabilities": [
+        "craft-app"
+      ]
+    },
+    {
+      "name": "mcp",
+      "description": "Interact with a Craft MCP server",
+      "usage": "craft mcp",
+      "subcommands": [
+        {
+          "name": "batch",
+          "description": "Run multiple Craft MCP commands",
+          "usage": "craft mcp batch [flags]",
+          "flags": [
+            {
+              "name": "--command",
+              "type": "stringArray",
+              "default": "[]",
+              "required": false,
+              "description": "MCP command string (repeatable)"
+            },
+            {
+              "name": "--file",
+              "type": "string",
+              "required": false,
+              "description": "Read batch operations from file"
+            },
+            {
+              "name": "--stdin",
+              "type": "bool",
+              "required": false,
+              "description": "Read batch operations from stdin"
+            },
+            {
+              "name": "--tool",
+              "type": "string",
+              "default": "craft_read",
+              "required": false,
+              "description": "Default MCP tool: craft_read or craft_write"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "mcp"
+          ],
+          "required_capabilities": [
+            "mcp"
+          ]
+        },
+        {
+          "name": "call",
+          "description": "Call a Craft MCP tool",
+          "usage": "craft mcp call [tool-name] [flags]",
+          "flags": [
+            {
+              "name": "--arguments",
+              "type": "string",
+              "required": false,
+              "description": "Tool arguments as JSON"
+            },
+            {
+              "name": "--command",
+              "type": "string",
+              "required": false,
+              "description": "Shortcut for arguments.command"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "mcp"
+          ],
+          "required_capabilities": [
+            "mcp"
+          ]
+        },
+        {
+          "name": "initialize",
+          "description": "Initialize the Craft MCP connection",
+          "usage": "craft mcp initialize",
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "mcp"
+          ],
+          "required_capabilities": [
+            "mcp"
+          ]
+        },
+        {
+          "name": "read-resource",
+          "description": "Read Craft MCP resource metadata or content",
+          "usage": "craft mcp read-resource [uri] [flags]",
+          "flags": [
+            {
+              "name": "--metadata-only",
+              "type": "bool",
+              "required": false,
+              "description": "Omit large resource contents from output"
+            },
+            {
+              "name": "--uri",
+              "type": "string",
+              "required": false,
+              "description": "MCP resource URI"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "mcp"
+          ],
+          "required_capabilities": [
+            "mcp"
+          ]
+        },
+        {
+          "name": "resources",
+          "description": "List Craft MCP resources",
+          "usage": "craft mcp resources",
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "mcp"
+          ],
+          "required_capabilities": [
+            "mcp"
+          ]
+        },
+        {
+          "name": "tools",
+          "description": "List Craft MCP tools",
+          "usage": "craft mcp tools",
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "mcp"
+          ],
+          "required_capabilities": [
+            "mcp"
+          ]
+        }
+      ],
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": false,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "mcp"
+      ],
+      "required_capabilities": [
+        "mcp"
+      ]
+    },
+    {
+      "name": "move",
+      "description": "Move a document to a folder or location",
+      "usage": "craft move [document-id] [flags]",
+      "flags": [
+        {
+          "name": "--json",
+          "type": "string",
+          "required": false,
+          "description": "Raw REST move documents payload JSON"
+        },
+        {
+          "name": "--stdin",
+          "type": "bool",
+          "required": false,
+          "description": "Read raw REST move documents payload from stdin"
+        },
+        {
+          "name": "--to-folder",
+          "type": "string",
+          "required": false,
+          "description": "Target folder ID"
+        },
+        {
+          "name": "--to-location",
+          "type": "string",
+          "required": false,
+          "description": "Target location (unsorted, trash)"
+        }
+      ],
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": true,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "rest"
+      ],
+      "required_capabilities": [
+        "write"
+      ]
+    },
+    {
+      "name": "profiles",
+      "description": "Manage REST and MCP profiles",
+      "usage": "craft profiles",
+      "subcommands": [
+        {
+          "name": "add-mcp",
+          "description": "Add or update a Craft MCP profile",
+          "usage": "craft profiles add-mcp \u003cname\u003e [flags]",
+          "flags": [
+            {
+              "name": "--access",
+              "type": "string",
+              "default": "public",
+              "required": false,
+              "description": "Access mode: public or api-key"
+            },
+            {
+              "name": "--mcp-url",
+              "type": "string",
+              "required": false,
+              "description": "Craft MCP URL"
+            },
+            {
+              "name": "--permission",
+              "type": "string",
+              "required": false,
+              "description": "Permission: read-only, write-only, read-write"
+            },
+            {
+              "name": "--scope",
+              "type": "string",
+              "default": "connection-defined",
+              "required": false,
+              "description": "Scope: connection-defined, all-documents, selected-documents, daily-notes"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "local"
+          ],
+          "required_capabilities": [
+            "profiles"
+          ]
+        },
+        {
+          "name": "add-rest",
+          "description": "Add or update a REST API profile",
+          "usage": "craft profiles add-rest \u003cname\u003e [flags]",
+          "flags": [
+            {
+              "name": "--access",
+              "type": "string",
+              "required": false,
+              "description": "Access mode: public or api-key"
+            },
+            {
+              "name": "--api-key",
+              "type": "string",
+              "required": false,
+              "description": "API key for authentication"
+            },
+            {
+              "name": "--api-key-env",
+              "type": "string",
+              "required": false,
+              "description": "Environment variable containing API key"
+            },
+            {
+              "name": "--api-url",
+              "type": "string",
+              "required": false,
+              "description": "Craft REST API URL"
+            },
+            {
+              "name": "--permission",
+              "type": "string",
+              "required": false,
+              "description": "Permission: read-only, write-only, read-write"
+            },
+            {
+              "name": "--scope",
+              "type": "string",
+              "required": false,
+              "description": "Scope: all-documents, selected-documents, daily-notes"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "local"
+          ],
+          "required_capabilities": [
+            "profiles"
+          ]
+        },
+        {
+          "name": "capabilities",
+          "description": "Show profile capability metadata",
+          "usage": "craft profiles capabilities \u003cname\u003e",
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "local"
+          ],
+          "required_capabilities": [
+            "profiles"
+          ]
+        },
+        {
+          "name": "list",
+          "description": "List REST and MCP profiles",
+          "usage": "craft profiles list",
+          "safety": {
+            "readonly": true,
+            "destructive": false,
+            "idempotent": true,
+            "supports_dry_run": false
+          },
+          "backends": [
+            "local"
+          ],
+          "required_capabilities": [
+            "profiles"
+          ]
+        },
+        {
+          "name": "remove",
+          "description": "Remove a saved profile",
+          "usage": "craft profiles remove \u003cname\u003e",
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "local"
+          ],
+          "required_capabilities": [
+            "profiles"
+          ]
+        },
+        {
+          "name": "show",
+          "description": "Show a profile",
+          "usage": "craft profiles show \u003cname\u003e",
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "local"
+          ],
+          "required_capabilities": [
+            "profiles"
+          ]
+        },
+        {
+          "name": "test",
+          "description": "Test a profile connection",
+          "usage": "craft profiles test \u003cname\u003e",
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "local"
+          ],
+          "required_capabilities": [
+            "profiles"
+          ]
+        },
+        {
+          "name": "use",
+          "description": "Switch active profile",
+          "usage": "craft profiles use \u003cname\u003e",
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "local"
+          ],
+          "required_capabilities": [
+            "profiles"
+          ]
+        }
+      ],
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": false,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "local"
+      ],
+      "required_capabilities": [
+        "profiles"
+      ]
+    },
+    {
+      "name": "search",
+      "description": "Search for documents or blocks",
+      "usage": "craft search [query] [flags]",
+      "flags": [
+        {
+          "name": "--case-sensitive",
+          "type": "bool",
+          "required": false,
+          "description": "Case-sensitive matching (block search only)"
+        },
+        {
+          "name": "--context",
+          "type": "int",
+          "default": "5",
+          "required": false,
+          "description": "Number of surrounding blocks to include (block search only)"
+        },
+        {
+          "name": "--count",
+          "type": "bool",
+          "required": false,
+          "description": "Output only the matching result count"
+        },
+        {
+          "name": "--created-after",
+          "type": "string",
+          "required": false,
+          "description": "Filter: created on or after date (YYYY-MM-DD)"
+        },
+        {
+          "name": "--created-before",
+          "type": "string",
+          "required": false,
+          "description": "Filter: created on or before date (YYYY-MM-DD)"
+        },
+        {
+          "name": "--document",
+          "type": "string",
+          "required": false,
+          "description": "Document/block ID for block-level search"
+        },
+        {
+          "name": "--fields",
+          "type": "string",
+          "required": false,
+          "description": "Comma-separated fields to include in JSON output (e.g. documentId,markdown)"
+        },
+        {
+          "name": "--folder",
+          "type": "string",
+          "required": false,
+          "description": "Filter by folder ID"
+        },
+        {
+          "name": "--limit",
+          "type": "int",
+          "default": "0",
+          "required": false,
+          "description": "Maximum number of results to return (0 = all, API max is 20)"
+        },
+        {
+          "name": "--location",
+          "type": "string",
+          "required": false,
+          "description": "Filter by location: unsorted, trash, templates, daily_notes"
+        },
+        {
+          "name": "--metadata",
+          "type": "bool",
+          "required": false,
+          "description": "Include document metadata in results"
+        },
+        {
+          "name": "--modified-after",
+          "type": "string",
+          "required": false,
+          "description": "Filter: modified on or after date (YYYY-MM-DD)"
+        },
+        {
+          "name": "--modified-before",
+          "type": "string",
+          "required": false,
+          "description": "Filter: modified on or before date (YYYY-MM-DD)"
+        },
+        {
+          "name": "--regex",
+          "type": "string",
+          "required": false,
+          "description": "RE2 regex pattern"
+        }
+      ],
+      "safety": {
+        "readonly": true,
+        "destructive": false,
+        "idempotent": true,
+        "supports_dry_run": false
+      },
+      "backends": [
+        "rest"
+      ],
+      "required_capabilities": [
+        "read"
+      ]
+    },
+    {
+      "name": "setup",
+      "description": "Interactive setup for first-time users",
+      "usage": "craft setup",
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": false,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "rest"
+      ]
+    },
+    {
+      "name": "skill-path",
+      "description": "Print the bundled SKILL.md path",
+      "usage": "craft skill-path",
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": false,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "rest"
+      ]
+    },
+    {
+      "name": "tasks",
+      "description": "Manage tasks",
+      "usage": "craft tasks",
+      "subcommands": [
+        {
+          "name": "add",
+          "description": "Add a new task",
+          "usage": "craft tasks add [description] [flags]",
+          "flags": [
+            {
+              "name": "--deadline",
+              "type": "string",
+              "required": false,
+              "description": "Deadline date (YYYY-MM-DD)"
+            },
+            {
+              "name": "--document",
+              "type": "string",
+              "required": false,
+              "description": "Document ID (required for location=document)"
+            },
+            {
+              "name": "--json",
+              "type": "string",
+              "required": false,
+              "description": "Raw REST add tasks payload JSON"
+            },
+            {
+              "name": "--location",
+              "type": "string",
+              "default": "inbox",
+              "required": false,
+              "description": "Location: inbox, document"
+            },
+            {
+              "name": "--schedule",
+              "type": "string",
+              "required": false,
+              "description": "Schedule date (YYYY-MM-DD)"
+            },
+            {
+              "name": "--stdin",
+              "type": "bool",
+              "required": false,
+              "description": "Read raw REST add tasks payload from stdin"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "write"
+          ]
+        },
+        {
+          "name": "delete",
+          "description": "Delete a task",
+          "usage": "craft tasks delete [task-id] [flags]",
+          "flags": [
+            {
+              "name": "--json",
+              "type": "string",
+              "required": false,
+              "description": "Raw REST delete tasks payload JSON"
+            },
+            {
+              "name": "--stdin",
+              "type": "bool",
+              "required": false,
+              "description": "Read raw REST delete tasks payload from stdin"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": true,
+            "idempotent": true,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "write",
+            "delete"
+          ]
+        },
+        {
+          "name": "list",
+          "description": "List tasks",
+          "usage": "craft tasks list [flags]",
+          "flags": [
+            {
+              "name": "--document",
+              "type": "string",
+              "required": false,
+              "description": "Filter by document ID"
+            },
+            {
+              "name": "--scope",
+              "type": "string",
+              "required": false,
+              "description": "Filter scope: active, upcoming, inbox, logbook"
+            }
+          ],
+          "safety": {
+            "readonly": true,
+            "destructive": false,
+            "idempotent": true,
+            "supports_dry_run": false
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "read"
+          ]
+        },
+        {
+          "name": "update",
+          "description": "Update a task",
+          "usage": "craft tasks update [task-id] [flags]",
+          "flags": [
+            {
+              "name": "--deadline",
+              "type": "string",
+              "required": false,
+              "description": "Deadline date (YYYY-MM-DD)"
+            },
+            {
+              "name": "--json",
+              "type": "string",
+              "required": false,
+              "description": "Raw REST update tasks payload JSON"
+            },
+            {
+              "name": "--schedule",
+              "type": "string",
+              "required": false,
+              "description": "Schedule date (YYYY-MM-DD)"
+            },
+            {
+              "name": "--state",
+              "type": "string",
+              "required": false,
+              "description": "New state: todo, done, canceled"
+            },
+            {
+              "name": "--stdin",
+              "type": "bool",
+              "required": false,
+              "description": "Read raw REST update tasks payload from stdin"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": true,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "write"
+          ]
+        }
+      ],
+      "safety": {
+        "readonly": true,
+        "destructive": false,
+        "idempotent": true,
+        "supports_dry_run": false
+      },
+      "backends": [
+        "rest"
+      ]
+    },
+    {
+      "name": "update",
+      "description": "Update a document",
+      "usage": "craft update \u003cdocument-id\u003e [flags]",
+      "flags": [
+        {
+          "name": "--chunk-bytes",
+          "type": "int",
+          "default": "30000",
+          "required": false,
+          "description": "Max bytes per insert chunk (helps avoid API payload limits)"
+        },
+        {
+          "name": "--file",
+          "type": "string",
+          "required": false,
+          "description": "Read content from file (use - for stdin)"
+        },
+        {
+          "name": "--json",
+          "type": "string",
+          "required": false,
+          "description": "Structured update payload JSON"
+        },
+        {
+          "name": "--markdown",
+          "type": "string",
+          "required": false,
+          "description": "Markdown content"
+        },
+        {
+          "name": "--mode",
+          "type": "string",
+          "default": "append",
+          "required": false,
+          "description": "Update mode (append, replace)"
+        },
+        {
+          "name": "--section",
+          "type": "string",
+          "required": false,
+          "description": "Replace a section by heading (requires --mode replace)"
+        },
+        {
+          "name": "--stdin",
+          "type": "bool",
+          "required": false,
+          "description": "Read content from stdin"
+        },
+        {
+          "name": "--title",
+          "type": "string",
+          "required": false,
+          "description": "New document title"
+        }
+      ],
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": true,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "rest"
+      ],
+      "required_capabilities": [
+        "write"
+      ]
+    },
+    {
+      "name": "upgrade",
+      "description": "Upgrade craft-cli to the latest version",
+      "usage": "craft upgrade",
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": false,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "rest"
+      ]
+    },
+    {
+      "name": "upload",
+      "description": "Upload a file to a Craft document",
+      "usage": "craft upload [file-path] [flags]",
+      "flags": [
+        {
+          "name": "--date",
+          "type": "string",
+          "required": false,
+          "description": "Target daily note date (YYYY-MM-DD)"
+        },
+        {
+          "name": "--json",
+          "type": "string",
+          "required": false,
+          "description": "Structured upload payload JSON"
+        },
+        {
+          "name": "--page",
+          "type": "string",
+          "required": false,
+          "description": "Target page ID for placement"
+        },
+        {
+          "name": "--position",
+          "short": "-p",
+          "type": "string",
+          "default": "end",
+          "required": false,
+          "description": "Position: start, end, before, after"
+        },
+        {
+          "name": "--sibling",
+          "type": "string",
+          "required": false,
+          "description": "Sibling block ID for relative placement"
+        },
+        {
+          "name": "--stdin",
+          "type": "bool",
+          "required": false,
+          "description": "Read file data from stdin"
+        }
+      ],
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": false,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "rest"
+      ],
+      "required_capabilities": [
+        "write"
+      ]
+    },
+    {
+      "name": "validate",
+      "description": "Run local proof-of-behavior checks",
+      "usage": "craft validate",
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": false,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "rest"
+      ]
+    },
+    {
+      "name": "version",
+      "description": "Show version information",
+      "usage": "craft version",
+      "safety": {
+        "readonly": true,
+        "destructive": false,
+        "idempotent": true,
+        "supports_dry_run": false
+      },
+      "backends": [
+        "rest"
+      ],
+      "required_capabilities": [
+        "read"
+      ]
+    },
+    {
+      "name": "whiteboards",
+      "description": "Manage whiteboards (experimental)",
+      "usage": "craft whiteboards",
+      "subcommands": [
+        {
+          "name": "add",
+          "description": "Add elements to a whiteboard",
+          "usage": "craft whiteboards add WHITEBOARD_ID [flags]",
+          "flags": [
+            {
+              "name": "--json",
+              "type": "string",
+              "required": false,
+              "description": "JSON element data (Excalidraw format)"
+            },
+            {
+              "name": "--stdin",
+              "type": "bool",
+              "required": false,
+              "description": "Read element data from stdin"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "write",
+            "whiteboards"
+          ]
+        },
+        {
+          "name": "create",
+          "description": "Create a new whiteboard in a document",
+          "usage": "craft whiteboards create PAGE_ID [flags]",
+          "flags": [
+            {
+              "name": "--json",
+              "type": "string",
+              "required": false,
+              "description": "Raw whiteboard create payload JSON"
+            },
+            {
+              "name": "--stdin",
+              "type": "bool",
+              "required": false,
+              "description": "Read raw whiteboard create payload from stdin"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "write",
+            "whiteboards"
+          ]
+        },
+        {
+          "name": "delete",
+          "description": "Delete whiteboard elements",
+          "usage": "craft whiteboards delete WHITEBOARD_ID [flags]",
+          "flags": [
+            {
+              "name": "--ids",
+              "type": "string",
+              "required": false,
+              "description": "Comma-separated element IDs to delete"
+            },
+            {
+              "name": "--json",
+              "type": "string",
+              "required": false,
+              "description": "Raw whiteboard delete payload JSON"
+            },
+            {
+              "name": "--stdin",
+              "type": "bool",
+              "required": false,
+              "description": "Read raw whiteboard delete payload from stdin"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": true,
+            "idempotent": true,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "write",
+            "delete",
+            "whiteboards"
+          ]
+        },
+        {
+          "name": "get",
+          "description": "Get whiteboard elements",
+          "usage": "craft whiteboards get WHITEBOARD_ID",
+          "safety": {
+            "readonly": true,
+            "destructive": false,
+            "idempotent": true,
+            "supports_dry_run": false
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "read",
+            "whiteboards"
+          ]
+        },
+        {
+          "name": "update",
+          "description": "Update whiteboard elements",
+          "usage": "craft whiteboards update WHITEBOARD_ID [flags]",
+          "flags": [
+            {
+              "name": "--json",
+              "type": "string",
+              "required": false,
+              "description": "JSON element data with IDs"
+            },
+            {
+              "name": "--stdin",
+              "type": "bool",
+              "required": false,
+              "description": "Read element data from stdin"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": true,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
+          ],
+          "required_capabilities": [
+            "write",
+            "whiteboards"
+          ]
+        }
+      ],
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": false,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "rest"
+      ],
+      "required_capabilities": [
+        "whiteboards"
+      ]
+    }
+  ],
+  "safety": {
+    "readonly": false,
+    "destructive": false,
+    "idempotent": false,
+    "supports_dry_run": true
+  },
+  "backends": [
+    "rest"
+  ]
+}

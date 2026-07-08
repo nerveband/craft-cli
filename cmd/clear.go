@@ -1,8 +1,15 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/ashrafali/craft-cli/internal/models"
 	"github.com/spf13/cobra"
+)
+
+var (
+	clearJSON  string
+	clearStdin bool
 )
 
 var clearCmd = &cobra.Command{
@@ -14,8 +21,24 @@ This does NOT delete the document itself.
 Use craft delete to move the document to trash.
 
 WARNING: This operation is destructive. Use --dry-run to preview first.`,
-	Args: cobra.ExactArgs(1),
+	Args: func(cmd *cobra.Command, args []string) error {
+		if clearJSON != "" || clearStdin {
+			return cobra.NoArgs(cmd, args)
+		}
+		return cobra.ExactArgs(1)(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if clearJSON != "" || clearStdin {
+			payload, err := readRawPayload(clearJSON, clearStdin)
+			if err != nil {
+				return err
+			}
+			docID := payloadString(payload, "id", "documentId")
+			if docID == "" {
+				return fmt.Errorf("raw clear payload must include \"id\" or \"documentId\"")
+			}
+			args = []string{docID}
+		}
 		docID := args[0]
 		client, err := getAPIClient()
 		if err != nil {
@@ -53,4 +76,6 @@ WARNING: This operation is destructive. Use --dry-run to preview first.`,
 
 func init() {
 	rootCmd.AddCommand(clearCmd)
+	clearCmd.Flags().StringVar(&clearJSON, "json", "", "Raw clear payload JSON")
+	clearCmd.Flags().BoolVar(&clearStdin, "stdin", false, "Read raw clear payload from stdin")
 }

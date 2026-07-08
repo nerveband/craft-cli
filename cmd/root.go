@@ -19,22 +19,43 @@ const (
 )
 
 var (
-	apiURL       string
-	apiKey       string
-	outputFormat string
-	cfgManager   *config.Manager
-	version      = "1.9.0"
+	apiURL        string
+	apiKey        string
+	mcpURL        string
+	profileName   string
+	backendName   string
+	outputFormat  string
+	deliverTarget string
+	transformExpr string
+	dataSource    string
+	cfgManager    *config.Manager
+	version       = "1.10.0"
 
 	// Global flags for LLM/scripting friendliness
-	quietMode  bool
-	jsonErrors bool
-	outputOnly string
-	noHeaders  bool
-	rawOutput  bool
-	idOnly     bool
-	dryRun     bool
-	yesFlag    bool
+	quietMode      bool
+	jsonErrors     bool
+	outputOnly     string
+	noHeaders      bool
+	rawOutput      bool
+	idOnly         bool
+	dryRun         bool
+	yesFlag        bool
+	requestSchema  bool
+	responseSchema bool
 )
+
+type cliCodeError struct {
+	Code    string
+	Message string
+}
+
+func (e *cliCodeError) Error() string {
+	return e.Message
+}
+
+func newCLIError(code, message string) error {
+	return &cliCodeError{Code: code, Message: message}
+}
 
 // rootCmd represents the base command
 var rootCmd = &cobra.Command{
@@ -103,13 +124,19 @@ Use "{{.CommandPath}} [command] --help" for more information about a command.{{e
 Documentation:
   Full docs:        https://github.com/nerveband/craft-cli
   Report issues:    https://github.com/nerveband/craft-cli/issues
-  Craft API docs:   https://support.craft.do/hc/en-us/articles/23702897811612
+  Craft API docs:   https://connect.craft.do/api-docs
 `)
 
 	// API and format flags
 	rootCmd.PersistentFlags().StringVar(&apiURL, "api-url", "", "Craft API URL (overrides config)")
 	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", "", "API key for authentication (overrides config)")
-	rootCmd.PersistentFlags().StringVar(&outputFormat, "format", "", "Output format (json, compact=legacy JSON, table, markdown)")
+	rootCmd.PersistentFlags().StringVar(&mcpURL, "mcp-url", "", "Craft MCP URL (overrides CRAFT_MCP_URL)")
+	rootCmd.PersistentFlags().StringVar(&profileName, "profile", "", "Named profile to use for this command")
+	rootCmd.PersistentFlags().StringVar(&backendName, "backend", "auto", "Backend preference: auto, rest, mcp, or local")
+	rootCmd.PersistentFlags().StringVar(&outputFormat, "format", "", "Output format (json, compact=legacy JSON, table, markdown, raw, jsonl, yaml)")
+	rootCmd.PersistentFlags().StringVar(&deliverTarget, "deliver", "", "Deliver output to stdout or file:<path> (atomic file writes)")
+	rootCmd.PersistentFlags().StringVar(&transformExpr, "transform", "", "Extract a field/projection from structured output")
+	rootCmd.PersistentFlags().StringVar(&dataSource, "data-source", "", "Data source preference: local, live, or auto")
 
 	// LLM/scripting friendly flags
 	rootCmd.PersistentFlags().BoolVarP(&quietMode, "quiet", "q", false, "Suppress status messages, output data only")
@@ -120,6 +147,8 @@ Documentation:
 	rootCmd.PersistentFlags().BoolVar(&idOnly, "id-only", false, "Output only document IDs (shorthand for --output-only id)")
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Show what would happen without making changes")
 	rootCmd.PersistentFlags().BoolVarP(&yesFlag, "yes", "y", false, "Skip confirmation prompts")
+	rootCmd.PersistentFlags().BoolVar(&requestSchema, "request-schema", false, "Print request JSON Schema for supported commands")
+	rootCmd.PersistentFlags().BoolVar(&responseSchema, "response-schema", false, "Print response JSON Schema for supported commands")
 }
 
 func initConfig() {
@@ -134,6 +163,20 @@ func initConfig() {
 // getAPIClient returns a configured API client
 func getAPIClient() (*api.Client, error) {
 	url := apiURL
+	key := apiKey
+	if profileName != "" && url == "" {
+		profile, err := cfgManager.GetProfile(profileName)
+		if err != nil {
+			return nil, err
+		}
+		if profile.TypeOrDefault() != "rest" {
+			return nil, fmt.Errorf("profile '%s' is %s, not rest. Use an MCP command or select a REST profile", profileName, profile.TypeOrDefault())
+		}
+		url = profile.URL
+		if key == "" {
+			key = profile.APIKey
+		}
+	}
 	if url == "" {
 		var err error
 		url, err = cfgManager.GetActiveURL()
@@ -152,12 +195,13 @@ func getAPIClient() (*api.Client, error) {
 	}
 
 	// Get API key: flag > config > empty
-	key := apiKey
 	if key == "" {
 		var err error
-		key, err = cfgManager.GetActiveAPIKey()
-		if err != nil {
-			key = ""
+		if profileName == "" {
+			key, err = cfgManager.GetActiveAPIKey()
+			if err != nil {
+				key = ""
+			}
 		}
 	}
 
@@ -226,6 +270,9 @@ func handleError(err error) {
 
 // categorizeError returns an error category for JSON output
 func categorizeError(err error) string {
+	if coded, ok := err.(*cliCodeError); ok {
+		return coded.Code
+	}
 	if apiErr, ok := err.(*api.APIError); ok {
 		switch apiErr.StatusCode {
 		case 401:
@@ -283,6 +330,14 @@ func errorHint(code string) string {
 		return "Wait and retry. The API limits request frequency. (retryable)"
 	case "API_ERROR":
 		return "Server error. Retry in a few seconds. If persistent, check Craft status. (retryable)"
+	case "CAPABILITY_UNAVAILABLE":
+		return "This operation requires capabilities the selected backend does not expose. Configure an MCP profile or use --backend mcp. (not retryable)"
+	case "BACKEND_REQUIRED":
+		return "Select a compatible backend/profile for this operation. Use --backend mcp or configure CRAFT_MCP_URL. (not retryable)"
+	case "READ_UNAVAILABLE":
+		return "This connection appears write-only or lacks read scope. Switch to a read-capable profile. (not retryable)"
+	case "WRITE_UNAVAILABLE":
+		return "This connection lacks write permission. Switch to a write-capable profile. (not retryable)"
 	case "USER_ERROR":
 		return "Check command usage with --help. (not retryable)"
 	default:
