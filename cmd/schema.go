@@ -150,6 +150,9 @@ func inferCommandCapabilities(cmd *cobra.Command) ([]string, []string, []string)
 	if strings.HasPrefix(path, "craft mcp") {
 		return []string{"mcp"}, []string{"mcp"}, nil
 	}
+	if strings.HasPrefix(path, "craft images") {
+		return []string{"mcp"}, []string{"mcp", "images.view"}, nil
+	}
 	if path == "craft batch" {
 		return []string{"mcp"}, []string{"mcp", "batch"}, nil
 	}
@@ -160,11 +163,15 @@ func inferCommandCapabilities(cmd *cobra.Command) ([]string, []string, []string)
 		return []string{"local"}, []string{"profiles"}, nil
 	}
 	if strings.HasPrefix(path, "craft collections views") ||
-		strings.HasPrefix(path, "craft collections active-view") {
+		strings.HasPrefix(path, "craft collections active-view") ||
+		path == "craft collections rename" {
 		if name == "list" {
 			return []string{"mcp"}, []string{"mcp", "read", "collections.views"}, nil
 		}
 		return []string{"mcp"}, []string{"mcp", "write", "collections.views"}, nil
+	}
+	if strings.HasPrefix(path, "craft whiteboards elements") {
+		return []string{"mcp"}, []string{"mcp", "whiteboards.read"}, nil
 	}
 	if strings.Contains(path, "resolve-link") ||
 		strings.Contains(path, "explore-icons") ||

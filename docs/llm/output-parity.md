@@ -16,7 +16,9 @@ Goal: CLI JSON output matches API/MCP payload shapes by default. Legacy flattene
 Commands that wrap MCP-only features return the MCP tool result by default, or
 a structured dry-run envelope when `--dry-run` is used. Examples include
 `craft documents resolve-link`, `craft blocks revert`, `craft collections views`,
-`craft collections active-view set`, and `craft batch`.
+`craft collections active-view set`, `craft collections rename`,
+`craft whiteboards elements get`, `craft images view`, `craft mcp edit-review`,
+and `craft batch`.
 
 ## Context-Controlled JSON
 

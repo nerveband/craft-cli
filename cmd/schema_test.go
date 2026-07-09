@@ -121,6 +121,34 @@ func TestBuildSchemaIncludesBackendAndCapabilities(t *testing.T) {
 	if !containsString(views.Backends, "mcp") || !containsString(views.RequiredCapabilities, "collections.views") {
 		t.Fatalf("expected collections views to be mcp-backed, backends=%#v required=%#v", views.Backends, views.RequiredCapabilities)
 	}
+
+	rename := findCommandSchema(collections.Subcommands, "rename")
+	if rename == nil {
+		t.Fatal("expected collections rename command in schema")
+	}
+	if !containsString(rename.Backends, "mcp") {
+		t.Fatalf("expected collections rename to be mcp-backed, got %#v", rename.Backends)
+	}
+
+	images := findCommandSchema(rootSchema.Subcommands, "images")
+	if images == nil {
+		t.Fatal("expected images command in schema")
+	}
+	if !containsString(images.Backends, "mcp") || !containsString(images.RequiredCapabilities, "images.view") {
+		t.Fatalf("expected images command to expose images.view, backends=%#v required=%#v", images.Backends, images.RequiredCapabilities)
+	}
+
+	whiteboards := findCommandSchema(rootSchema.Subcommands, "whiteboards")
+	if whiteboards == nil {
+		t.Fatal("expected whiteboards command in schema")
+	}
+	elements := findCommandSchema(whiteboards.Subcommands, "elements")
+	if elements == nil {
+		t.Fatal("expected whiteboards elements command in schema")
+	}
+	if !containsString(elements.Backends, "mcp") || !containsString(elements.RequiredCapabilities, "whiteboards.read") {
+		t.Fatalf("expected whiteboards elements to expose MCP read, backends=%#v required=%#v", elements.Backends, elements.RequiredCapabilities)
+	}
 }
 
 func TestBuildSchemaIncludesContextCountFlags(t *testing.T) {

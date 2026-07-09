@@ -100,3 +100,17 @@ func TestFindRevertInfoInsideMCPTextPayload(t *testing.T) {
 		t.Fatalf("operation = %v, want update", infoMap["operation"])
 	}
 }
+
+func TestPropertyFlagToMCP(t *testing.T) {
+	got := propertyFlagToMCP("Status=select")
+	want := `--Status "select"`
+	if got != want {
+		t.Fatalf("propertyFlagToMCP() = %q, want %q", got, want)
+	}
+
+	got = propertyFlagToMCP("Due Date=2026-07-09")
+	want = `--"Due Date" "2026-07-09"`
+	if got != want {
+		t.Fatalf("propertyFlagToMCP() = %q, want %q", got, want)
+	}
+}

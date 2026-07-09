@@ -26,6 +26,7 @@ No interactive login. Set credentials via:
 - Use `craft audit agent-dx --format json` to check agent-readiness before release
 - Use `craft mcp tools` to inspect MCP-only capabilities when REST lacks a feature
 - Use `craft mcp read-resource URI --metadata-only` before reading resource contents; MCP UI resources can be large
+- Use native wrappers before generic MCP calls: `craft mcp edit-review`, `craft images view`, `craft whiteboards elements get`, `craft collections rename`, and `craft collections --property ...`
 - Use `craft batch --dry-run` before `craft batch --tool craft_write --yes`
 - MCP-only block style/revert flags such as `--theme-id`, `--cover-url`, `--backdrop-*`, `--washi-*`, `--diff`, and `--save-revert` auto-route to MCP under `--backend auto`; `--backend rest` returns `CAPABILITY_UNAVAILABLE`
 - Use `craft list --backend mcp --cursor CURSOR --limit N` for MCP cursor pagination

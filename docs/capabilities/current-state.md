@@ -24,13 +24,16 @@ REST is the default backend for deterministic API operations:
 MCP is used for agent-ahead or MCP-only features:
 
 - generic MCP: initialize, tools, resources, read-resource, call
+- edit-review: first-class `craft mcp edit-review`
 - batch: top-level `craft batch` and `craft mcp batch`
 - documents: resolve-link
 - folders: explore-icons
 - blocks: explore-themes, explore-washi, search-unsplash, revert
 - block styling: MCP-backed `--theme-id`, `--cover-url`, `--backdrop-*`, `--washi-*`, `--save-revert`, and `--diff` on block add/update
 - cursor pagination: MCP-backed `craft list --backend mcp --cursor ... --limit ...`
-- collections: views list/create/update/delete, active-view set
+- collections: rename, dynamic `--property Name=value` flags, views list/create/update/delete, active-view set
+- whiteboards: MCP-backed `whiteboards elements get`
+- images: MCP-backed `images view`
 - resource metadata: `ui://craft/edit-review` via `--metadata-only`
 
 ## API States
