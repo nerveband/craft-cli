@@ -11,11 +11,14 @@ import (
 )
 
 var (
-	profilesAPIKey        string
-	profilesAPIKeyEnv     string
-	profilesAccessMode    string
-	profilesPermission    string
-	profilesDocumentScope string
+	profilesAPIKey            string
+	profilesAPIKeyEnv         string
+	profilesRESTAccessMode    string
+	profilesRESTPermission    string
+	profilesRESTDocumentScope string
+	profilesMCPAccessMode     string
+	profilesMCPPermission     string
+	profilesMCPDocumentScope  string
 )
 
 var profilesCmd = &cobra.Command{
@@ -51,7 +54,7 @@ var profilesAddRESTCmd = &cobra.Command{
 				return fmt.Errorf("--api-key-env %s is not set", profilesAPIKeyEnv)
 			}
 		}
-		if err := cfgManager.AddRESTProfile(args[0], url, apiKey, profilesAccessMode, profilesPermission, profilesDocumentScope); err != nil {
+		if err := cfgManager.AddRESTProfile(args[0], url, apiKey, profilesRESTAccessMode, profilesRESTPermission, profilesRESTDocumentScope); err != nil {
 			return err
 		}
 		if !isQuiet() {
@@ -70,7 +73,7 @@ var profilesAddMCPCmd = &cobra.Command{
 		if url == "" {
 			return fmt.Errorf("--mcp-url is required")
 		}
-		if err := cfgManager.AddMCPProfile(args[0], url, profilesAccessMode, profilesPermission, profilesDocumentScope); err != nil {
+		if err := cfgManager.AddMCPProfile(args[0], url, profilesMCPAccessMode, profilesMCPPermission, profilesMCPDocumentScope); err != nil {
 			return err
 		}
 		if !isQuiet() {
@@ -237,14 +240,14 @@ func init() {
 	profilesAddRESTCmd.Flags().String("api-url", "", "Craft REST API URL")
 	profilesAddRESTCmd.Flags().StringVar(&profilesAPIKey, "api-key", "", "API key for authentication")
 	profilesAddRESTCmd.Flags().StringVar(&profilesAPIKeyEnv, "api-key-env", "", "Environment variable containing API key")
-	profilesAddRESTCmd.Flags().StringVar(&profilesAccessMode, "access", "", "Access mode: public or api-key")
-	profilesAddRESTCmd.Flags().StringVar(&profilesPermission, "permission", "", "Permission: read-only, write-only, read-write")
-	profilesAddRESTCmd.Flags().StringVar(&profilesDocumentScope, "scope", "", "Scope: all-documents, selected-documents, daily-notes")
+	profilesAddRESTCmd.Flags().StringVar(&profilesRESTAccessMode, "access", "", "Access mode: public or api-key")
+	profilesAddRESTCmd.Flags().StringVar(&profilesRESTPermission, "permission", "", "Permission: read-only, write-only, read-write")
+	profilesAddRESTCmd.Flags().StringVar(&profilesRESTDocumentScope, "scope", "", "Scope: all-documents, selected-documents, daily-notes")
 
 	profilesAddMCPCmd.Flags().String("mcp-url", "", "Craft MCP URL")
-	profilesAddMCPCmd.Flags().StringVar(&profilesAccessMode, "access", "public", "Access mode: public or api-key")
-	profilesAddMCPCmd.Flags().StringVar(&profilesPermission, "permission", "", "Permission: read-only, write-only, read-write")
-	profilesAddMCPCmd.Flags().StringVar(&profilesDocumentScope, "scope", "connection-defined", "Scope: connection-defined, all-documents, selected-documents, daily-notes")
+	profilesAddMCPCmd.Flags().StringVar(&profilesMCPAccessMode, "access", "public", "Access mode: public or api-key")
+	profilesAddMCPCmd.Flags().StringVar(&profilesMCPPermission, "permission", "", "Permission: read-only, write-only, read-write")
+	profilesAddMCPCmd.Flags().StringVar(&profilesMCPDocumentScope, "scope", "connection-defined", "Scope: connection-defined, all-documents, selected-documents, daily-notes")
 }
 
 func inferProfileCapabilities(profile config.Profile) []string {

@@ -329,7 +329,7 @@
               "name": "--diff",
               "type": "bool",
               "required": false,
-              "description": "Include review/diff metadata in dry-run output when possible"
+              "description": "Include MCP edit-review metadata in output when possible"
             },
             {
               "name": "--file-name",
@@ -828,7 +828,7 @@
               "name": "--diff",
               "type": "bool",
               "required": false,
-              "description": "Include review/diff metadata in dry-run output when possible"
+              "description": "Include MCP edit-review metadata in output when possible"
             },
             {
               "name": "--file-name",
@@ -1712,7 +1712,7 @@
       "subcommands": [
         {
           "name": "add",
-          "description": "Add or update a profile",
+          "description": "Add or update a legacy REST profile",
           "usage": "craft config add \u003cname\u003e \u003curl\u003e [flags]",
           "flags": [
             {
@@ -1734,6 +1734,100 @@
           ],
           "required_capabilities": [
             "write"
+          ]
+        },
+        {
+          "name": "add-mcp",
+          "description": "Add or update a Craft MCP profile",
+          "usage": "craft config add-mcp \u003cname\u003e [flags]",
+          "flags": [
+            {
+              "name": "--access",
+              "type": "string",
+              "default": "public",
+              "required": false,
+              "description": "Access mode: public or api-key"
+            },
+            {
+              "name": "--mcp-url",
+              "type": "string",
+              "required": false,
+              "description": "Craft MCP URL"
+            },
+            {
+              "name": "--permission",
+              "type": "string",
+              "required": false,
+              "description": "Permission: read-only, write-only, read-write"
+            },
+            {
+              "name": "--scope",
+              "type": "string",
+              "default": "connection-defined",
+              "required": false,
+              "description": "Scope: connection-defined, all-documents, selected-documents, daily-notes"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
+          ]
+        },
+        {
+          "name": "add-rest",
+          "description": "Add or update a REST API profile",
+          "usage": "craft config add-rest \u003cname\u003e [flags]",
+          "flags": [
+            {
+              "name": "--access",
+              "type": "string",
+              "required": false,
+              "description": "Access mode: public or api-key"
+            },
+            {
+              "name": "--api-key",
+              "type": "string",
+              "required": false,
+              "description": "API key for authentication"
+            },
+            {
+              "name": "--api-key-env",
+              "type": "string",
+              "required": false,
+              "description": "Environment variable containing API key"
+            },
+            {
+              "name": "--api-url",
+              "type": "string",
+              "required": false,
+              "description": "Craft REST API URL"
+            },
+            {
+              "name": "--permission",
+              "type": "string",
+              "required": false,
+              "description": "Permission: read-only, write-only, read-write"
+            },
+            {
+              "name": "--scope",
+              "type": "string",
+              "required": false,
+              "description": "Scope: all-documents, selected-documents, daily-notes"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "rest"
           ]
         },
         {

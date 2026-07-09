@@ -9,9 +9,11 @@ craft-cli is a Go binary for managing Craft.do documents. JSON output by default
 No interactive login. Set credentials via:
 - `craft config add <name> <url>` then `craft config use <name>`
 - Or typed profiles: `craft profiles add-rest <name> --api-url URL`, `craft profiles add-mcp <name> --mcp-url URL`
+- Equivalent config aliases exist: `craft config add-rest <name> --api-url URL`, `craft config add-mcp <name> --mcp-url URL`
 - Use `--profile <name>` to select a REST or MCP profile for one command
 - Or per-command: `--api-url URL --api-key KEY`
 - For Craft MCP, set `CRAFT_MCP_URL` or pass `--mcp-url URL`
+- MCP is its own profile type. Do not add `mcp_url` to a REST profile or as a top-level config key; it will be ignored. A valid MCP profile has `"type": "mcp"` and `"mcp_url": "https://mcp.craft.do/links/<id>/mcp"`.
 
 ## Agent guardrails
 
@@ -29,6 +31,7 @@ No interactive login. Set credentials via:
 - Use native wrappers before generic MCP calls: `craft mcp edit-review`, `craft images view`, `craft whiteboards elements get`, `craft collections rename`, and `craft collections --property ...`
 - Use `craft batch --dry-run` before `craft batch --tool craft_write --yes`
 - MCP-only block style/revert flags such as `--theme-id`, `--cover-url`, `--backdrop-*`, `--washi-*`, `--diff`, and `--save-revert` auto-route to MCP under `--backend auto`; `--backend rest` returns `CAPABILITY_UNAVAILABLE`
+- For MCP style writes, run `--dry-run` first, then use `--yes --save-revert FILE --diff` on the real write. `--diff` returns the mutation result plus MCP edit-review metadata when available; `--save-revert` captures the undo payload.
 - Use `craft list --backend mcp --cursor CURSOR --limit N` for MCP cursor pagination
 - Use `--yes` to skip any confirmation prompts
 
@@ -53,6 +56,28 @@ No interactive login. Set credentials via:
 - Errors include `(retryable)` or `(not retryable)` in the hint. Only retry on rate limits and server errors.
 - REST is best for deterministic direct API operations. MCP may expose richer agent-facing capabilities such as link resolution, themes/covers/backdrops, collection views, and block revert metadata.
 - Collection view controls (`collections views ...`, `collections active-view set`) are MCP-backed because the captured REST docs do not expose stable view endpoints.
+- Whole-doc `craft update --mode replace` is markdown-based: it clears and reinserts content blocks, so block IDs change and block-only styling/state such as `color`, `font`, `textAlignment`, card layout, task state, media/embed fields, comments, and revert anchors is not preserved. Do not use whole-doc replace on styled documents just to make text edits. Prefer `craft blocks update BLOCK_ID --markdown ...` for existing blocks, which preserves omitted styling fields. If new blocks are created, style only those changed/new blocks.
+- `craft update --mode replace --section "Heading"` uses a block-boundary delta replacement: only the target section's top-level block range is deleted/reinserted, preserving IDs and styling outside that section.
+- Craft accepts `#RRGGBB` color input but may store adjusted palette/readability colors. Keep original brand hexes as source data and resend those, not the adjusted colors returned by `get`.
+
+## MCP escalation flow
+
+When the user asks for a feature that REST does not expose, such as page themes, page backgrounds, covers, washi, richer collection views, link resolution, edit-review metadata, or reversible style writes:
+
+1. Detect it as MCP-only from `craft schema`, `craft profiles capabilities`, or a `CAPABILITY_UNAVAILABLE` error.
+2. Check for an existing MCP profile with `craft profiles list` or `craft config list`.
+3. If no MCP profile exists, ask the user for a Craft MCP URL or ask them to create one in Craft. The CLI cannot invent a Craft MCP link by itself.
+4. Save it as a separate MCP profile: `craft config add-mcp <name>-mcp --mcp-url https://mcp.craft.do/links/<id>/mcp`.
+5. Verify it with `craft profiles test <name>-mcp` and, when relevant, `craft mcp tools --profile <name>-mcp`.
+6. Retry the requested operation with `--profile <name>-mcp` or `--backend mcp`. For writes, use `--dry-run` first, then `--yes --save-revert FILE --diff` when supported.
+
+## Avoid destructive restyling loops
+
+Agents should avoid any workflow that deletes and recreates blocks unless the user explicitly wants a structural rewrite. Similar styling/token traps:
+
+- Whole-doc `craft update --mode replace`, `craft clear`, delete/re-add, and broad MCP writes all change block IDs and can invalidate saved IDs, comments, revert payloads, and styling assumptions.
+- Markdown exports/imports preserve markdown-native things like headings, lists, quotes, callouts, dividers, and code fences, but not all block JSON fields or MCP page/card styling.
+- Page-level styling is on the root page block and may survive content replacement, but content-block styling usually does not. Do not rerun a full styling pass automatically; update the specific blocks that changed.
 
 ## Debugging
 

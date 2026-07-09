@@ -29,7 +29,7 @@ var (
 	transformExpr string
 	dataSource    string
 	cfgManager    *config.Manager
-	version       = "1.10.1"
+	version       = "1.11.0"
 
 	// Global flags for LLM/scripting friendliness
 	quietMode      bool
@@ -331,9 +331,9 @@ func errorHint(code string) string {
 	case "API_ERROR":
 		return "Server error. Retry in a few seconds. If persistent, check Craft status. (retryable)"
 	case "CAPABILITY_UNAVAILABLE":
-		return "This operation requires capabilities the selected backend does not expose. Configure an MCP profile or use --backend mcp. (not retryable)"
+		return "This operation requires MCP-only capabilities. Ask the user for a Craft MCP URL if none is configured, then run 'craft config add-mcp <name> --mcp-url URL', verify with 'craft profiles test <name>', and retry with --profile <name> or --backend mcp. (not retryable)"
 	case "BACKEND_REQUIRED":
-		return "Select a compatible backend/profile for this operation. Use --backend mcp or configure CRAFT_MCP_URL. (not retryable)"
+		return "Select a compatible backend/profile. For MCP-only features, use --backend mcp with --mcp-url/CRAFT_MCP_URL or a separate MCP profile created by 'craft config add-mcp'. (not retryable)"
 	case "READ_UNAVAILABLE":
 		return "This connection appears write-only or lacks read scope. Switch to a read-capable profile. (not retryable)"
 	case "WRITE_UNAVAILABLE":

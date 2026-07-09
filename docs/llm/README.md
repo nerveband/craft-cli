@@ -29,6 +29,17 @@ craft audit agent-dx   # Agent-native CLI scorecard
 - Use MCP for page style flags and reversible block edits; explicit `--backend rest` with MCP-only style flags returns `CAPABILITY_UNAVAILABLE`.
 - Use native wrappers instead of generic MCP calls for edit review, image view, collection rename/dynamic properties, and whiteboard element reads.
 
+## MCP Escalation Flow
+
+If the active profile is REST and the requested feature is MCP-only:
+
+1. Detect MCP-only scope from `craft schema`, `craft profiles capabilities`, or `CAPABILITY_UNAVAILABLE`.
+2. Check `craft profiles list` or `craft config list` for an existing `mcp` profile.
+3. If none exists, ask the user for a Craft MCP URL or ask them to create one in Craft. The CLI cannot generate a new Craft MCP link by itself.
+4. Save it as a separate profile: `craft config add-mcp <name>-mcp --mcp-url URL`.
+5. Verify it with `craft profiles test <name>-mcp` and `craft mcp tools --profile <name>-mcp`.
+6. Retry with `--profile <name>-mcp` or `--backend mcp`. For writes, use `--dry-run` first, then `--yes --save-revert FILE --diff` when supported.
+
 ## Reference Payloads
 
 - `../craft-everything-in-one.json` -- Full JSON snapshot of a document exercising every Craft feature (headings, dividers, code, cards, pages, highlights, rich URLs, decorations, fonts, colors, etc.)
