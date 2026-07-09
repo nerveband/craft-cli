@@ -650,6 +650,67 @@ func TestClient_ClearDocumentContent(t *testing.T) {
 	})
 }
 
+func TestClient_DeleteBlocks(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "DELETE" {
+			t.Errorf("Expected DELETE method, got %s", r.Method)
+		}
+		if r.URL.Path != "/blocks" {
+			t.Errorf("Expected path /blocks, got %s", r.URL.Path)
+		}
+		var body map[string][]string
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("Failed to decode request body: %v", err)
+		}
+		got := body["blockIds"]
+		if len(got) != 2 || got[0] != "a" || got[1] != "b" {
+			t.Fatalf("blockIds = %#v, want [a b]", got)
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{"items": []interface{}{}})
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	if err := client.DeleteBlocks([]string{"a", "b"}); err != nil {
+		t.Fatalf("DeleteBlocks() error = %v", err)
+	}
+}
+
+func TestClient_AddMarkdownAtPosition(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			t.Errorf("Expected POST method, got %s", r.Method)
+		}
+		if r.URL.Path != "/blocks" {
+			t.Errorf("Expected path /blocks, got %s", r.URL.Path)
+		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("Failed to decode request body: %v", err)
+		}
+		if body["markdown"] != "## Intro\n\nNew" {
+			t.Fatalf("markdown = %q", body["markdown"])
+		}
+		pos := body["position"].(map[string]interface{})
+		if pos["siblingId"] != "next" || pos["position"] != "before" {
+			t.Fatalf("position = %#v", pos)
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"items": []map[string]interface{}{{"id": "new", "markdown": "## Intro"}},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	last, err := client.AddMarkdownAtPosition("## Intro\n\nNew", map[string]interface{}{"siblingId": "next", "position": "before"}, 30000)
+	if err != nil {
+		t.Fatalf("AddMarkdownAtPosition() error = %v", err)
+	}
+	if last != "## Intro" {
+		t.Fatalf("last = %q, want heading markdown", last)
+	}
+}
+
 func TestClient_AddBlocksJSON(t *testing.T) {
 	t.Run("sends blocks array with position", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

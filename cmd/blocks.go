@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	craftmcp "github.com/ashrafali/craft-cli/internal/mcp"
 	"github.com/ashrafali/craft-cli/internal/models"
 	"github.com/spf13/cobra"
 )
@@ -806,7 +807,32 @@ func runMCPBlocksMutation(cmd *cobra.Command, action string, blocks []map[string
 			return err
 		}
 	}
+	if blockDiff {
+		return outputMCPMutationWithReview(client, result)
+	}
 	return outputRawJSON(result)
+}
+
+func outputMCPMutationWithReview(client *craftmcp.Client, result json.RawMessage) error {
+	payload := map[string]interface{}{}
+	var decoded interface{}
+	if err := json.Unmarshal(result, &decoded); err != nil {
+		payload["result_raw"] = string(result)
+	} else {
+		payload["result"] = decoded
+	}
+	review, err := client.ReadResource("ui://craft/edit-review")
+	if err != nil {
+		payload["edit_review_error"] = err.Error()
+		return outputJSON(payload)
+	}
+	var decodedReview interface{}
+	if err := json.Unmarshal(review, &decodedReview); err != nil {
+		payload["edit_review_raw"] = string(review)
+	} else {
+		payload["edit_review"] = decodedReview
+	}
+	return outputJSON(payload)
 }
 
 func buildMCPBlocksCommand(action string, blocks []map[string]interface{}, position map[string]interface{}) (string, error) {
@@ -999,7 +1025,7 @@ func init() {
 	blocksAddCmd.Flags().StringVar(&blockJSON, "json", "", "Block(s) as JSON (array or single object)")
 	blocksAddCmd.Flags().BoolVar(&blockStdin, "stdin", false, "Read block JSON from stdin")
 	blocksAddCmd.Flags().StringVar(&blockSaveRevert, "save-revert", "", "Save MCP revertInfo JSON to a file")
-	blocksAddCmd.Flags().BoolVar(&blockDiff, "diff", false, "Include review/diff metadata in dry-run output when possible")
+	blocksAddCmd.Flags().BoolVar(&blockDiff, "diff", false, "Include MCP edit-review metadata in output when possible")
 	registerStylingFlags(blocksAddCmd, true)
 
 	blocksCmd.AddCommand(blocksUpdateCmd)
@@ -1007,7 +1033,7 @@ func init() {
 	blocksUpdateCmd.Flags().StringVar(&blockJSON, "json", "", "Block(s) as JSON with \"id\" fields (array or single object)")
 	blocksUpdateCmd.Flags().BoolVar(&blockStdin, "stdin", false, "Read block JSON from stdin")
 	blocksUpdateCmd.Flags().StringVar(&blockSaveRevert, "save-revert", "", "Save MCP revertInfo JSON to a file")
-	blocksUpdateCmd.Flags().BoolVar(&blockDiff, "diff", false, "Include review/diff metadata in dry-run output when possible")
+	blocksUpdateCmd.Flags().BoolVar(&blockDiff, "diff", false, "Include MCP edit-review metadata in output when possible")
 	registerStylingFlags(blocksUpdateCmd, false)
 
 	blocksCmd.AddCommand(blocksDeleteCmd)

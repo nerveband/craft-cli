@@ -405,6 +405,11 @@ type addBlockRequest struct {
 	Position blockPosition `json:"position"`
 }
 
+type addMarkdownAtPositionRequest struct {
+	Markdown string                 `json:"markdown"`
+	Position map[string]interface{} `json:"position"`
+}
+
 // addBlockResponse is the response from adding blocks
 type addBlockResponse struct {
 	Items []struct {
@@ -490,6 +495,19 @@ func (c *Client) ClearDocumentContent(id string) (int, error) {
 	return len(blockIDs), nil
 }
 
+// DeleteBlocks deletes specific blocks by ID.
+func (c *Client) DeleteBlocks(blockIDs []string) error {
+	if len(blockIDs) == 0 {
+		return nil
+	}
+	deleteReq := deleteBlocksRequest{BlockIDs: blockIDs}
+	_, err := c.doRequest("DELETE", "/blocks", deleteReq)
+	if err != nil {
+		return fmt.Errorf("failed to delete blocks: %w", err)
+	}
+	return nil
+}
+
 // UpdateBlockMarkdown updates a block (including the document root page) using PUT /blocks.
 func (c *Client) UpdateBlockMarkdown(blockID, markdown string) error {
 	req := struct {
@@ -544,6 +562,44 @@ func (c *Client) AppendMarkdown(docID, markdown string, chunkBytes int) (string,
 		}
 	}
 
+	return last, nil
+}
+
+// AddMarkdownAtPosition inserts markdown at a page/date/sibling position.
+// Position accepts pageId+start/end, date+start/end, or siblingId+before/after.
+func (c *Client) AddMarkdownAtPosition(markdown string, position map[string]interface{}, chunkBytes int) (string, error) {
+	if strings.TrimSpace(markdown) == "" {
+		return "", nil
+	}
+	if chunkBytes <= 0 {
+		chunkBytes = defaultInsertChunkBytes
+	}
+	if len(position) == 0 {
+		return "", fmt.Errorf("position is required")
+	}
+
+	chunks := SplitMarkdownIntoChunks(markdown, chunkBytes)
+	var last string
+	for _, chunk := range chunks {
+		if strings.TrimSpace(chunk) == "" {
+			continue
+		}
+		req := addMarkdownAtPositionRequest{
+			Markdown: chunk,
+			Position: position,
+		}
+		data, err := c.doRequest("POST", "/blocks", req)
+		if err != nil {
+			return "", err
+		}
+		var resp addBlockResponse
+		if err := json.Unmarshal(data, &resp); err != nil {
+			return "", fmt.Errorf("invalid response from API: %w", err)
+		}
+		if len(resp.Items) > 0 {
+			last = resp.Items[len(resp.Items)-1].Markdown
+		}
+	}
 	return last, nil
 }
 

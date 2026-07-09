@@ -61,6 +61,15 @@ When a requested operation is unavailable through REST, agents should:
 3. Use `craft mcp call` as a fallback for MCP-only functionality.
 4. Explain the missing capability and the needed setup if no MCP URL is configured.
 
+When the active profile is REST and the feature is MCP-only, use this escalation path:
+
+1. Detect MCP-only scope from `craft schema`, `craft profiles capabilities`, or `CAPABILITY_UNAVAILABLE`.
+2. Check `craft profiles list` or `craft config list` for an existing `mcp` profile.
+3. If none exists, ask the user for a Craft MCP URL or ask them to create one in Craft. The CLI cannot generate a new Craft MCP link by itself.
+4. Save it as a separate profile with `craft config add-mcp <name>-mcp --mcp-url URL`.
+5. Verify it with `craft profiles test <name>-mcp` and `craft mcp tools --profile <name>-mcp`.
+6. Retry the operation with `--profile <name>-mcp` or `--backend mcp`. For writes, use `--dry-run` first, then `--yes --save-revert FILE --diff` when supported.
+
 ## Native MCP-Backed Commands
 
 ```bash

@@ -297,12 +297,18 @@ func getMCPClient() (*craftmcp.Client, error) {
 			return nil, err
 		}
 		if profile.TypeOrDefault() != "mcp" {
-			return nil, fmt.Errorf("profile '%s' is %s, not mcp. Use --mcp-url, CRAFT_MCP_URL, or an MCP profile", profileName, profile.TypeOrDefault())
+			return nil, fmt.Errorf("profile '%s' is %s, not mcp. Use 'craft config add-mcp <name> --mcp-url URL' or 'craft profiles add-mcp <name> --mcp-url URL', then pass --profile <name>", profileName, profile.TypeOrDefault())
 		}
 		url = profile.MCPURL
 	}
 	if url == "" {
-		return nil, fmt.Errorf("Craft MCP URL required. Use --mcp-url or set CRAFT_MCP_URL")
+		profile, err := cfgManager.GetActiveProfile()
+		if err == nil && profile.TypeOrDefault() == "mcp" {
+			url = profile.MCPURL
+		}
+	}
+	if url == "" {
+		return nil, fmt.Errorf("Craft MCP URL required. Use --mcp-url, set CRAFT_MCP_URL, or create an MCP profile with 'craft config add-mcp <name> --mcp-url URL'")
 	}
 	return craftmcp.NewClient(url), nil
 }

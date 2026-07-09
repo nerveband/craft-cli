@@ -128,6 +128,8 @@ craft clear <document-id>
 craft delete <document-id> --dry-run
 ```
 
+`update --mode replace` is a markdown replacement path: it deletes and recreates content blocks. Use it for structural rewrites, not routine text edits on styled documents. For existing styled blocks, use `craft blocks update BLOCK_ID --markdown ...` so omitted styling fields stay attached to the block. If new blocks are created, style only those changed/new blocks rather than rerunning a full document styling pass.
+
 ### Multi-Profile Management
 
 Store and switch between multiple Craft API connections:
@@ -138,6 +140,10 @@ craft profiles add-rest work --api-url https://connect.craft.do/links/WORK_LINK/
 craft profiles add-mcp work-mcp --mcp-url https://mcp.craft.do/links/WORK_LINK/mcp
 craft profiles list
 craft profiles use work
+
+# Equivalent config aliases are also available
+craft config add-rest work --api-url https://connect.craft.do/links/WORK_LINK/api/v1
+craft config add-mcp work-mcp --mcp-url https://mcp.craft.do/links/WORK_LINK/mcp
 
 # Legacy REST config commands remain supported
 # Add profiles
@@ -173,8 +179,12 @@ craft list --api-url https://connect.craft.do/.../api/v1 --api-key pdk_your_key
 Some Craft capabilities are exposed through Craft MCP before they are available in the direct REST workflow, including link resolution, theme/style exploration, richer collection view controls, and reversible block edits. Configure MCP per command with `--mcp-url` or through `CRAFT_MCP_URL`.
 
 ```bash
+# Save a reusable MCP profile
+craft profiles add-mcp work-mcp --mcp-url https://mcp.craft.do/links/YOUR_LINK/mcp
+
 # List available MCP tools
 craft mcp tools --mcp-url https://mcp.craft.do/links/YOUR_LINK/mcp
+craft mcp tools --profile work-mcp
 
 # Call a Craft MCP read command
 craft mcp call craft_read --command "connection info"
@@ -184,6 +194,20 @@ craft mcp call craft_write --arguments '{"command":"documents create --title Tes
 ```
 
 Use REST/API profiles for deterministic direct API calls. Use MCP when an operation needs MCP-only capabilities such as `documents resolve-link`, page themes/covers/backdrops, edit-review/revert metadata, or richer collection view controls.
+
+MCP profiles are separate profiles, not an `mcp_url` attribute on a REST profile. The canonical config shape is `"type": "mcp"` plus `"mcp_url"` in its own profile entry, created with `craft profiles add-mcp` or `craft config add-mcp`. A top-level `mcp_url` or an `mcp_url` added to a REST profile is ignored by MCP commands.
+
+If an agent is using REST and the requested feature is MCP-only, it should stop retrying REST, check for an existing MCP profile, ask the user for a Craft MCP URL if none exists, save it with `craft config add-mcp`, verify it with `craft profiles test`, then rerun the operation with that MCP profile. The CLI cannot generate a new Craft MCP link by itself; the user must provide or create the URL in Craft.
+
+For MCP style writes, verify with MCP instead of REST when the fields are MCP-only:
+
+```bash
+craft blocks update PAGE_ID --theme-id soil-and-clay --backend mcp --profile work-mcp --dry-run
+craft blocks update PAGE_ID --theme-id soil-and-clay --backend mcp --profile work-mcp --yes --save-revert revert.json --diff
+craft blocks revert --revert-info-file revert.json --profile work-mcp --dry-run
+```
+
+`--diff` returns the mutation result plus MCP edit-review metadata when available. `--save-revert` stores the undo payload needed by `craft blocks revert`.
 
 ### Local Craft App Commands (macOS)
 
@@ -384,10 +408,18 @@ You can edit this file directly or use `craft config` commands to manage it.
   "active_profile": "work",
   "profiles": {
     "work": {
+      "type": "rest",
       "url": "https://connect.craft.do/links/WORK_LINK/api/v1",
       "api_key": "pdk_your_api_key_here"
     },
+    "work-mcp": {
+      "type": "mcp",
+      "mcp_url": "https://mcp.craft.do/links/WORK_LINK/mcp",
+      "access_mode": "public",
+      "document_scope": "connection-defined"
+    },
     "personal": {
+      "type": "rest",
       "url": "https://connect.craft.do/links/PERSONAL_LINK/api/v1"
     }
   }
@@ -398,8 +430,12 @@ You can edit this file directly or use `craft config` commands to manage it.
 - `default_format`: Default output format (`json`, `table`, or `markdown`)
 - `active_profile`: Name of the currently active profile
 - `profiles`: Map of named profiles, each containing:
-  - `url`: Craft API URL from your workspace link
+  - `type`: `rest` or `mcp`; omitted legacy profiles are treated as `rest`
+  - `url`: Craft REST API URL from your workspace link
+  - `mcp_url`: Craft MCP URL; only read when `type` is `mcp`
   - `api_key`: (Optional) API key for authentication
+
+Use `craft profiles add-rest` / `craft profiles add-mcp` or `craft config add-rest` / `craft config add-mcp` instead of hand-editing this file. If you do hand-edit, remember that MCP must be its own profile with `"type": "mcp"`.
 
 ### Understanding Permissions
 

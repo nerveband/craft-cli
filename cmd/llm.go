@@ -86,7 +86,9 @@ Subcommands:
 				"Default output is JSON. Use --format compact (legacy JSON), table, or markdown for human output where supported.",
 				"craft delete is a soft-delete to trash (DELETE /documents).",
 				"craft clear deletes all content blocks in a document (cannot be undone without a backup).",
-				"craft update supports --mode append|replace and auto-chunks large markdown inserts.",
+				"craft update supports --mode append|replace for markdown content; replace clears/recreates blocks, changes block IDs, and does not preserve block-only styling/state. For text edits on styled docs, use craft blocks update BLOCK_ID --markdown ... and style only changed/new blocks.",
+				"Craft accepts #RRGGBB color input but may store adjusted palette/readability colors. Reapply original brand hexes, not returned adjusted colors.",
+				"Craft MCP requires a separate profile with type=mcp and mcp_url; create it with craft profiles add-mcp or craft config add-mcp.",
 				"Run 'craft llm styles' for complete styling/formatting reference with JSON examples.",
 			},
 		}
@@ -281,7 +283,9 @@ Example:
 
 ## Block Colors (color)
 
-Any text block accepts a color field with #RRGGBB hex:
+Text blocks accept a color field with #RRGGBB hex input. Craft may store an adjusted
+palette/readability color rather than the exact submitted hex, so keep original
+brand colors as source data and resend them when reapplying styles:
 
   #ef052a   Red
   #ff9200   Orange
