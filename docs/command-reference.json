@@ -1121,6 +1121,13 @@
               "description": "Item properties as JSON string"
             },
             {
+              "name": "--property",
+              "type": "stringArray",
+              "default": "[]",
+              "required": false,
+              "description": "MCP dynamic item property as Name=value or --Name=value (repeatable)"
+            },
+            {
               "name": "--stdin",
               "type": "bool",
               "required": false,
@@ -1166,6 +1173,13 @@
               "type": "string",
               "required": false,
               "description": "Collection name"
+            },
+            {
+              "name": "--property",
+              "type": "stringArray",
+              "default": "[]",
+              "required": false,
+              "description": "MCP dynamic property flag as Name=type or --Name=type (repeatable)"
             },
             {
               "name": "--stdin",
@@ -1290,6 +1304,33 @@
           ]
         },
         {
+          "name": "rename",
+          "description": "Rename a collection through Craft MCP",
+          "usage": "craft collections rename [collection-id] [flags]",
+          "flags": [
+            {
+              "name": "--name",
+              "type": "string",
+              "required": false,
+              "description": "New collection name"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "mcp"
+          ],
+          "required_capabilities": [
+            "mcp",
+            "write",
+            "collections.views"
+          ]
+        },
+        {
           "name": "schema",
           "description": "Get collection schema",
           "usage": "craft collections schema [collection-id] [flags]",
@@ -1384,6 +1425,13 @@
               "type": "string",
               "required": false,
               "description": "Item properties as JSON string (required)"
+            },
+            {
+              "name": "--property",
+              "type": "stringArray",
+              "default": "[]",
+              "required": false,
+              "description": "MCP dynamic item property as Name=value or --Name=value (repeatable)"
             },
             {
               "name": "--stdin",
@@ -2150,6 +2198,52 @@
       ]
     },
     {
+      "name": "images",
+      "description": "View image metadata through Craft MCP",
+      "usage": "craft images",
+      "subcommands": [
+        {
+          "name": "view",
+          "description": "View an image URL through Craft MCP",
+          "usage": "craft images view [url] [flags]",
+          "flags": [
+            {
+              "name": "--url",
+              "type": "string",
+              "required": false,
+              "description": "Image URL"
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "mcp"
+          ],
+          "required_capabilities": [
+            "mcp",
+            "images.view"
+          ]
+        }
+      ],
+      "safety": {
+        "readonly": false,
+        "destructive": false,
+        "idempotent": false,
+        "supports_dry_run": true
+      },
+      "backends": [
+        "mcp"
+      ],
+      "required_capabilities": [
+        "mcp",
+        "images.view"
+      ]
+    },
+    {
       "name": "info",
       "description": "Show API information and scope",
       "usage": "craft info [flags]",
@@ -2580,6 +2674,23 @@
               "description": "Shortcut for arguments.command"
             }
           ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "mcp"
+          ],
+          "required_capabilities": [
+            "mcp"
+          ]
+        },
+        {
+          "name": "edit-review",
+          "description": "Read Craft MCP edit-review resource metadata",
+          "usage": "craft mcp edit-review",
           "safety": {
             "readonly": false,
             "destructive": false,
@@ -3547,6 +3658,44 @@
             "write",
             "delete",
             "whiteboards"
+          ]
+        },
+        {
+          "name": "elements",
+          "description": "Read whiteboard elements through Craft MCP",
+          "usage": "craft whiteboards elements",
+          "subcommands": [
+            {
+              "name": "get",
+              "description": "Get whiteboard elements through Craft MCP",
+              "usage": "craft whiteboards elements get [whiteboard-id]",
+              "safety": {
+                "readonly": true,
+                "destructive": false,
+                "idempotent": true,
+                "supports_dry_run": false
+              },
+              "backends": [
+                "mcp"
+              ],
+              "required_capabilities": [
+                "mcp",
+                "whiteboards.read"
+              ]
+            }
+          ],
+          "safety": {
+            "readonly": false,
+            "destructive": false,
+            "idempotent": false,
+            "supports_dry_run": true
+          },
+          "backends": [
+            "mcp"
+          ],
+          "required_capabilities": [
+            "mcp",
+            "whiteboards.read"
           ]
         },
         {

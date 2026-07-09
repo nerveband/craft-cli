@@ -40,6 +40,7 @@ craft mcp initialize --mcp-url https://mcp.craft.do/links/YOUR_LINK/mcp
 craft mcp tools --mcp-url https://mcp.craft.do/links/YOUR_LINK/mcp
 craft mcp resources --mcp-url https://mcp.craft.do/links/YOUR_LINK/mcp
 craft mcp read-resource ui://craft/edit-review --metadata-only
+craft mcp edit-review
 craft mcp call craft_read --command "connection info"
 craft mcp call craft_write --arguments '{"command":"documents create --title Test"}'
 craft batch --command "connection info" --dry-run
@@ -77,4 +78,9 @@ craft collections views create COLLECTION_ID --name Board --dry-run
 craft collections views update COLLECTION_ID --view VIEW_ID --name Backlog --dry-run
 craft collections views delete COLLECTION_ID --view VIEW_ID --dry-run
 craft collections active-view set COLLECTION_ID --view VIEW_ID --dry-run
+craft collections rename COLLECTION_ID --name "New Name" --dry-run
+craft collections create --backend mcp --name Tasks --property Status=select --dry-run
+craft collections add COLLECTION_ID --backend mcp --property Status=Todo --dry-run
+craft whiteboards elements get WHITEBOARD_ID
+craft images view "https://example.com/image.png"
 ```

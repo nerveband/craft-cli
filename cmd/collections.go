@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/ashrafali/craft-cli/internal/models"
@@ -39,6 +40,7 @@ var (
 	collectionViewID       string
 	collectionViewName     string
 	collectionViewType     string
+	collectionProperties   []string
 )
 
 var collectionsListCmd = &cobra.Command{
@@ -104,6 +106,9 @@ needed by the current MCP server.`,
 			if collectionName != "" {
 				command += " --name " + quoteMCPArg(collectionName)
 			}
+			for _, property := range collectionProperties {
+				command += " " + propertyFlagToMCP(property)
+			}
 			if collectionJSON != "" {
 				command += " --json " + quoteMCPArg(collectionJSON)
 			}
@@ -132,6 +137,19 @@ needed by the current MCP server.`,
 			return err
 		}
 		return outputJSON(result)
+	},
+}
+
+var collectionsRenameCmd = &cobra.Command{
+	Use:   "rename [collection-id]",
+	Short: "Rename a collection through Craft MCP",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if collectionName == "" {
+			return fmt.Errorf("--name is required")
+		}
+		command := "collections rename --collection " + quoteMCPArg(args[0]) + " --name " + quoteMCPArg(collectionName)
+		return runMCPCollectionCommand("collections.rename", command, "craft_write")
 	},
 }
 
@@ -221,6 +239,19 @@ Examples:
 			}
 			return outputJSON(result)
 		}
+		if backendName == "mcp" {
+			if collectionItemTitle == "" && len(collectionProperties) == 0 {
+				return fmt.Errorf("--title or --property is required")
+			}
+			command := "collections items-add --collection " + quoteMCPArg(args[0])
+			if collectionItemTitle != "" {
+				command += " --title " + quoteMCPArg(collectionItemTitle)
+			}
+			for _, property := range collectionProperties {
+				command += " " + propertyFlagToMCP(property)
+			}
+			return runMCPCollectionCommand("collections.items-add", command, "craft_write")
+		}
 
 		if isDryRun() {
 			if collectionItemTitle == "" {
@@ -302,6 +333,22 @@ Examples:
 				return err
 			}
 			return client.UpdateCollectionItemsRaw(args[0], payload)
+		}
+		if backendName == "mcp" {
+			if collectionItemID == "" {
+				return fmt.Errorf("--item is required")
+			}
+			if len(collectionProperties) == 0 && collectionItemProps == "" {
+				return fmt.Errorf("--property or --properties is required")
+			}
+			command := "collections items-update --collection " + quoteMCPArg(args[0]) + " --id " + quoteMCPArg(collectionItemID)
+			if collectionItemProps != "" {
+				command += " --properties " + quoteMCPArg(collectionItemProps)
+			}
+			for _, property := range collectionProperties {
+				command += " " + propertyFlagToMCP(property)
+			}
+			return runMCPCollectionCommand("collections.items-update", command, "craft_write")
 		}
 
 		if isDryRun() {
@@ -514,8 +561,12 @@ func init() {
 
 	collectionsCmd.AddCommand(collectionsCreateCmd)
 	collectionsCreateCmd.Flags().StringVar(&collectionName, "name", "", "Collection name")
+	collectionsCreateCmd.Flags().StringArrayVar(&collectionProperties, "property", nil, "MCP dynamic property flag as Name=type or --Name=type (repeatable)")
 	collectionsCreateCmd.Flags().StringVar(&collectionJSON, "json", "", "Raw REST create collection payload JSON")
 	collectionsCreateCmd.Flags().BoolVar(&collectionStdin, "stdin", false, "Read raw REST create collection payload from stdin")
+
+	collectionsCmd.AddCommand(collectionsRenameCmd)
+	collectionsRenameCmd.Flags().StringVar(&collectionName, "name", "", "New collection name")
 
 	collectionsCmd.AddCommand(collectionsItemsCmd)
 	collectionsItemsCmd.Flags().IntVar(&collectionItemDepth, "depth", -1, "Max depth of nested content (-1 for no limit)")
@@ -523,6 +574,7 @@ func init() {
 	collectionsCmd.AddCommand(collectionsAddCmd)
 	collectionsAddCmd.Flags().StringVar(&collectionItemTitle, "title", "", "Item title (required)")
 	collectionsAddCmd.Flags().StringVar(&collectionItemProps, "properties", "", "Item properties as JSON string")
+	collectionsAddCmd.Flags().StringArrayVar(&collectionProperties, "property", nil, "MCP dynamic item property as Name=value or --Name=value (repeatable)")
 	collectionsAddCmd.Flags().BoolVar(&collectionAllowNew, "allow-new-options", false, "Allow creating new options for select properties")
 	collectionsAddCmd.Flags().StringVar(&collectionJSON, "json", "", "Raw REST add collection items payload JSON")
 	collectionsAddCmd.Flags().BoolVar(&collectionStdin, "stdin", false, "Read raw REST add collection items payload from stdin")
@@ -530,6 +582,7 @@ func init() {
 	collectionsCmd.AddCommand(collectionsUpdateCmd)
 	collectionsUpdateCmd.Flags().StringVar(&collectionItemID, "item", "", "Item ID to update (required)")
 	collectionsUpdateCmd.Flags().StringVar(&collectionItemProps, "properties", "", "Item properties as JSON string (required)")
+	collectionsUpdateCmd.Flags().StringArrayVar(&collectionProperties, "property", nil, "MCP dynamic item property as Name=value or --Name=value (repeatable)")
 	collectionsUpdateCmd.Flags().BoolVar(&collectionAllowNew, "allow-new-options", false, "Allow creating new options for select properties")
 	collectionsUpdateCmd.Flags().StringVar(&collectionJSON, "json", "", "Raw REST update collection items payload JSON")
 	collectionsUpdateCmd.Flags().BoolVar(&collectionStdin, "stdin", false, "Read raw REST update collection items payload from stdin")
@@ -558,6 +611,30 @@ func init() {
 	collectionsCmd.AddCommand(collectionsActiveViewCmd)
 	collectionsActiveViewCmd.AddCommand(collectionsActiveViewSetCmd)
 	collectionsActiveViewSetCmd.Flags().StringVar(&collectionViewID, "view", "", "View ID")
+}
+
+func propertyFlagToMCP(property string) string {
+	property = strings.TrimSpace(property)
+	property = strings.TrimPrefix(property, "--")
+	if property == "" {
+		return ""
+	}
+	name, value, ok := strings.Cut(property, "=")
+	if !ok {
+		return "--" + property
+	}
+	return "--" + quoteMCPDynamicFlagName(name) + " " + quoteMCPArg(value)
+}
+
+func quoteMCPDynamicFlagName(name string) string {
+	name = strings.TrimSpace(strings.TrimPrefix(name, "--"))
+	if name == "" {
+		return name
+	}
+	if strings.ContainsAny(name, " \t\n\r\"'") {
+		return quoteMCPArg(name)
+	}
+	return name
 }
 
 func runMCPCollectionCommand(operation, command, tool string) error {

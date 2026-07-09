@@ -142,8 +142,38 @@ var mcpReadResourceCmd = &cobra.Command{
 		if err := json.Unmarshal(result, &data); err != nil {
 			return err
 		}
-		delete(data, "contents")
+		if contents, ok := data["contents"].([]interface{}); ok {
+			summaries := make([]map[string]interface{}, 0, len(contents))
+			for _, item := range contents {
+				entry, ok := item.(map[string]interface{})
+				if !ok {
+					continue
+				}
+				summary := map[string]interface{}{}
+				for _, key := range []string{"uri", "mimeType", "_meta"} {
+					if value, ok := entry[key]; ok {
+						summary[key] = value
+					}
+				}
+				if text, ok := entry["text"].(string); ok {
+					summary["text_bytes"] = len(text)
+				}
+				summaries = append(summaries, summary)
+			}
+			data["contents"] = summaries
+		}
 		return outputJSON(data)
+	},
+}
+
+var mcpEditReviewCmd = &cobra.Command{
+	Use:   "edit-review",
+	Short: "Read Craft MCP edit-review resource metadata",
+	Long:  "Read the Craft MCP edit-review UI resource metadata without dumping large resource contents.",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		mcpResourceURI = "ui://craft/edit-review"
+		mcpMetadataOnly = true
+		return mcpReadResourceCmd.RunE(cmd, []string{mcpResourceURI})
 	},
 }
 
@@ -185,6 +215,7 @@ func init() {
 	mcpCmd.AddCommand(mcpToolsCmd)
 	mcpCmd.AddCommand(mcpResourcesCmd)
 	mcpCmd.AddCommand(mcpReadResourceCmd)
+	mcpCmd.AddCommand(mcpEditReviewCmd)
 	mcpCmd.AddCommand(mcpCallCmd)
 	mcpCmd.AddCommand(mcpBatchCmd)
 

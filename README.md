@@ -240,10 +240,12 @@ craft audit agent-dx --format json
 
 # MCP inspection and batch execution
 craft mcp tools
-craft mcp read-resource ui://craft/edit-review --metadata-only
+craft mcp edit-review
 craft batch --command "connection info" --dry-run
 
 # MCP-ahead collection view controls
+craft collections rename <collection-id> --name "New Name" --dry-run
+craft collections create --backend mcp --name Tasks --property Status=select --dry-run
 craft collections views list <collection-id>
 craft collections active-view set <collection-id> --view <view-id> --dry-run
 
@@ -251,6 +253,8 @@ craft collections active-view set <collection-id> --view <view-id> --dry-run
 craft blocks update <page-id> --theme-id fire-horse --dry-run
 craft blocks add <page-id> --markdown "Test" --backend mcp --save-revert revert.json --dry-run
 craft list --backend mcp --cursor <cursor> --limit 5
+craft whiteboards elements get <whiteboard-id>
+craft images view https://example.com/image.jpg
 
 # Read content from stdin
 cat document.md | craft create --title "Imported" --stdin

@@ -25,6 +25,32 @@ Examples:
   craft whiteboards delete WHITEBOARD_ID --ids "id1,id2" # Delete elements`,
 }
 
+var whiteboardElementsCmd = &cobra.Command{
+	Use:   "elements",
+	Short: "Read whiteboard elements through Craft MCP",
+}
+
+var whiteboardElementsGetCmd = &cobra.Command{
+	Use:   "get [whiteboard-id]",
+	Short: "Get whiteboard elements through Craft MCP",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(args[0], "whiteboard-id"); err != nil {
+			return err
+		}
+		command := "whiteboards elements get --whiteboard " + quoteMCPArg(args[0])
+		if isDryRun() {
+			return dryRunOutput("whiteboards.elements.get", map[string]interface{}{
+				"backend":      "mcp",
+				"tool":         "craft_read",
+				"command":      command,
+				"capabilities": []string{"mcp", "whiteboards.read"},
+			})
+		}
+		return runMCPReadCommand(command)
+	},
+}
+
 var (
 	whiteboardCreateJSON  string
 	whiteboardCreateStdin bool
@@ -295,6 +321,8 @@ func init() {
 
 	whiteboardsCmd.AddCommand(whiteboardCreateCmd)
 	whiteboardsCmd.AddCommand(whiteboardGetCmd)
+	whiteboardsCmd.AddCommand(whiteboardElementsCmd)
+	whiteboardElementsCmd.AddCommand(whiteboardElementsGetCmd)
 	whiteboardsCmd.AddCommand(whiteboardAddCmd)
 	whiteboardsCmd.AddCommand(whiteboardUpdateCmd)
 	whiteboardsCmd.AddCommand(whiteboardDeleteCmd)

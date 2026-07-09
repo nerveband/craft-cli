@@ -27,6 +27,7 @@ craft audit agent-dx   # Agent-native CLI scorecard
 - Use `craft batch --dry-run` to inspect multi-command MCP execution before running writes.
 - Use `--fields` with `list` and `search` to keep JSON payloads small, for example `craft list --fields id,title --limit 5`.
 - Use MCP for page style flags and reversible block edits; explicit `--backend rest` with MCP-only style flags returns `CAPABILITY_UNAVAILABLE`.
+- Use native wrappers instead of generic MCP calls for edit review, image view, collection rename/dynamic properties, and whiteboard element reads.
 
 ## Reference Payloads
 
