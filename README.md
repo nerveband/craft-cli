@@ -14,7 +14,7 @@ A powerful command-line interface for interacting with Craft Documents. Built fo
 - **LLM/Script Friendly** - Quiet mode, JSON errors, field extraction, stdin support
 - **Local Craft Integration** - Open documents, create new docs, search directly in Craft app (macOS)
 - **Auto-Chunking** - Automatically splits large documents to avoid API limits
-- **Section Replacement** - Update specific sections by heading name
+- **Section Replacement** - Update specific sections by heading name, including Craft-decorated headings
 - **Self-Updating** - Built-in upgrade command to stay up to date
 - **Interactive Setup** - Guided first-time configuration wizard
 - **Shell Completions** - Tab completion for Bash, Zsh, Fish, and PowerShell
@@ -129,6 +129,8 @@ craft delete <document-id> --dry-run
 ```
 
 `update --mode replace` is a markdown replacement path: it deletes and recreates content blocks. Use it for structural rewrites, not routine text edits on styled documents. For existing styled blocks, use `craft blocks update BLOCK_ID --markdown ...` so omitted styling fields stay attached to the block. If new blocks are created, style only those changed/new blocks rather than rerunning a full document styling pass.
+
+Section replacement matches headings even when Craft markdown wraps them in lightweight styling tags such as `<callout>## Pricing</callout>`. Replacement content can also start with a decorated heading without duplicating the original heading. Use `--dry-run` before real section replacements when editing styled documents.
 
 ### Multi-Profile Management
 
@@ -637,6 +639,10 @@ go test ./... -cover
 
 # Agent readiness
 craft audit agent-dx --format json
+
+# Static analysis and release packaging
+go vet ./...
+goreleaser build --snapshot --clean
 
 # Public live REST/MCP checks
 CRAFT_LIVE_TESTS=1 \

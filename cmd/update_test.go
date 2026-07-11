@@ -83,6 +83,47 @@ func TestBuildSectionDeltaPlan(t *testing.T) {
 	}
 }
 
+func TestBuildSectionDeltaPlanDecoratedHeading(t *testing.T) {
+	blocks := []models.Block{
+		{ID: "pricing", Type: "text", Markdown: "<callout>## Your Overall Investment</callout>"},
+		{ID: "body", Type: "text", Markdown: "Old pricing"},
+		{ID: "next", Type: "text", Markdown: "## Next"},
+	}
+
+	plan, err := buildSectionDeltaPlan(blocks, "Your Overall Investment", "New pricing")
+	if err != nil {
+		t.Fatalf("buildSectionDeltaPlan() error = %v", err)
+	}
+	if plan.Replacement != "<callout>## Your Overall Investment</callout>\n\nNew pricing" {
+		t.Fatalf("Replacement = %q", plan.Replacement)
+	}
+	if plan.InsertBeforeID != "next" {
+		t.Fatalf("InsertBeforeID = %q, want next", plan.InsertBeforeID)
+	}
+	wantIDs := []string{"pricing", "body"}
+	if len(plan.DeleteIDs) != len(wantIDs) {
+		t.Fatalf("DeleteIDs = %#v, want %#v", plan.DeleteIDs, wantIDs)
+	}
+	for i, want := range wantIDs {
+		if plan.DeleteIDs[i] != want {
+			t.Fatalf("DeleteIDs[%d] = %q, want %q", i, plan.DeleteIDs[i], want)
+		}
+	}
+}
+
+func TestBlockHeadingDecoratedHeading(t *testing.T) {
+	level, text, ok := blockHeading(`<callout>## Your Overall Investment</callout>`)
+	if !ok {
+		t.Fatal("blockHeading() did not detect decorated heading")
+	}
+	if level != 2 {
+		t.Fatalf("level = %d, want 2", level)
+	}
+	if text != "Your Overall Investment" {
+		t.Fatalf("text = %q, want Your Overall Investment", text)
+	}
+}
+
 func TestBuildSectionDeltaPlanReplacementWithHeading(t *testing.T) {
 	blocks := []models.Block{
 		{ID: "intro", Type: "text", Markdown: "## Intro"},
