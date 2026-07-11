@@ -4,10 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/ashrafali/craft-cli/internal/models"
 )
+
+var calloutWrapperRe = regexp.MustCompile(`(?i)^<callout(?:\s+[^>]*)?>[\s\S]*</callout>$`)
 
 // ANSI color codes for rich output
 const (
@@ -17,17 +20,17 @@ const (
 	colorItalic    = "\033[3m"
 	colorUnderline = "\033[4m"
 
-	colorRed       = "\033[31m"
-	colorGreen     = "\033[32m"
-	colorYellow    = "\033[33m"
-	colorBlue      = "\033[34m"
-	colorMagenta   = "\033[35m"
-	colorCyan      = "\033[36m"
-	colorWhite     = "\033[37m"
+	colorRed     = "\033[31m"
+	colorGreen   = "\033[32m"
+	colorYellow  = "\033[33m"
+	colorBlue    = "\033[34m"
+	colorMagenta = "\033[35m"
+	colorCyan    = "\033[36m"
+	colorWhite   = "\033[37m"
 
-	colorBgBlue    = "\033[44m"
-	colorBgYellow  = "\033[43m"
-	colorBgCyan    = "\033[46m"
+	colorBgBlue   = "\033[44m"
+	colorBgYellow = "\033[43m"
+	colorBgCyan   = "\033[46m"
 )
 
 // Unicode box drawing characters
@@ -46,12 +49,12 @@ const (
 	cardHorizontal  = "─"
 	cardVertical    = "│"
 
-	taskTodo      = "☐"
-	taskDone      = "✅"
-	taskCanceled  = "⊘"
-	toggleClosed  = "▶"
-	toggleOpen    = "▼"
-	bullet        = "•"
+	taskTodo     = "☐"
+	taskDone     = "✅"
+	taskCanceled = "⊘"
+	toggleClosed = "▶"
+	toggleOpen   = "▼"
+	bullet       = "•"
 )
 
 // outputBlocksStructured outputs the full block tree as JSON (for LLMs)
@@ -113,11 +116,11 @@ func renderBlockCraft(sb *strings.Builder, block *models.Block, depth int) {
 		md := block.Markdown
 		// Wrap in decorations if present
 		if sliceContains(block.Decorations, "callout") && sliceContains(block.Decorations, "quote") {
-			md = fmt.Sprintf("<callout>%s</callout>", md)
+			md = wrapCalloutMarkdown(md)
 		} else if sliceContains(block.Decorations, "callout") {
-			md = fmt.Sprintf("<callout>%s</callout>", md)
+			md = wrapCalloutMarkdown(md)
 		} else if sliceContains(block.Decorations, "quote") {
-			md = fmt.Sprintf("> %s", md)
+			md = wrapQuoteMarkdown(md)
 		}
 
 		// Add styling attributes as comments if significant
@@ -172,6 +175,30 @@ func renderBlockCraft(sb *strings.Builder, block *models.Block, depth int) {
 		for _, child := range block.Content {
 			renderBlockCraft(sb, &child, depth)
 		}
+	}
+}
+
+func wrapCalloutMarkdown(markdown string) string {
+	if hasCraftWrapper(markdown, "callout") {
+		return markdown
+	}
+	return fmt.Sprintf("<callout>%s</callout>", markdown)
+}
+
+func wrapQuoteMarkdown(markdown string) string {
+	if strings.HasPrefix(strings.TrimSpace(markdown), ">") {
+		return markdown
+	}
+	return fmt.Sprintf("> %s", markdown)
+}
+
+func hasCraftWrapper(markdown, tag string) bool {
+	trimmed := strings.TrimSpace(markdown)
+	switch tag {
+	case "callout":
+		return calloutWrapperRe.MatchString(trimmed)
+	default:
+		return false
 	}
 }
 

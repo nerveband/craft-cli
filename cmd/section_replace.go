@@ -7,6 +7,7 @@ import (
 )
 
 var headingRe = regexp.MustCompile(`^(#{1,6})\s+(.+?)\s*$`)
+var craftWrapperTagRe = regexp.MustCompile(`(?i)^</?(callout|caption|highlight)(?:\s+[^>]*)?>|</?(callout|caption|highlight)>$`)
 
 // replaceSectionByHeading replaces a markdown section identified by a heading.
 // If replacement doesn't start with a heading, it will be wrapped with the original heading line.
@@ -34,7 +35,7 @@ func replaceSectionByHeading(markdown, heading, replacement string) (string, err
 		if inFence {
 			continue
 		}
-		m := headingRe.FindStringSubmatch(line)
+		m := headingRe.FindStringSubmatch(stripCraftHeadingMarkup(line))
 		if m == nil {
 			continue
 		}
@@ -61,7 +62,7 @@ func replaceSectionByHeading(markdown, heading, replacement string) (string, err
 		if inFence {
 			continue
 		}
-		m := headingRe.FindStringSubmatch(lines[i])
+		m := headingRe.FindStringSubmatch(stripCraftHeadingMarkup(lines[i]))
 		if m == nil {
 			continue
 		}
@@ -78,7 +79,7 @@ func replaceSectionByHeading(markdown, heading, replacement string) (string, err
 
 	// If replacement doesn't start with a heading, keep original heading line.
 	firstLine := strings.SplitN(repl, "\n", 2)[0]
-	if headingRe.FindStringSubmatch(strings.TrimSpace(firstLine)) == nil {
+	if headingRe.FindStringSubmatch(stripCraftHeadingMarkup(firstLine)) == nil {
 		repl = originalHeadingLine + "\n\n" + repl
 	}
 
@@ -91,8 +92,19 @@ func replaceSectionByHeading(markdown, heading, replacement string) (string, err
 }
 
 func normalizeHeadingText(s string) string {
-	s = strings.TrimSpace(s)
+	s = stripCraftHeadingMarkup(s)
 	s = strings.ToLower(s)
 	s = strings.Join(strings.Fields(s), " ")
 	return s
+}
+
+func stripCraftHeadingMarkup(s string) string {
+	s = strings.TrimSpace(s)
+	for {
+		next := strings.TrimSpace(craftWrapperTagRe.ReplaceAllString(s, ""))
+		if next == s {
+			return next
+		}
+		s = next
+	}
 }

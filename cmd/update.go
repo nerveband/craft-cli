@@ -310,6 +310,7 @@ func buildSectionDeltaPlan(blocks []models.Block, heading, replacement string) (
 
 func blockHeading(markdown string) (int, string, bool) {
 	line := strings.TrimSpace(strings.SplitN(markdown, "\n", 2)[0])
+	line = stripCraftHeadingMarkup(line)
 	m := headingRe.FindStringSubmatch(line)
 	if m == nil {
 		return 0, "", false

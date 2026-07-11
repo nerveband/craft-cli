@@ -90,7 +90,7 @@ Block-level JSON fields such as `color`, `font`, `textAlignment`, card layout, t
 
 Do not use whole-doc replace on styled documents just to make text edits. Prefer `craft blocks update BLOCK_ID --markdown ...` or `blocks_update` for existing blocks; omitted styling fields are preserved on that block. If a content edit creates new blocks, style only the changed/new blocks rather than rerunning a full styling pass.
 
-`craft update --mode replace --section "Heading"` uses a block-boundary delta replacement: only that section's top-level block range is deleted/reinserted, preserving IDs and styling outside the section. Styling inside the replaced section can still be lost because those section blocks are recreated.
+`craft update --mode replace --section "Heading"` uses a block-boundary delta replacement: only that section's top-level block range is deleted/reinserted, preserving IDs and styling outside the section. Styling inside the replaced section can still be lost because those section blocks are recreated. Section matching recognizes Craft-decorated headings such as `<callout>## Heading</callout>`, and replacement content may start with a decorated heading without duplicating the original heading.
 
 Similar destructive restyling traps: `craft clear`, delete/re-add, whole-doc markdown replacement, and broad MCP writes can invalidate saved block IDs, comments, revert payloads, and styling assumptions. Markdown round trips preserve markdown-native structures such as headings, lists, quotes, callouts, dividers, and code fences, but not all block JSON fields or MCP page/card styling. Page-level styling may survive because it is attached to the root page block, but content-block styling generally does not.
 
