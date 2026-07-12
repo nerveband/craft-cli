@@ -112,6 +112,9 @@ craft create --title "From File" --file content.md
 # Create from stdin
 echo "# My Content" | craft create --title "From Stdin" --stdin
 
+# Add blocks from JSON without shell quoting issues
+craft blocks add <page-id> --json-file blocks.json
+
 # Update a document
 craft update <document-id> --title "Updated Title"           # Rename (updates root page block)
 craft update <document-id> --file content.md                  # Append content
@@ -512,6 +515,7 @@ If you get `PERMISSION_DENIED` errors:
 - `IMAGE_ASSET_UNAVAILABLE` - MCP write could not resolve a markdown image URL; validate it with `craft images view URL`, or upload local bytes with `craft upload FILE --page PAGE_ID`
 - `PAYLOAD_TOO_LARGE` - Request too large (use `--chunk-bytes` to tune)
 - `RATE_LIMIT` - Too many requests
+- `API_TIMEOUT` - Craft did not respond before the client timeout; for writes, verify before retrying because the change may have landed
 - `API_ERROR` - Server-side error
 - `CONFIG_ERROR` - Configuration issue
 

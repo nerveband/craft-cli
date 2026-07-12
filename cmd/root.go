@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/ashrafali/craft-cli/internal/api"
 	"github.com/ashrafali/craft-cli/internal/config"
@@ -29,7 +30,7 @@ var (
 	transformExpr string
 	dataSource    string
 	cfgManager    *config.Manager
-	version       = "1.11.3"
+	version       = "1.11.4"
 
 	// Global flags for LLM/scripting friendliness
 	quietMode      bool
@@ -261,7 +262,7 @@ func handleError(err error) {
 	switch categorizeError(err) {
 	case "CONFIG_ERROR":
 		os.Exit(ExitConfigError)
-	case "API_ERROR":
+	case "API_ERROR", "API_TIMEOUT":
 		os.Exit(ExitAPIError)
 	default:
 		os.Exit(ExitUserError)
@@ -293,7 +294,7 @@ func categorizeError(err error) string {
 		}
 	}
 
-	errStr := err.Error()
+	errStr := strings.ToLower(err.Error())
 	switch {
 	case contains(errStr, "no active profile"), contains(errStr, "config"):
 		return "CONFIG_ERROR"
@@ -305,6 +306,8 @@ func categorizeError(err error) string {
 		return "NOT_FOUND"
 	case contains(errStr, "rate limit"):
 		return "RATE_LIMIT"
+	case contains(errStr, "context deadline exceeded"), contains(errStr, "client.timeout"), contains(errStr, "timeout exceeded"), contains(errStr, "i/o timeout"):
+		return "API_TIMEOUT"
 	case contains(errStr, "request entity too large"), contains(errStr, "entity too large"), contains(errStr, "payload too large"), contains(errStr, "413"):
 		return "PAYLOAD_TOO_LARGE"
 	case contains(errStr, "server"), contains(errStr, "500"):
@@ -330,6 +333,8 @@ func errorHint(code string) string {
 		return "Wait and retry. The API limits request frequency. (retryable)"
 	case "API_ERROR":
 		return "Server error. Retry in a few seconds. If persistent, check Craft status. (retryable)"
+	case "API_TIMEOUT":
+		return "Network timeout while waiting for Craft. For writes, the server may still have applied the change; verify with repeated reads or search before retrying to avoid duplicates. For reads, wait and retry. (retryable)"
 	case "CAPABILITY_UNAVAILABLE":
 		return "This operation requires MCP-only capabilities. Ask the user for a Craft MCP URL if none is configured, then run 'craft config add-mcp <name> --mcp-url URL', verify with 'craft profiles test <name>', and retry with --profile <name> or --backend mcp. (not retryable)"
 	case "BACKEND_REQUIRED":
