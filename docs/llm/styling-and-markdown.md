@@ -947,6 +947,8 @@ For square card: `<page textStyle="card" cardLayout="square">`
 
 Image blocks reference a URL. They can be uploaded images (hosted by Craft) or external URLs.
 
+Craft `r.craft.do` short links can expire or be auth-gated even when the image still renders in the Craft app. Before inserting a markdown image through MCP, validate the URL with `craft images view URL`. If the URL cannot resolve, export the image to a local file and use `craft upload FILE --page PAGE_ID` or `craft upload FILE --sibling BLOCK_ID --position after` so Craft receives the binary asset.
+
 ### JSON Example
 
 ```json

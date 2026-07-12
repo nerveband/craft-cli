@@ -507,6 +507,7 @@ If you get `PERMISSION_DENIED` errors:
 - `AUTH_ERROR` - Invalid or missing API key
 - `PERMISSION_DENIED` - API key lacks required permissions (read-only vs read-write)
 - `NOT_FOUND` - Resource not found
+- `IMAGE_ASSET_UNAVAILABLE` - MCP write could not resolve a markdown image URL; validate it with `craft images view URL`, or upload local bytes with `craft upload FILE --page PAGE_ID`
 - `PAYLOAD_TOO_LARGE` - Request too large (use `--chunk-bytes` to tune)
 - `RATE_LIMIT` - Too many requests
 - `API_ERROR` - Server-side error

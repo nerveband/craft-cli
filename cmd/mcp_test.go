@@ -114,3 +114,42 @@ func TestPropertyFlagToMCP(t *testing.T) {
 		t.Fatalf("propertyFlagToMCP() = %q, want %q", got, want)
 	}
 }
+
+func TestExtractMarkdownImageURLs(t *testing.T) {
+	command := `blocks add --page "page1" --markdown "Intro ![Logo](https://r.craft.do/JZV3hKXgrU-zmCN9cRVnn) and ![Public](https://example.com/a.png "caption")"`
+	urls := extractMarkdownImageURLs(command)
+	if len(urls) != 2 {
+		t.Fatalf("len(urls) = %d, want 2: %#v", len(urls), urls)
+	}
+	if urls[0] != "https://r.craft.do/JZV3hKXgrU-zmCN9cRVnn" {
+		t.Fatalf("urls[0] = %q", urls[0])
+	}
+	if urls[1] != "https://example.com/a.png" {
+		t.Fatalf("urls[1] = %q", urls[1])
+	}
+}
+
+func TestEnhanceMCPWriteErrorForMarkdownImageNotFound(t *testing.T) {
+	err := enhanceMCPWriteError(
+		`blocks add --page "page1" --markdown "![Logo](https://r.craft.do/dead)"`,
+		newCLIError("NOT_FOUND", "Document not found"),
+	)
+	coded, ok := err.(*cliCodeError)
+	if !ok {
+		t.Fatalf("error type = %T, want *cliCodeError", err)
+	}
+	if coded.Code != "IMAGE_ASSET_UNAVAILABLE" {
+		t.Fatalf("code = %q, want IMAGE_ASSET_UNAVAILABLE", coded.Code)
+	}
+	if !contains(coded.Message, "https://r.craft.do/dead") {
+		t.Fatalf("message does not include image URL: %q", coded.Message)
+	}
+}
+
+func TestEnhanceMCPWriteErrorLeavesPlainNotFoundAlone(t *testing.T) {
+	original := newCLIError("NOT_FOUND", "Document not found")
+	err := enhanceMCPWriteError(`blocks add --page "missing" --markdown "Plain text"`, original)
+	if err != original {
+		t.Fatalf("expected original error, got %#v", err)
+	}
+}
