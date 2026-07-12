@@ -102,8 +102,9 @@ var (
 	blockMetadata   bool
 
 	// JSON mode flags
-	blockJSON  string
-	blockStdin bool
+	blockJSON     string
+	blockJSONFile string
+	blockStdin    bool
 
 	// Styling flags (shared between add and update)
 	blockType              string
@@ -159,7 +160,8 @@ var blocksAddCmd = &cobra.Command{
 Three input modes:
   1. Flags:  --markdown "text" with optional styling flags
   2. JSON:   --json '[{"type":"text","markdown":"..."}]'
-  3. Stdin:  echo '[...]' | craft blocks add PAGE_ID --stdin
+  3. File/stdin: craft blocks add PAGE_ID --json-file blocks.json
+                 echo '[...]' | craft blocks add PAGE_ID --stdin
 
 Positions:
   start  - Add at the beginning of the page
@@ -181,7 +183,9 @@ Styling Examples:
 
 JSON Examples:
   craft blocks add PAGE_ID --json '[{"type":"text","textStyle":"h1","markdown":"# Heading"}]'
+  craft blocks add PAGE_ID --json '{"markdown":"Text block; type defaults to text"}'
   craft blocks add PAGE_ID --json '{"type":"line","lineStyle":"strong"}'
+  craft blocks add PAGE_ID --json-file blocks.json
   echo '[{"type":"text","markdown":"piped"}]' | craft blocks add PAGE_ID --stdin`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -189,16 +193,12 @@ JSON Examples:
 		var err error
 
 		switch {
-		case blockStdin:
-			blocks, err = parseBlocksFromStdin()
+		case blockStdin || blockJSONFile != "" || blockJSON != "":
+			blocks, err = readBlocksInput(blockJSON, blockJSONFile, blockStdin)
 			if err != nil {
 				return err
 			}
-		case blockJSON != "":
-			blocks, err = parseBlocksJSON(blockJSON)
-			if err != nil {
-				return err
-			}
+			normalizeAddBlocks(blocks)
 		default:
 			block := buildBlockFromFlags(cmd)
 			if len(block) == 0 {
@@ -228,6 +228,14 @@ JSON Examples:
 		}
 		if useMCP {
 			return runMCPBlocksMutation(cmd, "add", blocks, position)
+		}
+		if isDryRun() {
+			return dryRunOutput("add blocks", map[string]interface{}{
+				"blocks":   blocks,
+				"position": position,
+				"count":    len(blocks),
+				"backend":  "rest",
+			})
 		}
 
 		client, err := getAPIClient()
@@ -266,7 +274,8 @@ var blocksUpdateCmd = &cobra.Command{
 Three input modes:
   1. Flags:  BLOCK_ID --markdown "text" with optional styling flags
   2. JSON:   --json '[{"id":"ID","color":"#ff0000"}]'
-  3. Stdin:  echo '[...]' | craft blocks update --stdin
+  3. File/stdin: craft blocks update --json-file blocks.json
+                 echo '[...]' | craft blocks update --stdin
 
 Flag Examples:
   craft blocks update BLOCK_ID --markdown "New text"
@@ -277,6 +286,7 @@ Flag Examples:
 JSON Examples:
   craft blocks update --json '[{"id":"ID","textStyle":"h2","color":"#0400ff"}]'
   craft blocks update --json '{"id":"ID","markdown":"Updated"}'
+  craft blocks update --json-file blocks.json
   echo '[{"id":"ID","color":"#00ca85"}]' | craft blocks update --stdin`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -284,23 +294,8 @@ JSON Examples:
 		var err error
 
 		switch {
-		case blockStdin:
-			blocks, err = parseBlocksFromStdin()
-			if err != nil {
-				return err
-			}
-			for _, b := range blocks {
-				if _, ok := b["id"]; !ok {
-					return fmt.Errorf("each block in JSON must have an \"id\" field for update")
-				}
-				if id, ok := b["id"].(string); ok {
-					if err := validateResourceID(id, "block-id"); err != nil {
-						return err
-					}
-				}
-			}
-		case blockJSON != "":
-			blocks, err = parseBlocksJSON(blockJSON)
+		case blockStdin || blockJSONFile != "" || blockJSON != "":
+			blocks, err = readBlocksInput(blockJSON, blockJSONFile, blockStdin)
 			if err != nil {
 				return err
 			}
@@ -544,6 +539,64 @@ func parseBlocksFromStdin() ([]map[string]interface{}, error) {
 		return nil, fmt.Errorf("failed to read stdin: %w", err)
 	}
 	return parseBlocksJSON(string(data))
+}
+
+func readBlocksInput(jsonPayload, jsonFile string, stdin bool) ([]map[string]interface{}, error) {
+	inputs := 0
+	if jsonPayload != "" {
+		inputs++
+	}
+	if jsonFile != "" {
+		inputs++
+	}
+	if stdin {
+		inputs++
+	}
+	if inputs > 1 {
+		return nil, fmt.Errorf("--json, --json-file, and --stdin are mutually exclusive")
+	}
+	switch {
+	case stdin:
+		return parseBlocksFromStdin()
+	case jsonFile != "":
+		data, err := os.ReadFile(jsonFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read JSON file: %w", err)
+		}
+		return parseBlocksJSON(string(data))
+	case jsonPayload != "":
+		blocks, err := parseBlocksJSON(jsonPayload)
+		if err != nil {
+			return nil, fmt.Errorf("%w. For apostrophes, quotes, or multi-block payloads, prefer --json-file or pipe JSON with --stdin", err)
+		}
+		return blocks, nil
+	default:
+		return nil, fmt.Errorf("provide --json, --json-file, or --stdin")
+	}
+}
+
+func normalizeAddBlocks(blocks []map[string]interface{}) {
+	for _, block := range blocks {
+		if _, ok := block["type"]; ok {
+			continue
+		}
+		block["type"] = inferAddBlockType(block)
+	}
+}
+
+func inferAddBlockType(block map[string]interface{}) string {
+	switch {
+	case block["lineStyle"] != nil:
+		return "line"
+	case block["rawCode"] != nil || block["language"] != nil:
+		return "code"
+	case block["fileName"] != nil || block["blockLayout"] != nil:
+		return "file"
+	case block["title"] != nil || block["description"] != nil:
+		return "richUrl"
+	default:
+		return "text"
+	}
 }
 
 // buildAddPosition constructs the position map from command flags and args.
@@ -1023,6 +1076,7 @@ func init() {
 	blocksAddCmd.Flags().StringVar(&blockSiblingID, "sibling", "", "Sibling block ID for relative positioning")
 	blocksAddCmd.Flags().StringVar(&blockDate, "date", "", "Daily note date (today, tomorrow, yesterday, YYYY-MM-DD)")
 	blocksAddCmd.Flags().StringVar(&blockJSON, "json", "", "Block(s) as JSON (array or single object)")
+	blocksAddCmd.Flags().StringVar(&blockJSONFile, "json-file", "", "Read block JSON from file")
 	blocksAddCmd.Flags().BoolVar(&blockStdin, "stdin", false, "Read block JSON from stdin")
 	blocksAddCmd.Flags().StringVar(&blockSaveRevert, "save-revert", "", "Save MCP revertInfo JSON to a file")
 	blocksAddCmd.Flags().BoolVar(&blockDiff, "diff", false, "Include MCP edit-review metadata in output when possible")
@@ -1031,6 +1085,7 @@ func init() {
 	blocksCmd.AddCommand(blocksUpdateCmd)
 	blocksUpdateCmd.Flags().StringVarP(&blockMarkdown, "markdown", "m", "", "New markdown content")
 	blocksUpdateCmd.Flags().StringVar(&blockJSON, "json", "", "Block(s) as JSON with \"id\" fields (array or single object)")
+	blocksUpdateCmd.Flags().StringVar(&blockJSONFile, "json-file", "", "Read block JSON from file")
 	blocksUpdateCmd.Flags().BoolVar(&blockStdin, "stdin", false, "Read block JSON from stdin")
 	blocksUpdateCmd.Flags().StringVar(&blockSaveRevert, "save-revert", "", "Save MCP revertInfo JSON to a file")
 	blocksUpdateCmd.Flags().BoolVar(&blockDiff, "diff", false, "Include MCP edit-review metadata in output when possible")

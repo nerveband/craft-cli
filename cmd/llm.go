@@ -87,6 +87,7 @@ Subcommands:
 				"craft delete is a soft-delete to trash (DELETE /documents).",
 				"craft clear deletes all content blocks in a document (cannot be undone without a backup).",
 				"craft update supports --mode append|replace for markdown content; replace clears/recreates blocks, changes block IDs, and does not preserve block-only styling/state. For text edits on styled docs, use craft blocks update BLOCK_ID --markdown ... and style only changed/new blocks.",
+				"If a write times out, verify with repeated reads/search before retrying. Craft may have applied the write even though the client did not receive the response.",
 				"Craft accepts #RRGGBB color input but may store adjusted palette/readability colors. Reapply original brand hexes, not returned adjusted colors.",
 				"Craft MCP requires a separate profile with type=mcp and mcp_url; create it with craft profiles add-mcp or craft config add-mcp.",
 				"Run 'craft llm styles' for complete styling/formatting reference with JSON examples.",
@@ -418,6 +419,7 @@ Common combinations:
 ## CLI Styling (craft blocks add / update)
 
 The CLI supports full styling via individual flags or JSON mode.
+First-try pattern: use flags for simple one-block writes, --json-file for structured or multi-block inserts, and --stdin for generated payload streams. Do not use inline shell JSON when content contains apostrophes or nested quotes.
 
 Flag mode — build one block from flags:
   craft blocks add PAGE_ID --markdown "# Title" --text-style h1 --color "#ef052a"
@@ -434,9 +436,14 @@ Flag mode — build one block from flags:
 
 JSON mode — pass-through for full control (multiple blocks, nested content):
   craft blocks add PAGE_ID --json '[{"type":"text","textStyle":"h1","markdown":"# Heading"}]'
+  craft blocks add PAGE_ID --json '{"markdown":"Text block; type defaults to text"}'
   craft blocks add PAGE_ID --json '{"type":"line","lineStyle":"strong"}'
+  craft blocks add PAGE_ID --json-file blocks.json
   craft blocks update --json '[{"id":"BLOCK_ID","textStyle":"h2","color":"#0400ff"}]'
+  craft blocks update --json-file blocks.json
   echo '[{"type":"text","color":"#00ca85","markdown":"Green"}]' | craft blocks add PAGE_ID --stdin
+
+For apostrophes, nested quotes, or multi-block payloads, prefer --json-file or --stdin over inline shell JSON.
 
 Available styling flags:
   --type              Block type: text, page, code, line, richUrl, image, file (add only)

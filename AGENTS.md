@@ -24,6 +24,9 @@ No interactive login. Set credentials via:
 - Use `--count` when only a result count is needed
 - Use `--max-depth N` on get to control block nesting depth
 - Use `--json-errors` for machine-readable errors with hints and retry guidance
+- For JSON containing apostrophes, quotes, or multiple blocks, prefer `--json-file` or `--stdin` over inline shell JSON
+- First-try block write pattern: use `craft blocks add PAGE_ID --markdown "text"` for simple text, `craft blocks add PAGE_ID --json-file blocks.json` for structured/multi-block inserts, and `craft blocks update BLOCK_ID --markdown "text"` for text edits. Do not wait for shell quoting or missing-type failures before switching patterns.
+- If a write times out, assume it may have landed. Do not immediately retry the mutation; verify with repeated reads/search first to avoid duplicate blocks.
 - Use `craft schema` to discover commands programmatically (JSON manifest with safety metadata)
 - Use `craft audit agent-dx --format json` to check agent-readiness before release
 - Use `craft mcp tools` to inspect MCP-only capabilities when REST lacks a feature

@@ -55,7 +55,12 @@ markdown_add({
 ```bash
 craft blocks add PAGE_ID --markdown "# My Heading"
 craft blocks add PAGE_ID --markdown "<callout>An important note</callout>"
+craft blocks add PAGE_ID --json-file blocks.json
 ```
+
+For JSON payloads with apostrophes, quotes, or multiple blocks, prefer `--json-file` or `--stdin` instead of inline shell JSON. For `blocks add`, a JSON object with `markdown` but no `type` is treated as a text block.
+
+First-try CLI pattern for agents: use flags for simple one-block writes, `--json-file` for structured or multi-block inserts, and `--stdin` for generated payload streams. Do not wait for shell quoting or missing-type API errors before switching to file/stdin input.
 
 ### Positioning
 
