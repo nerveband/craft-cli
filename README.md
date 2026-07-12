@@ -380,6 +380,8 @@ craft upgrade
 craft version
 ```
 
+After installing an update, `craft upgrade` prints recent release notes and marks both the version just installed and the version you upgraded from.
+
 **For LLMs and Automated Agents:**
 
 When encountering issues, missing features, or errors that might be fixed in newer versions:
