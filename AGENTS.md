@@ -35,6 +35,21 @@ No interactive login. Set credentials via:
 - Use `craft list --backend mcp --cursor CURSOR --limit N` for MCP cursor pagination
 - Use `--yes` to skip any confirmation prompts
 
+## Release flow
+
+When the user says "go release", "run the release", or otherwise asks to release craft-cli, follow `prompts/release.md` end to end.
+
+- Run the full pre-release checks: `go test ./...`, `go vet ./...`, and `go build -o craft-cli .`
+- Verify `cmd/root.go` has the intended version before tagging
+- Run the documented live/core CLI checks and output-format checks when credentials/profiles are available
+- Check dependencies with `go list -m -u all 2>/dev/null | grep '\[' | head -10`
+- Update `README.md`, `docs/llm/`, and `AGENTS.md` for any user-facing, LLM-facing, or process changes
+- Choose the version bump from compatibility: patch for fixes, minor for additive public behavior, major for breaking command/output changes
+- Commit release changes, tag `vX.Y.Z`, push main first, then push the tag
+- Run `goreleaser release --clean` or verify the GitHub Actions release completed
+- Post-release, install or download the released binary and verify `craft version`, `craft info`, `craft list`, and `gh release view vX.Y.Z`
+- If the intended version bump is ambiguous, ask the user before changing the version or tagging
+
 ## Exit codes
 
 | Code | Meaning |

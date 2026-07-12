@@ -800,7 +800,7 @@ func runMCPBlocksMutation(cmd *cobra.Command, action string, blocks []map[string
 	}
 	result, err := client.CallTool("craft_write", map[string]interface{}{"command": command})
 	if err != nil {
-		return err
+		return enhanceMCPWriteError(command, err)
 	}
 	if blockSaveRevert != "" {
 		if err := saveRevertInfo(result, blockSaveRevert); err != nil {

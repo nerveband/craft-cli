@@ -29,7 +29,7 @@ var (
 	transformExpr string
 	dataSource    string
 	cfgManager    *config.Manager
-	version       = "1.11.1"
+	version       = "1.11.2"
 
 	// Global flags for LLM/scripting friendliness
 	quietMode      bool
@@ -338,6 +338,8 @@ func errorHint(code string) string {
 		return "This connection appears write-only or lacks read scope. Switch to a read-capable profile. (not retryable)"
 	case "WRITE_UNAVAILABLE":
 		return "This connection lacks write permission. Switch to a write-capable profile. (not retryable)"
+	case "IMAGE_ASSET_UNAVAILABLE":
+		return "Validate the image URL with 'craft images view URL'. If it is expired, auth-gated, or a Craft r.craft.do short link that cannot resolve, export the image to a local file and insert it with 'craft upload FILE --page PAGE_ID' or 'craft upload FILE --sibling BLOCK_ID --position after'. (not retryable)"
 	case "USER_ERROR":
 		return "Check command usage with --help. (not retryable)"
 	default:

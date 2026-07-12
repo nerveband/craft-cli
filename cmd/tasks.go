@@ -35,6 +35,7 @@ var tasksListCmd = &cobra.Command{
 	Long: `List tasks with optional filtering.
 
 Scopes:
+  all       - All task blocks in the space
   active    - All active (not done/canceled) tasks
   upcoming  - Tasks with upcoming schedule dates
   inbox     - Tasks in the inbox
@@ -239,7 +240,7 @@ func init() {
 	rootCmd.AddCommand(tasksCmd)
 
 	tasksCmd.AddCommand(tasksListCmd)
-	tasksListCmd.Flags().StringVar(&taskScope, "scope", "", "Filter scope: active, upcoming, inbox, logbook")
+	tasksListCmd.Flags().StringVar(&taskScope, "scope", "all", "Filter scope: all, active, upcoming, inbox, logbook")
 	tasksListCmd.Flags().StringVar(&taskDocumentID, "document", "", "Filter by document ID")
 
 	tasksCmd.AddCommand(tasksAddCmd)

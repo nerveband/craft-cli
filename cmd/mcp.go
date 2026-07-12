@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	craftmcp "github.com/ashrafali/craft-cli/internal/mcp"
@@ -110,7 +111,7 @@ var mcpCallCmd = &cobra.Command{
 		}
 		result, err := client.CallTool(mcpToolName, arguments)
 		if err != nil {
-			return err
+			return enhanceMCPToolError(mcpToolName, arguments, err)
 		}
 		return outputRawJSON(result)
 	},
@@ -269,7 +270,14 @@ func runMCPBatch(cmd *cobra.Command) error {
 			"ok":      err == nil,
 		}
 		if err != nil {
+			err = enhanceMCPWriteError(op.Command, err)
 			entry["error"] = err.Error()
+			if coded, ok := err.(*cliCodeError); ok {
+				entry["code"] = coded.Code
+				if hint := errorHint(coded.Code); hint != "" {
+					entry["hint"] = hint
+				}
+			}
 		} else {
 			var data interface{}
 			if err := json.Unmarshal(result, &data); err != nil {
@@ -331,6 +339,41 @@ func runMCPReadCommand(command string) error {
 		return err
 	}
 	return outputRawJSON(result)
+}
+
+var markdownImageRE = regexp.MustCompile(`!\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)`)
+
+func enhanceMCPToolError(tool string, arguments map[string]interface{}, err error) error {
+	if tool != "craft_write" {
+		return err
+	}
+	command, _ := arguments["command"].(string)
+	return enhanceMCPWriteError(command, err)
+}
+
+func enhanceMCPWriteError(command string, err error) error {
+	if err == nil || command == "" || categorizeError(err) != "NOT_FOUND" {
+		return err
+	}
+	urls := extractMarkdownImageURLs(command)
+	if len(urls) == 0 {
+		return err
+	}
+	return newCLIError(
+		"IMAGE_ASSET_UNAVAILABLE",
+		fmt.Sprintf("MCP write failed while inserting markdown image %q: %v", urls[0], err),
+	)
+}
+
+func extractMarkdownImageURLs(command string) []string {
+	matches := markdownImageRE.FindAllStringSubmatch(command, -1)
+	urls := make([]string, 0, len(matches))
+	for _, match := range matches {
+		if len(match) > 1 && match[1] != "" {
+			urls = append(urls, match[1])
+		}
+	}
+	return urls
 }
 
 func quoteMCPArg(value string) string {
