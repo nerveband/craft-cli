@@ -83,6 +83,8 @@ var (
 	taskRepeatReminder     string
 	taskRepeatSkipWeekends bool
 	taskRepeatDynamicDays  bool
+	taskSaveRevert         string
+	taskDiff               bool
 )
 
 var tasksAddCmd = &cobra.Command{
@@ -109,6 +111,9 @@ Examples:
 		return cobra.ExactArgs(1)(cmd, args)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := rejectTaskRevertFlags(); err != nil {
+			return err
+		}
 		if taskJSON != "" || taskStdin {
 			payload, err := readTaskPayload(taskJSON, taskStdin)
 			if err != nil {
@@ -116,7 +121,6 @@ Examples:
 			}
 			return runTasksAddRaw(payload)
 		}
-
 		client, err := getAPIClient()
 		if err != nil {
 			return err
@@ -173,6 +177,9 @@ Examples:
 		return cobra.ExactArgs(1)(cmd, args)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := rejectTaskRevertFlags(); err != nil {
+			return err
+		}
 		if taskJSON != "" || taskStdin {
 			payload, err := readTaskPayload(taskJSON, taskStdin)
 			if err != nil {
@@ -180,7 +187,6 @@ Examples:
 			}
 			return runTasksUpdateRaw(payload)
 		}
-
 		repeat, err := buildRepeatConfig(repeatFlagsFromVars())
 		if err != nil {
 			return err
@@ -226,6 +232,9 @@ Examples:
 		return cobra.MinimumNArgs(1)(cmd, args)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := rejectTaskRevertFlags(); err != nil {
+			return err
+		}
 		if taskJSON != "" || taskStdin {
 			payload, err := readTaskPayload(taskJSON, taskStdin)
 			if err != nil {
@@ -233,7 +242,6 @@ Examples:
 			}
 			return runTasksDeleteRaw(payload)
 		}
-
 		if isDryRun() {
 			if len(args) == 1 {
 				return dryRunOutput("delete task", map[string]interface{}{
@@ -296,10 +304,25 @@ func init() {
 		c.Flags().BoolVar(&taskRepeatSkipWeekends, "repeat-skip-weekends", false, "Skip weekend occurrences")
 		c.Flags().BoolVar(&taskRepeatDynamicDays, "repeat-dynamic-days", false, "Reschedule relative to completion date")
 	}
+	for _, c := range []*cobra.Command{tasksAddCmd, tasksUpdateCmd, tasksDeleteCmd} {
+		c.Flags().StringVar(&taskSaveRevert, "save-revert", "", "Not supported for tasks; returns CAPABILITY_UNAVAILABLE (use craft blocks update --save-revert)")
+		c.Flags().BoolVar(&taskDiff, "diff", false, "Not supported for tasks; returns CAPABILITY_UNAVAILABLE")
+	}
 
 	tasksCmd.AddCommand(tasksDeleteCmd)
 	tasksDeleteCmd.Flags().StringVar(&taskJSON, "json", "", "Raw REST delete tasks payload JSON")
 	tasksDeleteCmd.Flags().BoolVar(&taskStdin, "stdin", false, "Read raw REST delete tasks payload from stdin")
+}
+
+// rejectTaskRevertFlags returns a structured error when --save-revert/--diff
+// are used on tasks: Craft MCP exposes no task-write commands, so there is no
+// revert metadata to capture for task mutations.
+func rejectTaskRevertFlags() error {
+	if taskSaveRevert == "" && !taskDiff {
+		return nil
+	}
+	return newCLIError("CAPABILITY_UNAVAILABLE",
+		"Craft MCP does not expose task writes; revert metadata is unavailable for tasks. For the task's underlying block, use craft blocks update <block-id> --save-revert")
 }
 
 // repeatFlagValues carries repeat flag inputs so validation is testable.
