@@ -72,10 +72,14 @@ type TaskInfo struct {
 
 // RepeatConfig represents task repeat configuration
 type RepeatConfig struct {
-	Type     string `json:"type,omitempty"`     // daily, weekly, monthly, yearly
-	Interval int    `json:"interval,omitempty"` // every N days/weeks/etc
-	Weekdays []int  `json:"weekdays,omitempty"` // 0=Sunday, 6=Saturday
-	EndDate  string `json:"endDate,omitempty"`  // YYYY-MM-DD
+	Type         string `json:"type,omitempty"`         // daily, weekly, monthly, yearly
+	Frequency    string `json:"frequency,omitempty"`    // alternate frequency key used by some Craft payloads
+	Interval     int    `json:"interval,omitempty"`     // every N days/weeks/etc
+	Weekdays     []int  `json:"weekdays,omitempty"`     // 0=Sunday, 6=Saturday
+	EndDate      string `json:"endDate,omitempty"`      // YYYY-MM-DD
+	SkipWeekends bool   `json:"skipWeekends,omitempty"` // skip Saturday/Sunday occurrences
+	DynamicDays  bool   `json:"dynamicDays,omitempty"`  // reschedule relative to completion
+	Reminder     string `json:"reminder,omitempty"`     // HH:MM reminder time
 }
 
 // TableCell represents a cell in a table block
