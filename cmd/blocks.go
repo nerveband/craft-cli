@@ -836,44 +836,13 @@ func runMCPBlocksMutation(cmd *cobra.Command, action string, blocks []map[string
 	if err != nil {
 		return err
 	}
-	target := map[string]interface{}{
-		"backend":      "mcp",
-		"tool":         "craft_write",
-		"command":      command,
-		"capabilities": []string{"mcp", "write", "blocks.revert", "blocks.style"},
-	}
-	if blockSaveRevert != "" {
-		target["save_revert"] = blockSaveRevert
-	}
-	if blockDiff {
-		target["diff"] = map[string]interface{}{
-			"available": false,
-			"hint":      "MCP edit-review metadata is captured from real craft_write results; dry-run shows the planned command.",
-		}
-	}
-	if isDryRun() {
-		return dryRunOutput("blocks "+action, target)
-	}
-	if !yesFlag {
-		return fmt.Errorf("blocks %s with --backend mcp uses craft_write; rerun with --yes after reviewing --dry-run", action)
-	}
-	client, err := getMCPClient()
-	if err != nil {
-		return err
-	}
-	result, err := client.CallTool("craft_write", map[string]interface{}{"command": command})
-	if err != nil {
-		return enhanceMCPWriteError(command, err)
-	}
-	if blockSaveRevert != "" {
-		if err := saveRevertInfo(result, blockSaveRevert); err != nil {
-			return err
-		}
-	}
-	if blockDiff {
-		return outputMCPMutationWithReview(client, result)
-	}
-	return outputRawJSON(result)
+	return runMCPWriteCommand(
+		"blocks "+action,
+		command,
+		[]string{"mcp", "write", "blocks.revert", "blocks.style"},
+		blockSaveRevert,
+		blockDiff,
+	)
 }
 
 func outputMCPMutationWithReview(client *craftmcp.Client, result json.RawMessage) error {
