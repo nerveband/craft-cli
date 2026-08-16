@@ -78,3 +78,38 @@ func TestUpdateRevertFlagsRejectContentUpdates(t *testing.T) {
 		t.Fatalf("expected cliCodeError CAPABILITY_UNAVAILABLE, got %v", err)
 	}
 }
+
+func TestTasksCmdsRegisterRevertFlags(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		has  func(flag string) bool
+	}{
+		{"tasks add", func(f string) bool { return tasksAddCmd.Flags().Lookup(f) != nil }},
+		{"tasks update", func(f string) bool { return tasksUpdateCmd.Flags().Lookup(f) != nil }},
+		{"tasks delete", func(f string) bool { return tasksDeleteCmd.Flags().Lookup(f) != nil }},
+	} {
+		if !tc.has("save-revert") {
+			t.Errorf("%s missing --save-revert", tc.name)
+		}
+		if !tc.has("diff") {
+			t.Errorf("%s missing --diff", tc.name)
+		}
+	}
+}
+
+func TestTasksRevertFlagsReturnCapabilityUnavailable(t *testing.T) {
+	origSave, origDiff := taskSaveRevert, taskDiff
+	defer func() { taskSaveRevert, taskDiff = origSave, origDiff }()
+
+	taskSaveRevert = "revert.json"
+	taskDiff = false
+
+	err := tasksDeleteCmd.RunE(tasksDeleteCmd, []string{"task1"})
+	if err == nil {
+		t.Fatal("expected CAPABILITY_UNAVAILABLE error")
+	}
+	var cerr *cliCodeError
+	if !errors.As(err, &cerr) || cerr.Code != "CAPABILITY_UNAVAILABLE" {
+		t.Fatalf("expected cliCodeError CAPABILITY_UNAVAILABLE, got %v", err)
+	}
+}
