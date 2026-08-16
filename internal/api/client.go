@@ -737,14 +737,22 @@ type deleteFolderRequest struct {
 	FolderIDs []string `json:"folderIds"`
 }
 
-// DeleteFolder deletes a folder
-func (c *Client) DeleteFolder(folderID string) error {
+// DeleteFolders deletes folders by ID in one request.
+func (c *Client) DeleteFolders(ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
 	req := deleteFolderRequest{
-		FolderIDs: []string{folderID},
+		FolderIDs: ids,
 	}
 
 	_, err := c.doRequest("DELETE", "/folders", req)
 	return err
+}
+
+// DeleteFolder deletes a single folder.
+func (c *Client) DeleteFolder(folderID string) error {
+	return c.DeleteFolders([]string{folderID})
 }
 
 // ========== Document Move Operations ==========
@@ -755,10 +763,13 @@ type moveDocumentRequest struct {
 	Destination interface{} `json:"destination"`
 }
 
-// MoveDocument moves a document to a folder or location
-func (c *Client) MoveDocument(docID, folderID, location string) error {
+// MoveDocuments moves documents to a folder or location in one request.
+func (c *Client) MoveDocuments(ids []string, folderID, location string) error {
+	if len(ids) == 0 {
+		return nil
+	}
 	req := moveDocumentRequest{
-		DocumentIDs: []string{docID},
+		DocumentIDs: ids,
 	}
 	if folderID != "" {
 		req.Destination = map[string]string{"folderId": folderID}
@@ -768,6 +779,11 @@ func (c *Client) MoveDocument(docID, folderID, location string) error {
 
 	_, err := c.doRequest("PUT", "/documents/move", req)
 	return err
+}
+
+// MoveDocument moves a single document to a folder or location.
+func (c *Client) MoveDocument(docID, folderID, location string) error {
+	return c.MoveDocuments([]string{docID}, folderID, location)
 }
 
 // ========== Block Operations (Enhanced) ==========
@@ -1106,14 +1122,22 @@ type deleteTaskRequest struct {
 	IDsToDelete []string `json:"idsToDelete"`
 }
 
-// DeleteTask deletes a task
-func (c *Client) DeleteTask(taskID string) error {
+// DeleteTasks deletes tasks by ID in one request.
+func (c *Client) DeleteTasks(ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
 	req := deleteTaskRequest{
-		IDsToDelete: []string{taskID},
+		IDsToDelete: ids,
 	}
 
 	_, err := c.doRequest("DELETE", "/tasks", req)
 	return err
+}
+
+// DeleteTask deletes a single task.
+func (c *Client) DeleteTask(taskID string) error {
+	return c.DeleteTasks([]string{taskID})
 }
 
 // DeleteTasksRaw deletes tasks using the documented REST payload shape.
