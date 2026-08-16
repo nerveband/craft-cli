@@ -458,16 +458,24 @@ type deleteBlocksResponse struct {
 	} `json:"items"`
 }
 
-// DeleteDocument soft-deletes a document by moving it to trash.
-func (c *Client) DeleteDocument(id string) error {
+// DeleteDocuments soft-deletes documents by moving them to trash in one request.
+func (c *Client) DeleteDocuments(ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
 	req := struct {
 		DocumentIDs []string `json:"documentIds"`
 	}{
-		DocumentIDs: []string{id},
+		DocumentIDs: ids,
 	}
 
 	_, err := c.doRequest("DELETE", "/documents", req)
 	return err
+}
+
+// DeleteDocument soft-deletes a single document by moving it to trash.
+func (c *Client) DeleteDocument(id string) error {
+	return c.DeleteDocuments([]string{id})
 }
 
 // ClearDocumentContent deletes all content blocks within a document (does not delete the document itself).
