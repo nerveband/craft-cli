@@ -203,14 +203,14 @@ Examples:
 }
 
 var foldersDeleteCmd = &cobra.Command{
-	Use:   "delete [folder-id]",
-	Short: "Delete a folder",
-	Long:  "Delete a folder. Contents will be moved to the parent folder.",
+	Use:   "delete <folder-id...>",
+	Short: "Delete one or more folders",
+	Long:  "Delete folders. Contents will be moved to the parent folder. Multiple IDs are sent in a single API request.",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if folderDeleteJSON != "" || folderDeleteStdin {
 			return cobra.NoArgs(cmd, args)
 		}
-		return cobra.ExactArgs(1)(cmd, args)
+		return cobra.MinimumNArgs(1)(cmd, args)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if folderDeleteJSON != "" || folderDeleteStdin {
@@ -235,21 +235,28 @@ var foldersDeleteCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
+			folderIDs := make([]string, 0, len(ids))
 			for _, id := range ids {
 				folderID, ok := id.(string)
 				if !ok || folderID == "" {
 					return fmt.Errorf("folderIds must contain strings")
 				}
-				if err := client.DeleteFolder(folderID); err != nil {
-					return err
-				}
+				folderIDs = append(folderIDs, folderID)
 			}
-			return outputJSON(map[string]interface{}{"deleted": len(ids)})
+			if err := client.DeleteFolders(folderIDs); err != nil {
+				return err
+			}
+			return outputJSON(map[string]interface{}{"deleted": len(folderIDs)})
 		}
 
 		if isDryRun() {
-			return dryRunOutput("delete folder", map[string]interface{}{
-				"id": args[0], "destructive": true,
+			if len(args) == 1 {
+				return dryRunOutput("delete folder", map[string]interface{}{
+					"id": args[0], "destructive": true,
+				})
+			}
+			return dryRunOutput("delete folders", map[string]interface{}{
+				"ids": args, "count": len(args), "destructive": true,
 			})
 		}
 
@@ -258,13 +265,16 @@ var foldersDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		folderID := args[0]
-		if err := client.DeleteFolder(folderID); err != nil {
+		if err := client.DeleteFolders(args); err != nil {
 			return err
 		}
 
 		if !isQuiet() {
-			fmt.Printf("Folder %s deleted\n", folderID)
+			if len(args) == 1 {
+				fmt.Printf("Folder %s deleted\n", args[0])
+			} else {
+				fmt.Printf("%d folders deleted\n", len(args))
+			}
 		}
 		return nil
 	},

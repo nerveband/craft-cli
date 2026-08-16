@@ -364,17 +364,24 @@ JSON Examples:
 }
 
 var blocksDeleteCmd = &cobra.Command{
-	Use:   "delete [block-id]",
-	Short: "Delete a block",
-	Long:  "Delete a specific block from a document",
-	Args:  cobra.ExactArgs(1),
+	Use:   "delete <block-id...>",
+	Short: "Delete one or more blocks",
+	Long:  "Delete specific blocks from a document. Multiple IDs are sent in a single API request.",
+	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := validateResourceID(args[0], "block-id"); err != nil {
-			return err
+		for _, id := range args {
+			if err := validateResourceID(id, "block-id"); err != nil {
+				return err
+			}
 		}
 		if isDryRun() {
-			return dryRunOutput("delete block", map[string]interface{}{
-				"id": args[0], "destructive": true,
+			if len(args) == 1 {
+				return dryRunOutput("delete block", map[string]interface{}{
+					"id": args[0], "destructive": true,
+				})
+			}
+			return dryRunOutput("delete blocks", map[string]interface{}{
+				"ids": args, "count": len(args), "destructive": true,
 			})
 		}
 
@@ -383,13 +390,16 @@ var blocksDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		blockID := args[0]
-		if err := client.DeleteBlock(blockID); err != nil {
+		if err := client.DeleteBlocks(args); err != nil {
 			return err
 		}
 
 		if !isQuiet() {
-			fmt.Printf("Block %s deleted\n", blockID)
+			if len(args) == 1 {
+				fmt.Printf("Block %s deleted\n", args[0])
+			} else {
+				fmt.Printf("%d blocks deleted\n", len(args))
+			}
 		}
 		return nil
 	},
