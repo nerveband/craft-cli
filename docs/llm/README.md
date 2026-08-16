@@ -6,8 +6,7 @@ Quick index for LLMs, agents, and automation tools.
 
 - `styling-and-markdown.md` -- Complete styling reference with JSON examples for every block type, formatting option, decoration, card layout, divider style, highlight color, and more
 - `output-parity.md` -- MCP/API/CLI parity notes + differences chart
-- `../command-reference.json` -- Generated `craft schema` command/capability/safety manifest
-
+- `../command-reference.json` -- Generated `craft schema` command/capability/safety manifest (updated with multi-ID batching, recurring task flags, multi-scope search, and universal revert/diff flags)
 ## CLI Discovery
 
 LLMs can discover styling documentation directly via the CLI:
@@ -26,9 +25,11 @@ craft audit agent-dx   # Agent-native CLI scorecard
 - Use `craft mcp read-resource URI --metadata-only` before requesting full MCP resource contents.
 - Use `craft batch --dry-run` to inspect multi-command MCP execution before running writes.
 - Use `--fields` with `list` and `search` to keep JSON payloads small, for example `craft list --fields id,title --limit 5`.
+- Use `--daily-note-after` and `--daily-note-before` on `craft list` for daily note date range queries.
+- Use positional multi-ID batching on `craft delete`, `craft blocks delete`, `craft tasks delete`, `craft folders delete`, and `craft move` to execute batch operations in a single API call.
+- Use multi-value `--folder` and `--document` on `craft search` to scope searches across multiple targets.
 - Use MCP for page style flags and reversible block edits; explicit `--backend rest` with MCP-only style flags returns `CAPABILITY_UNAVAILABLE`.
 - Use native wrappers instead of generic MCP calls for edit review, image view, collection rename/dynamic properties, and whiteboard element reads.
-
 ## MCP Escalation Flow
 
 If the active profile is REST and the requested feature is MCP-only:
