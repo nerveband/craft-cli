@@ -11,11 +11,13 @@ import (
 var (
 	listFolderID       string
 	listLocation       string
-	listCreatedAfter   string
-	listCreatedBefore  string
-	listModifiedAfter  string
-	listModifiedBefore string
-	listMetadata       bool
+	listCreatedAfter    string
+	listCreatedBefore   string
+	listModifiedAfter   string
+	listModifiedBefore  string
+	listDailyNoteAfter  string
+	listDailyNoteBefore string
+	listMetadata        bool
 	listLimit          int
 	listCount          bool
 	listFields         string
@@ -36,6 +38,8 @@ Filters:
   --created-before DATE    Documents created on or before DATE (YYYY-MM-DD)
   --modified-after DATE    Documents modified on or after DATE (YYYY-MM-DD)
   --modified-before DATE   Documents modified on or before DATE (YYYY-MM-DD)
+  --daily-note-after DATE  Daily notes dated on or after DATE (YYYY-MM-DD)
+  --daily-note-before DATE Daily notes dated on or before DATE (YYYY-MM-DD)
   --metadata               Fetch document metadata (dates, authors)
 
 Examples:
@@ -43,6 +47,7 @@ Examples:
   craft list --format table                       # List as table
   craft list --folder abc123                      # List documents in folder
   craft list --location unsorted                  # List unsorted documents
+  craft list --location daily_notes --daily-note-after 2026-08-01 --daily-note-before 2026-08-15
   craft list --created-after 2025-01-01           # Created since Jan 2025
   craft list --modified-after 2025-06-01 --metadata  # Recently modified with metadata`,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -55,21 +60,11 @@ Examples:
 			return err
 		}
 
-		useAdvanced := listCreatedAfter != "" || listCreatedBefore != "" ||
-			listModifiedAfter != "" || listModifiedBefore != "" || listMetadata
+		useAdvanced := listNeedsAdvanced()
 
 		var result *models.DocumentList
 		if useAdvanced {
-			opts := api.ListDocumentsOptions{
-				FolderID:            listFolderID,
-				Location:            listLocation,
-				FetchMetadata:       listMetadata,
-				CreatedDateGte:      listCreatedAfter,
-				CreatedDateLte:      listCreatedBefore,
-				LastModifiedDateGte: listModifiedAfter,
-				LastModifiedDateLte: listModifiedBefore,
-			}
-			result, err = client.GetDocumentsAdvanced(opts)
+			result, err = client.GetDocumentsAdvanced(buildListOptions())
 		} else {
 			result, err = client.GetDocumentsFiltered(listFolderID, listLocation)
 		}
@@ -105,6 +100,29 @@ Examples:
 	},
 }
 
+// listNeedsAdvanced reports whether any filter requires GetDocumentsAdvanced.
+func listNeedsAdvanced() bool {
+	return listCreatedAfter != "" || listCreatedBefore != "" ||
+		listModifiedAfter != "" || listModifiedBefore != "" ||
+		listDailyNoteAfter != "" || listDailyNoteBefore != "" ||
+		listMetadata
+}
+
+// buildListOptions assembles the advanced listing options from CLI flags.
+func buildListOptions() api.ListDocumentsOptions {
+	return api.ListDocumentsOptions{
+		FolderID:            listFolderID,
+		Location:            listLocation,
+		FetchMetadata:       listMetadata,
+		CreatedDateGte:      listCreatedAfter,
+		CreatedDateLte:      listCreatedBefore,
+		LastModifiedDateGte: listModifiedAfter,
+		LastModifiedDateLte: listModifiedBefore,
+		DailyNoteDateGte:    listDailyNoteAfter,
+		DailyNoteDateLte:    listDailyNoteBefore,
+	}
+}
+
 func init() {
 	rootCmd.AddCommand(listCmd)
 	listCmd.Flags().StringVar(&listFolderID, "folder", "", "Filter by folder ID")
@@ -113,6 +131,8 @@ func init() {
 	listCmd.Flags().StringVar(&listCreatedBefore, "created-before", "", "Filter documents created on or before this date (YYYY-MM-DD)")
 	listCmd.Flags().StringVar(&listModifiedAfter, "modified-after", "", "Filter documents modified on or after this date (YYYY-MM-DD)")
 	listCmd.Flags().StringVar(&listModifiedBefore, "modified-before", "", "Filter documents modified on or before this date (YYYY-MM-DD)")
+	listCmd.Flags().StringVar(&listDailyNoteAfter, "daily-note-after", "", "Filter daily notes dated on or after this date (YYYY-MM-DD)")
+	listCmd.Flags().StringVar(&listDailyNoteBefore, "daily-note-before", "", "Filter daily notes dated on or before this date (YYYY-MM-DD)")
 	listCmd.Flags().BoolVar(&listMetadata, "metadata", false, "Fetch document metadata (dates, authors)")
 	listCmd.Flags().IntVar(&listLimit, "limit", 0, "Maximum number of results to return (0 = all)")
 	listCmd.Flags().BoolVar(&listCount, "count", false, "Output only the matching document count")
