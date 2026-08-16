@@ -970,7 +970,7 @@ type addTaskResponse struct {
 }
 
 // AddTask creates a new task
-func (c *Client) AddTask(markdown, location, docID, scheduleDate, deadlineDate string) (*models.Task, error) {
+func (c *Client) AddTask(markdown, location, docID, scheduleDate, deadlineDate string, repeat *models.RepeatConfig) (*models.Task, error) {
 	taskInfo := map[string]interface{}{}
 	if scheduleDate != "" {
 		taskInfo["scheduleDate"] = scheduleDate
@@ -978,10 +978,12 @@ func (c *Client) AddTask(markdown, location, docID, scheduleDate, deadlineDate s
 	if deadlineDate != "" {
 		taskInfo["deadlineDate"] = deadlineDate
 	}
+	if repeat != nil {
+		taskInfo["repeat"] = repeat
+	}
 	if len(taskInfo) == 0 {
 		taskInfo = nil
 	}
-
 	locationObj := map[string]string{"type": location}
 	if location == "document" && docID != "" {
 		locationObj["documentId"] = docID
@@ -1084,8 +1086,8 @@ type updateTaskRequest struct {
 	} `json:"tasksToUpdate"`
 }
 
-// UpdateTask updates a task's state or dates
-func (c *Client) UpdateTask(taskID, state, scheduleDate, deadlineDate string) error {
+// UpdateTask updates a task's state, dates, or repeat rule
+func (c *Client) UpdateTask(taskID, state, scheduleDate, deadlineDate string, repeat *models.RepeatConfig) error {
 	taskInfo := map[string]interface{}{}
 	if state != "" {
 		taskInfo["state"] = state
@@ -1096,7 +1098,9 @@ func (c *Client) UpdateTask(taskID, state, scheduleDate, deadlineDate string) er
 	if deadlineDate != "" {
 		taskInfo["deadlineDate"] = deadlineDate
 	}
-
+	if repeat != nil {
+		taskInfo["repeat"] = repeat
+	}
 	req := updateTaskRequest{
 		TasksToUpdate: []struct {
 			ID       string                 `json:"id"`

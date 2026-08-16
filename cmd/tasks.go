@@ -116,7 +116,7 @@ Examples:
 			taskLocation = "inbox"
 		}
 
-		task, err := client.AddTask(description, taskLocation, taskDocumentID, taskScheduleDate, taskDeadlineDate)
+		task, err := client.AddTask(description, taskLocation, taskDocumentID, taskScheduleDate, taskDeadlineDate, nil)
 		if err != nil {
 			return err
 		}
@@ -179,7 +179,7 @@ Examples:
 		}
 
 		taskID := args[0]
-		if err := client.UpdateTask(taskID, taskState, taskScheduleDate, taskDeadlineDate); err != nil {
+		if err := client.UpdateTask(taskID, taskState, taskScheduleDate, taskDeadlineDate, nil); err != nil {
 			return err
 		}
 
