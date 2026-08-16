@@ -20,6 +20,8 @@ var (
 	updateSection    string
 	updateChunkBytes int
 	updateJSON       string
+	updateSaveRevert string
+	updateDiff       bool
 )
 
 var updateCmd = &cobra.Command{
@@ -59,13 +61,24 @@ Examples:
   cat doc.md | craft update abc123 --title "Updated Doc"`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := getAPIClient()
-		if err != nil {
+		docID := args[0]
+		if err := validateResourceID(docID, "document-id"); err != nil {
 			return err
 		}
 
-		docID := args[0]
-		if err := validateResourceID(docID, "document-id"); err != nil {
+		if updateSaveRevert != "" || updateDiff {
+			if backendName == "rest" {
+				return newCLIError("CAPABILITY_UNAVAILABLE", "--save-revert/--diff require MCP capabilities: blocks.revert")
+			}
+			if updateTitle == "" || updateMarkdown != "" || updateFile != "" || updateStdin || updateSection != "" || updateJSON != "" {
+				return newCLIError("CAPABILITY_UNAVAILABLE", "--save-revert/--diff on update support --title-only updates; for content edits use craft blocks update BLOCK_ID --save-revert")
+			}
+			command := "blocks update --id " + quoteMCPArg(docID) + " --markdown " + quoteMCPArg(updateTitle)
+			return runMCPWriteCommand("update title", command, []string{"mcp", "write", "blocks.revert"}, updateSaveRevert, updateDiff)
+		}
+
+		client, err := getAPIClient()
+		if err != nil {
 			return err
 		}
 		if updateJSON != "" {
@@ -379,8 +392,9 @@ func init() {
 	updateCmd.Flags().StringVar(&updateMode, "mode", "append", "Update mode (append, replace)")
 	updateCmd.Flags().StringVar(&updateSection, "section", "", "Replace a section by heading (requires --mode replace)")
 	updateCmd.Flags().IntVar(&updateChunkBytes, "chunk-bytes", 30000, "Max bytes per insert chunk (helps avoid API payload limits)")
+	updateCmd.Flags().StringVar(&updateSaveRevert, "save-revert", "", "Save MCP revertInfo JSON to a file (title-only updates)")
+	updateCmd.Flags().BoolVar(&updateDiff, "diff", false, "Include MCP edit-review metadata in output when possible (title-only updates)")
 }
-
 func applyUpdatePayload(payload map[string]interface{}) {
 	if title, ok := payload["title"].(string); ok {
 		updateTitle = title
