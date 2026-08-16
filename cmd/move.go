@@ -14,24 +14,26 @@ var (
 )
 
 var moveCmd = &cobra.Command{
-	Use:   "move [document-id]",
-	Short: "Move a document to a folder or location",
-	Long: `Move a document to a different folder or special location.
+	Use:   "move <document-id...>",
+	Short: "Move one or more documents to a folder or location",
+	Long: `Move documents to a different folder or special location.
+Multiple IDs are sent in a single API request.
 
 Locations:
   unsorted   - Move to unsorted documents
   trash      - Move to trash
 
 Examples:
-  craft move abc123 --to-folder def456    # Move to folder
-  craft move abc123 --to-location unsorted # Move to unsorted
-  craft move abc123 --to-location trash    # Move to trash
+  craft move abc123 --to-folder def456        # Move to folder
+  craft move abc123 def456 --to-folder xyz789 # Batch move
+  craft move abc123 --to-location unsorted    # Move to unsorted
+  craft move abc123 --to-location trash       # Move to trash
   craft move --json '{"documentIds":["abc123"],"destination":"unsorted"}' --dry-run`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if moveJSON != "" || moveStdin {
 			return cobra.NoArgs(cmd, args)
 		}
-		return cobra.ExactArgs(1)(cmd, args)
+		return cobra.MinimumNArgs(1)(cmd, args)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if moveJSON != "" || moveStdin {
@@ -45,9 +47,10 @@ Examples:
 		if moveTargetFolder == "" && moveTargetLocation == "" {
 			return fmt.Errorf("either --to-folder or --to-location is required")
 		}
-		docID := args[0]
-		if err := validateResourceID(docID, "document-id"); err != nil {
-			return err
+		for _, id := range args {
+			if err := validateResourceID(id, "document-id"); err != nil {
+				return err
+			}
 		}
 		if moveTargetFolder != "" {
 			if err := validateResourceID(moveTargetFolder, "folder-id"); err != nil {
@@ -56,7 +59,13 @@ Examples:
 		}
 
 		if isDryRun() {
-			target := map[string]interface{}{"id": docID}
+			target := map[string]interface{}{}
+			if len(args) == 1 {
+				target["id"] = args[0]
+			} else {
+				target["ids"] = args
+				target["count"] = len(args)
+			}
 			if moveTargetFolder != "" {
 				target["destination_folder"] = moveTargetFolder
 			} else {
@@ -70,15 +79,23 @@ Examples:
 			return err
 		}
 
-		if err := client.MoveDocument(docID, moveTargetFolder, moveTargetLocation); err != nil {
+		if err := client.MoveDocuments(args, moveTargetFolder, moveTargetLocation); err != nil {
 			return err
 		}
 
 		if !isQuiet() {
+			destination := moveTargetLocation
 			if moveTargetFolder != "" {
-				fmt.Printf("Document %s moved to folder %s\n", docID, moveTargetFolder)
+				destination = "folder " + moveTargetFolder
+			}
+			if len(args) == 1 {
+				if moveTargetFolder != "" {
+					fmt.Printf("Document %s moved to folder %s\n", args[0], moveTargetFolder)
+				} else {
+					fmt.Printf("Document %s moved to %s\n", args[0], moveTargetLocation)
+				}
 			} else {
-				fmt.Printf("Document %s moved to %s\n", docID, moveTargetLocation)
+				fmt.Printf("%d documents moved to %s\n", len(args), destination)
 			}
 		}
 		return nil
@@ -116,22 +133,16 @@ func runMoveRaw(payload map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
+	docIDs := make([]string, 0, len(ids))
 	for _, id := range ids {
 		docID, ok := id.(string)
 		if !ok || docID == "" {
 			return fmt.Errorf("documentIds must contain strings")
 		}
-		if err := validateResourceID(docID, "document-id"); err != nil {
-			return err
-		}
-		if folderID != "" {
-			if err := validateResourceID(folderID, "folder-id"); err != nil {
-				return err
-			}
-		}
-		if err := client.MoveDocument(docID, folderID, location); err != nil {
-			return err
-		}
+		docIDs = append(docIDs, docID)
 	}
-	return outputJSON(map[string]interface{}{"moved": len(ids)})
+	if err := client.MoveDocuments(docIDs, folderID, location); err != nil {
+		return err
+	}
+	return outputJSON(map[string]interface{}{"moved": len(docIDs)})
 }

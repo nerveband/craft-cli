@@ -191,18 +191,19 @@ Examples:
 }
 
 var tasksDeleteCmd = &cobra.Command{
-	Use:   "delete [task-id]",
-	Short: "Delete a task",
-	Long: `Delete a task by its ID.
+	Use:   "delete <task-id...>",
+	Short: "Delete one or more tasks",
+	Long: `Delete tasks by ID. Multiple IDs are sent in a single API request.
 
 Examples:
   craft tasks delete ID
+  craft tasks delete ID1 ID2 ID3
   craft tasks delete --json '{"idsToDelete":["ID"]}' --dry-run`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if taskJSON != "" || taskStdin {
 			return cobra.NoArgs(cmd, args)
 		}
-		return cobra.ExactArgs(1)(cmd, args)
+		return cobra.MinimumNArgs(1)(cmd, args)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if taskJSON != "" || taskStdin {
@@ -214,8 +215,13 @@ Examples:
 		}
 
 		if isDryRun() {
-			return dryRunOutput("delete task", map[string]interface{}{
-				"id": args[0], "destructive": true,
+			if len(args) == 1 {
+				return dryRunOutput("delete task", map[string]interface{}{
+					"id": args[0], "destructive": true,
+				})
+			}
+			return dryRunOutput("delete tasks", map[string]interface{}{
+				"ids": args, "count": len(args), "destructive": true,
 			})
 		}
 
@@ -224,13 +230,16 @@ Examples:
 			return err
 		}
 
-		taskID := args[0]
-		if err := client.DeleteTask(taskID); err != nil {
+		if err := client.DeleteTasks(args); err != nil {
 			return err
 		}
 
 		if !isQuiet() {
-			fmt.Printf("Task %s deleted\n", taskID)
+			if len(args) == 1 {
+				fmt.Printf("Task %s deleted\n", args[0])
+			} else {
+				fmt.Printf("%d tasks deleted\n", len(args))
+			}
 		}
 		return nil
 	},
