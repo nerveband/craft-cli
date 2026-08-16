@@ -101,7 +101,7 @@ func TestLiveRESTMutationCreateUpdateDelete(t *testing.T) {
 		t.Fatalf("UpdateDocument() live error = %v", err)
 	}
 
-	task, err := client.AddTask(prefix+" task", "inbox", "", "", "")
+	task, err := client.AddTask(prefix+" task", "inbox", "", "", "", nil)
 	if err != nil {
 		t.Fatalf("AddTask() live error = %v", err)
 	}
@@ -110,7 +110,7 @@ func TestLiveRESTMutationCreateUpdateDelete(t *testing.T) {
 			t.Logf("cleanup DeleteTask(%s) failed: %v", task.ID, err)
 		}
 	})
-	if err := client.UpdateTask(task.ID, "done", "", ""); err != nil {
+	if err := client.UpdateTask(task.ID, "done", "", "", nil); err != nil {
 		t.Fatalf("UpdateTask() live error = %v", err)
 	}
 	if err := client.DeleteTask(task.ID); err != nil {

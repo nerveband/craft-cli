@@ -991,7 +991,7 @@ func TestClient_TaskPayloads(t *testing.T) {
 		defer server.Close()
 
 		client := NewClient(server.URL)
-		task, err := client.AddTask("Review PR", "document", "doc1", "2026-02-01", "2026-02-15")
+		task, err := client.AddTask("Review PR", "document", "doc1", "2026-02-01", "2026-02-15", nil)
 		if err != nil {
 			t.Fatalf("AddTask() error = %v", err)
 		}
@@ -1043,7 +1043,7 @@ func TestClient_TaskPayloads(t *testing.T) {
 		defer server.Close()
 
 		client := NewClient(server.URL)
-		if err := client.UpdateTask("task1", "done", "2026-02-01", ""); err != nil {
+		if err := client.UpdateTask("task1", "done", "2026-02-01", "", nil); err != nil {
 			t.Fatalf("UpdateTask() error = %v", err)
 		}
 	})
