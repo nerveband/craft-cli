@@ -33,6 +33,8 @@ var (
 	collectionItemTitle    string
 	collectionItemProps    string
 	collectionAllowNew     bool
+	collectionSaveRevert   string
+	collectionDiff         bool
 	collectionItemID       string
 	collectionJSON         string
 	collectionStdin        bool
@@ -611,8 +613,17 @@ func init() {
 	collectionsCmd.AddCommand(collectionsActiveViewCmd)
 	collectionsActiveViewCmd.AddCommand(collectionsActiveViewSetCmd)
 	collectionsActiveViewSetCmd.Flags().StringVar(&collectionViewID, "view", "", "View ID")
-}
 
+	for _, c := range []*cobra.Command{
+		collectionsCreateCmd, collectionsRenameCmd,
+		collectionsAddCmd, collectionsUpdateCmd,
+		collectionsViewsCreateCmd, collectionsViewsUpdateCmd,
+		collectionsViewsDeleteCmd, collectionsActiveViewSetCmd,
+	} {
+		c.Flags().StringVar(&collectionSaveRevert, "save-revert", "", "Save MCP revertInfo JSON to a file")
+		c.Flags().BoolVar(&collectionDiff, "diff", false, "Include MCP edit-review metadata in output when possible")
+	}
+}
 func propertyFlagToMCP(property string) string {
 	property = strings.TrimSpace(property)
 	property = strings.TrimPrefix(property, "--")
@@ -638,6 +649,9 @@ func quoteMCPDynamicFlagName(name string) string {
 }
 
 func runMCPCollectionCommand(operation, command, tool string) error {
+	if tool == "craft_write" {
+		return runMCPWriteCommand(operation, command, []string{"mcp", "collections.views"}, collectionSaveRevert, collectionDiff)
+	}
 	if isDryRun() {
 		return dryRunOutput(operation, map[string]interface{}{
 			"backend":      "mcp",
@@ -645,9 +659,6 @@ func runMCPCollectionCommand(operation, command, tool string) error {
 			"command":      command,
 			"capabilities": []string{"mcp", "collections.views"},
 		})
-	}
-	if tool == "craft_write" && !yesFlag {
-		return fmt.Errorf("%s uses craft_write; rerun with --yes after reviewing --dry-run", operation)
 	}
 	client, err := getMCPClient()
 	if err != nil {
