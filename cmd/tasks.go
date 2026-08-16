@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"text/tabwriter"
+	"time"
 
 	"github.com/ashrafali/craft-cli/internal/models"
 	"github.com/spf13/cobra"
@@ -67,13 +68,21 @@ Scopes:
 }
 
 var (
-	taskMarkdown     string
-	taskLocation     string
-	taskScheduleDate string
-	taskDeadlineDate string
-	taskState        string
-	taskJSON         string
-	taskStdin        bool
+	taskMarkdown           string
+	taskLocation           string
+	taskScheduleDate       string
+	taskDeadlineDate       string
+	taskState              string
+	taskJSON               string
+	taskStdin              bool
+	taskRepeatType         string
+	taskRepeatFrequency    string
+	taskRepeatInterval     int
+	taskRepeatWeekdays     []int
+	taskRepeatEnd          string
+	taskRepeatReminder     string
+	taskRepeatSkipWeekends bool
+	taskRepeatDynamicDays  bool
 )
 
 var tasksAddCmd = &cobra.Command{
@@ -90,6 +99,8 @@ Examples:
   craft tasks add "Review PR" --schedule 2026-02-01
   craft tasks add "Submit report" --deadline 2026-02-15
   craft tasks add "Meeting notes" --location document --document ID
+  craft tasks add "Water plants" --repeat weekly --repeat-interval 2 --repeat-weekdays 1,3,5
+  craft tasks add "Standup" --repeat daily --repeat-skip-weekends --repeat-reminder 09:00
   craft tasks add --json '{"tasks":[{"markdown":"Buy groceries","location":{"type":"inbox"}}]}' --dry-run`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if taskJSON != "" || taskStdin {
@@ -116,7 +127,12 @@ Examples:
 			taskLocation = "inbox"
 		}
 
-		task, err := client.AddTask(description, taskLocation, taskDocumentID, taskScheduleDate, taskDeadlineDate, nil)
+		repeat, err := buildRepeatConfig(repeatFlagsFromVars())
+		if err != nil {
+			return err
+		}
+
+		task, err := client.AddTask(description, taskLocation, taskDocumentID, taskScheduleDate, taskDeadlineDate, repeat)
 		if err != nil {
 			return err
 		}
@@ -165,8 +181,12 @@ Examples:
 			return runTasksUpdateRaw(payload)
 		}
 
-		if taskState == "" && taskScheduleDate == "" && taskDeadlineDate == "" {
-			return fmt.Errorf("at least one of --state, --schedule, or --deadline is required")
+		repeat, err := buildRepeatConfig(repeatFlagsFromVars())
+		if err != nil {
+			return err
+		}
+		if taskState == "" && taskScheduleDate == "" && taskDeadlineDate == "" && repeat == nil {
+			return fmt.Errorf("at least one of --state, --schedule, --deadline, or a --repeat flag is required")
 		}
 
 		if isDryRun() {
@@ -179,7 +199,7 @@ Examples:
 		}
 
 		taskID := args[0]
-		if err := client.UpdateTask(taskID, taskState, taskScheduleDate, taskDeadlineDate, nil); err != nil {
+		if err := client.UpdateTask(taskID, taskState, taskScheduleDate, taskDeadlineDate, repeat); err != nil {
 			return err
 		}
 
@@ -260,16 +280,95 @@ func init() {
 	tasksAddCmd.Flags().StringVar(&taskJSON, "json", "", "Raw REST add tasks payload JSON")
 	tasksAddCmd.Flags().BoolVar(&taskStdin, "stdin", false, "Read raw REST add tasks payload from stdin")
 
-	tasksCmd.AddCommand(tasksUpdateCmd)
 	tasksUpdateCmd.Flags().StringVar(&taskState, "state", "", "New state: todo, done, canceled")
 	tasksUpdateCmd.Flags().StringVar(&taskScheduleDate, "schedule", "", "Schedule date (YYYY-MM-DD)")
 	tasksUpdateCmd.Flags().StringVar(&taskDeadlineDate, "deadline", "", "Deadline date (YYYY-MM-DD)")
 	tasksUpdateCmd.Flags().StringVar(&taskJSON, "json", "", "Raw REST update tasks payload JSON")
 	tasksUpdateCmd.Flags().BoolVar(&taskStdin, "stdin", false, "Read raw REST update tasks payload from stdin")
 
+	for _, c := range []*cobra.Command{tasksAddCmd, tasksUpdateCmd} {
+		c.Flags().StringVar(&taskRepeatType, "repeat", "", "Repeat rule: daily, weekly, monthly, yearly")
+		c.Flags().StringVar(&taskRepeatFrequency, "repeat-frequency", "", "Repeat frequency key (daily, weekly, monthly, yearly)")
+		c.Flags().IntVar(&taskRepeatInterval, "repeat-interval", 0, "Repeat every N periods")
+		c.Flags().IntSliceVar(&taskRepeatWeekdays, "repeat-weekdays", nil, "Repeat weekdays, 0=Sunday..6=Saturday (comma-separated)")
+		c.Flags().StringVar(&taskRepeatEnd, "repeat-end", "", "Repeat end date (YYYY-MM-DD)")
+		c.Flags().StringVar(&taskRepeatReminder, "repeat-reminder", "", "Reminder time (HH:MM)")
+		c.Flags().BoolVar(&taskRepeatSkipWeekends, "repeat-skip-weekends", false, "Skip weekend occurrences")
+		c.Flags().BoolVar(&taskRepeatDynamicDays, "repeat-dynamic-days", false, "Reschedule relative to completion date")
+	}
+
 	tasksCmd.AddCommand(tasksDeleteCmd)
 	tasksDeleteCmd.Flags().StringVar(&taskJSON, "json", "", "Raw REST delete tasks payload JSON")
 	tasksDeleteCmd.Flags().BoolVar(&taskStdin, "stdin", false, "Read raw REST delete tasks payload from stdin")
+}
+
+// repeatFlagValues carries repeat flag inputs so validation is testable.
+type repeatFlagValues struct {
+	Type         string
+	Frequency    string
+	Interval     int
+	Weekdays     []int
+	EndDate      string
+	Reminder     string
+	SkipWeekends bool
+	DynamicDays  bool
+}
+
+// buildRepeatConfig validates repeat flags and assembles a RepeatConfig.
+// Returns (nil, nil) when no repeat flag was provided.
+func buildRepeatConfig(v repeatFlagValues) (*models.RepeatConfig, error) {
+	hasRule := v.Type != "" || v.Frequency != ""
+	hasModifier := v.Interval != 0 || len(v.Weekdays) > 0 || v.EndDate != "" ||
+		v.Reminder != "" || v.SkipWeekends || v.DynamicDays
+	if !hasRule && !hasModifier {
+		return nil, nil
+	}
+	if !hasRule {
+		return nil, fmt.Errorf("repeat modifiers require --repeat or --repeat-frequency")
+	}
+	validRules := map[string]bool{"daily": true, "weekly": true, "monthly": true, "yearly": true}
+	if v.Type != "" && !validRules[v.Type] {
+		return nil, fmt.Errorf("invalid --repeat %q (expected daily, weekly, monthly, or yearly)", v.Type)
+	}
+	if v.Frequency != "" && !validRules[v.Frequency] {
+		return nil, fmt.Errorf("invalid --repeat-frequency %q (expected daily, weekly, monthly, or yearly)", v.Frequency)
+	}
+	if v.Interval < 0 {
+		return nil, fmt.Errorf("--repeat-interval must be >= 1")
+	}
+	for _, day := range v.Weekdays {
+		if day < 0 || day > 6 {
+			return nil, fmt.Errorf("--repeat-weekdays values must be 0 (Sunday) through 6 (Saturday), got %d", day)
+		}
+	}
+	if v.EndDate != "" {
+		if _, err := time.Parse("2006-01-02", v.EndDate); err != nil {
+			return nil, fmt.Errorf("invalid --repeat-end %q (expected YYYY-MM-DD)", v.EndDate)
+		}
+	}
+	return &models.RepeatConfig{
+		Type:         v.Type,
+		Frequency:    v.Frequency,
+		Interval:     v.Interval,
+		Weekdays:     v.Weekdays,
+		EndDate:      v.EndDate,
+		Reminder:     v.Reminder,
+		SkipWeekends: v.SkipWeekends,
+		DynamicDays:  v.DynamicDays,
+	}, nil
+}
+
+func repeatFlagsFromVars() repeatFlagValues {
+	return repeatFlagValues{
+		Type:         taskRepeatType,
+		Frequency:    taskRepeatFrequency,
+		Interval:     taskRepeatInterval,
+		Weekdays:     taskRepeatWeekdays,
+		EndDate:      taskRepeatEnd,
+		Reminder:     taskRepeatReminder,
+		SkipWeekends: taskRepeatSkipWeekends,
+		DynamicDays:  taskRepeatDynamicDays,
+	}
 }
 
 func readTaskPayload(jsonPayload string, stdin bool) (map[string]interface{}, error) {
