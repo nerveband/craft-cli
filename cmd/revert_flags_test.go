@@ -1,7 +1,9 @@
 package cmd
 
-import "testing"
-
+import (
+	"errors"
+	"testing"
+)
 func TestCollectionsWriteCmdsRegisterRevertFlags(t *testing.T) {
 	targets := []struct {
 		name string
@@ -23,5 +25,56 @@ func TestCollectionsWriteCmdsRegisterRevertFlags(t *testing.T) {
 		if !tc.has("diff") {
 			t.Errorf("%s missing --diff", tc.name)
 		}
+	}
+}
+
+func TestUpdateCmdRegistersRevertFlags(t *testing.T) {
+	if updateCmd.Flags().Lookup("save-revert") == nil {
+		t.Error("update missing --save-revert")
+	}
+	if updateCmd.Flags().Lookup("diff") == nil {
+		t.Error("update missing --diff")
+	}
+}
+
+func TestUpdateRevertFlagsRejectRESTBackend(t *testing.T) {
+	origBackend, origSave, origDiff := backendName, updateSaveRevert, updateDiff
+	defer func() { backendName, updateSaveRevert, updateDiff = origBackend, origSave, origDiff }()
+
+	backendName = "rest"
+	updateSaveRevert = "revert.json"
+	updateDiff = false
+
+	err := updateCmd.RunE(updateCmd, []string{"abc123"})
+	if err == nil {
+		t.Fatal("expected CAPABILITY_UNAVAILABLE error on --backend rest")
+	}
+	var cerr *cliCodeError
+	if !errors.As(err, &cerr) || cerr.Code != "CAPABILITY_UNAVAILABLE" {
+		t.Fatalf("expected cliCodeError CAPABILITY_UNAVAILABLE, got %v", err)
+	}
+}
+
+func TestUpdateRevertFlagsRejectContentUpdates(t *testing.T) {
+	origBackend, origSave, origDiff := backendName, updateSaveRevert, updateDiff
+	origMarkdown, origTitle := updateMarkdown, updateTitle
+	defer func() {
+		backendName, updateSaveRevert, updateDiff = origBackend, origSave, origDiff
+		updateMarkdown, updateTitle = origMarkdown, origTitle
+	}()
+
+	backendName = "auto"
+	updateSaveRevert = "revert.json"
+	updateDiff = false
+	updateTitle = ""
+	updateMarkdown = "# new body"
+
+	err := updateCmd.RunE(updateCmd, []string{"abc123"})
+	if err == nil {
+		t.Fatal("expected CAPABILITY_UNAVAILABLE error for content update with --save-revert")
+	}
+	var cerr *cliCodeError
+	if !errors.As(err, &cerr) || cerr.Code != "CAPABILITY_UNAVAILABLE" {
+		t.Fatalf("expected cliCodeError CAPABILITY_UNAVAILABLE, got %v", err)
 	}
 }
