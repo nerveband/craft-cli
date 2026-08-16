@@ -12,12 +12,12 @@ import (
 )
 
 var (
-	searchDocument       string
+	searchDocuments      []string
 	searchRegex          string
 	searchCaseSensitive  bool
 	searchContext        int
 	searchLocation       string
-	searchFolder         string
+	searchFolders        []string
 	searchMetadata       bool
 	searchCreatedAfter   string
 	searchCreatedBefore  string
@@ -27,6 +27,27 @@ var (
 	searchCount          bool
 	searchFields         string
 )
+
+// searchScope resolves multi-value --folder/--document flags into search parameters.
+type searchScope struct {
+	BlockDocID  string
+	FolderIDs   string
+	DocumentIDs string
+}
+
+// resolveSearchScope maps flag values to a search scope. Exactly one --document
+// keeps the existing block-search behavior; two or more scope a document search.
+func resolveSearchScope(folders, documents []string) searchScope {
+	scope := searchScope{FolderIDs: strings.Join(folders, ",")}
+	switch len(documents) {
+	case 0:
+	case 1:
+		scope.BlockDocID = documents[0]
+	default:
+		scope.DocumentIDs = strings.Join(documents, ",")
+	}
+	return scope
+}
 
 var searchCmd = &cobra.Command{
 	Use:   "search [query]",
@@ -40,6 +61,11 @@ Document search (default):
   craft search "budget" --folder <folder-id> --metadata
   craft search --created-after 2024-01-01 --modified-before 2024-12-31 "report"
 
+Multi-scope search:
+  craft search "budget" --folder ID1 --folder ID2
+  craft search "budget" --folder ID1,ID2
+  craft search "roadmap" --document DOC1,DOC2   # scoped document search
+
 Block search (with --document):
   craft search --document <doc-id> "keyword"
   craft search --document <doc-id> --regex "pattern" --case-sensitive
@@ -52,26 +78,27 @@ Block search (with --document):
 		}
 
 		format := getOutputFormat()
+		scope := resolveSearchScope(searchFolders, searchDocuments)
 
-		// Block search mode: --document is set
-		if searchDocument != "" {
-			return runBlockSearch(client, args, format)
+		// Block search mode: exactly one --document
+		if scope.BlockDocID != "" {
+			return runBlockSearch(client, args, format, scope.BlockDocID)
 		}
 
-		// Document search mode (default)
-		return runDocumentSearch(client, args, format)
+		// Document search mode (default; optionally scoped to folders/documents)
+		return runDocumentSearch(client, args, format, scope)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(searchCmd)
 
-	searchCmd.Flags().StringVar(&searchDocument, "document", "", "Document/block ID for block-level search")
+	searchCmd.Flags().StringSliceVar(&searchDocuments, "document", nil, "Document ID(s). One ID: block-level search. Multiple IDs (repeat or comma-separate): scope document search")
 	searchCmd.Flags().StringVar(&searchRegex, "regex", "", "RE2 regex pattern")
 	searchCmd.Flags().BoolVar(&searchCaseSensitive, "case-sensitive", false, "Case-sensitive matching (block search only)")
 	searchCmd.Flags().IntVar(&searchContext, "context", 5, "Number of surrounding blocks to include (block search only)")
 	searchCmd.Flags().StringVar(&searchLocation, "location", "", "Filter by location: unsorted, trash, templates, daily_notes")
-	searchCmd.Flags().StringVar(&searchFolder, "folder", "", "Filter by folder ID")
+	searchCmd.Flags().StringSliceVar(&searchFolders, "folder", nil, "Folder ID(s) to scope the search (repeat or comma-separate)")
 	searchCmd.Flags().BoolVar(&searchMetadata, "metadata", false, "Include document metadata in results")
 	searchCmd.Flags().StringVar(&searchCreatedAfter, "created-after", "", "Filter: created on or after date (YYYY-MM-DD)")
 	searchCmd.Flags().StringVar(&searchCreatedBefore, "created-before", "", "Filter: created on or before date (YYYY-MM-DD)")
@@ -83,7 +110,7 @@ func init() {
 }
 
 // runBlockSearch executes a block-level search within a document.
-func runBlockSearch(client *api.Client, args []string, format string) error {
+func runBlockSearch(client *api.Client, args []string, format, docID string) error {
 	// Determine the search pattern: positional arg or --regex
 	pattern := ""
 	if len(args) > 0 {
@@ -96,7 +123,7 @@ func runBlockSearch(client *api.Client, args []string, format string) error {
 		return fmt.Errorf("block search requires a query argument or --regex pattern")
 	}
 
-	result, err := client.SearchBlocks(searchDocument, pattern, searchCaseSensitive, searchContext, searchContext)
+	result, err := client.SearchBlocks(docID, pattern, searchCaseSensitive, searchContext, searchContext)
 	if err != nil {
 		return err
 	}
@@ -116,7 +143,7 @@ func runBlockSearch(client *api.Client, args []string, format string) error {
 }
 
 // runDocumentSearch executes an advanced document search.
-func runDocumentSearch(client *api.Client, args []string, format string) error {
+func runDocumentSearch(client *api.Client, args []string, format string, scope searchScope) error {
 	query := ""
 	if len(args) > 0 {
 		query = args[0]
@@ -130,7 +157,8 @@ func runDocumentSearch(client *api.Client, args []string, format string) error {
 	opts := api.SearchOptions{
 		Regexps:             searchRegex,
 		Location:            searchLocation,
-		FolderIDs:           searchFolder,
+		FolderIDs:           scope.FolderIDs,
+		DocumentIDs:         scope.DocumentIDs,
 		FetchMetadata:       searchMetadata,
 		CreatedDateGte:      searchCreatedAfter,
 		CreatedDateLte:      searchCreatedBefore,
