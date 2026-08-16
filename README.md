@@ -90,6 +90,7 @@ craft config add work https://connect.craft.do/links/YOUR_LINK/api/v1
 ```bash
 # List all documents
 craft list
+craft list --location daily_notes --daily-note-after 2026-08-01 --daily-note-before 2026-08-15
 
 # List with table format
 craft list --format table
@@ -102,6 +103,8 @@ craft get <document-id> --format markdown
 
 # Search documents
 craft search "meeting notes"
+craft search "budget" --folder ID1,ID2          # Multi-folder scope
+craft search "roadmap" --document DOC1,DOC2     # Multi-document scope
 
 # Create a document
 craft create --title "New Document" --markdown "# Hello World"
@@ -122,7 +125,9 @@ craft update <document-id> --mode replace --file content.md   # Replace all cont
 craft update <document-id> --mode replace --section "Intro" --file intro.md
 
 # Delete a document
-craft delete <document-id>            # Move to trash (soft-delete)
+craft delete <document-id>                       # Move to trash (soft-delete)
+craft delete DOC_ID1 DOC_ID2 DOC_ID3             # Batch delete in one API request
+craft move DOC_ID1 DOC_ID2 --to-folder FOLDER_ID # Batch move
 
 # Clear document content (does not delete the document)
 craft clear <document-id>
@@ -277,6 +282,9 @@ craft collections rename <collection-id> --name "New Name" --dry-run
 craft collections create --backend mcp --name Tasks --property Status=select --dry-run
 craft collections views list <collection-id>
 craft collections active-view set <collection-id> --view <view-id> --dry-run
+# Task recurring rules and batching
+craft tasks add "Standup" --repeat daily --repeat-skip-weekends --repeat-reminder 09:00
+craft tasks delete ID1 ID2 ID3
 
 # MCP page styling and reversible block mutations
 craft blocks update <page-id> --theme-id fire-horse --dry-run
@@ -284,7 +292,6 @@ craft blocks add <page-id> --markdown "Test" --backend mcp --save-revert revert.
 craft list --backend mcp --cursor <cursor> --limit 5
 craft whiteboards elements get <whiteboard-id>
 craft images view https://example.com/image.jpg
-
 # Read content from stdin
 cat document.md | craft create --title "Imported" --stdin
 echo "New content" | craft update <doc-id> --stdin

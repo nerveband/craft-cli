@@ -356,6 +356,12 @@
               "description": "Block(s) as JSON (array or single object)"
             },
             {
+              "name": "--json-file",
+              "type": "string",
+              "required": false,
+              "description": "Read block JSON from file"
+            },
+            {
               "name": "--language",
               "type": "string",
               "required": false,
@@ -519,8 +525,8 @@
         },
         {
           "name": "delete",
-          "description": "Delete a block",
-          "usage": "craft blocks delete [block-id]",
+          "description": "Delete one or more blocks",
+          "usage": "craft blocks delete \u003cblock-id...\u003e",
           "safety": {
             "readonly": false,
             "destructive": true,
@@ -855,6 +861,12 @@
               "description": "Block(s) as JSON with \"id\" fields (array or single object)"
             },
             {
+              "name": "--json-file",
+              "type": "string",
+              "required": false,
+              "description": "Read block JSON from file"
+            },
+            {
               "name": "--language",
               "type": "string",
               "required": false,
@@ -1060,6 +1072,18 @@
               "usage": "craft collections active-view set [collection-id] [flags]",
               "flags": [
                 {
+                  "name": "--diff",
+                  "type": "bool",
+                  "required": false,
+                  "description": "Include MCP edit-review metadata in output when possible"
+                },
+                {
+                  "name": "--save-revert",
+                  "type": "string",
+                  "required": false,
+                  "description": "Save MCP revertInfo JSON to a file"
+                },
+                {
                   "name": "--view",
                   "type": "string",
                   "required": false,
@@ -1109,6 +1133,12 @@
               "description": "Allow creating new options for select properties"
             },
             {
+              "name": "--diff",
+              "type": "bool",
+              "required": false,
+              "description": "Include MCP edit-review metadata in output when possible"
+            },
+            {
               "name": "--json",
               "type": "string",
               "required": false,
@@ -1126,6 +1156,12 @@
               "default": "[]",
               "required": false,
               "description": "MCP dynamic item property as Name=value or --Name=value (repeatable)"
+            },
+            {
+              "name": "--save-revert",
+              "type": "string",
+              "required": false,
+              "description": "Save MCP revertInfo JSON to a file"
             },
             {
               "name": "--stdin",
@@ -1163,6 +1199,12 @@
           "usage": "craft collections create [flags]",
           "flags": [
             {
+              "name": "--diff",
+              "type": "bool",
+              "required": false,
+              "description": "Include MCP edit-review metadata in output when possible"
+            },
+            {
               "name": "--json",
               "type": "string",
               "required": false,
@@ -1180,6 +1222,12 @@
               "default": "[]",
               "required": false,
               "description": "MCP dynamic property flag as Name=type or --Name=type (repeatable)"
+            },
+            {
+              "name": "--save-revert",
+              "type": "string",
+              "required": false,
+              "description": "Save MCP revertInfo JSON to a file"
             },
             {
               "name": "--stdin",
@@ -1309,10 +1357,22 @@
           "usage": "craft collections rename [collection-id] [flags]",
           "flags": [
             {
+              "name": "--diff",
+              "type": "bool",
+              "required": false,
+              "description": "Include MCP edit-review metadata in output when possible"
+            },
+            {
               "name": "--name",
               "type": "string",
               "required": false,
               "description": "New collection name"
+            },
+            {
+              "name": "--save-revert",
+              "type": "string",
+              "required": false,
+              "description": "Save MCP revertInfo JSON to a file"
             }
           ],
           "safety": {
@@ -1409,6 +1469,12 @@
               "description": "Allow creating new options for select properties"
             },
             {
+              "name": "--diff",
+              "type": "bool",
+              "required": false,
+              "description": "Include MCP edit-review metadata in output when possible"
+            },
+            {
               "name": "--item",
               "type": "string",
               "required": false,
@@ -1432,6 +1498,12 @@
               "default": "[]",
               "required": false,
               "description": "MCP dynamic item property as Name=value or --Name=value (repeatable)"
+            },
+            {
+              "name": "--save-revert",
+              "type": "string",
+              "required": false,
+              "description": "Save MCP revertInfo JSON to a file"
             },
             {
               "name": "--stdin",
@@ -1468,6 +1540,12 @@
               "usage": "craft collections views create [collection-id] [flags]",
               "flags": [
                 {
+                  "name": "--diff",
+                  "type": "bool",
+                  "required": false,
+                  "description": "Include MCP edit-review metadata in output when possible"
+                },
+                {
                   "name": "--json",
                   "type": "string",
                   "required": false,
@@ -1478,6 +1556,12 @@
                   "type": "string",
                   "required": false,
                   "description": "View name"
+                },
+                {
+                  "name": "--save-revert",
+                  "type": "string",
+                  "required": false,
+                  "description": "Save MCP revertInfo JSON to a file"
                 },
                 {
                   "name": "--stdin",
@@ -1512,6 +1596,18 @@
               "description": "Delete a collection view",
               "usage": "craft collections views delete [collection-id] [flags]",
               "flags": [
+                {
+                  "name": "--diff",
+                  "type": "bool",
+                  "required": false,
+                  "description": "Include MCP edit-review metadata in output when possible"
+                },
+                {
+                  "name": "--save-revert",
+                  "type": "string",
+                  "required": false,
+                  "description": "Save MCP revertInfo JSON to a file"
+                },
                 {
                   "name": "--view",
                   "type": "string",
@@ -1559,6 +1655,12 @@
               "usage": "craft collections views update [collection-id] [flags]",
               "flags": [
                 {
+                  "name": "--diff",
+                  "type": "bool",
+                  "required": false,
+                  "description": "Include MCP edit-review metadata in output when possible"
+                },
+                {
                   "name": "--json",
                   "type": "string",
                   "required": false,
@@ -1569,6 +1671,12 @@
                   "type": "string",
                   "required": false,
                   "description": "View name"
+                },
+                {
+                  "name": "--save-revert",
+                  "type": "string",
+                  "required": false,
+                  "description": "Save MCP revertInfo JSON to a file"
                 },
                 {
                   "name": "--stdin",
@@ -1993,8 +2101,8 @@
     },
     {
       "name": "delete",
-      "description": "Move a document to trash",
-      "usage": "craft delete \u003cdocument-id\u003e [flags]",
+      "description": "Move one or more documents to trash",
+      "usage": "craft delete \u003cdocument-id...\u003e [flags]",
       "flags": [
         {
           "name": "--json",
@@ -2131,8 +2239,8 @@
         },
         {
           "name": "delete",
-          "description": "Delete a folder",
-          "usage": "craft folders delete [folder-id] [flags]",
+          "description": "Delete one or more folders",
+          "usage": "craft folders delete \u003cfolder-id...\u003e [flags]",
           "flags": [
             {
               "name": "--json",
@@ -2407,6 +2515,18 @@
           "type": "string",
           "required": false,
           "description": "MCP pagination cursor"
+        },
+        {
+          "name": "--daily-note-after",
+          "type": "string",
+          "required": false,
+          "description": "Filter daily notes dated on or after this date (YYYY-MM-DD)"
+        },
+        {
+          "name": "--daily-note-before",
+          "type": "string",
+          "required": false,
+          "description": "Filter daily notes dated on or before this date (YYYY-MM-DD)"
         },
         {
           "name": "--fields",
@@ -2896,8 +3016,8 @@
     },
     {
       "name": "move",
-      "description": "Move a document to a folder or location",
-      "usage": "craft move [document-id] [flags]",
+      "description": "Move one or more documents to a folder or location",
+      "usage": "craft move \u003cdocument-id...\u003e [flags]",
       "flags": [
         {
           "name": "--json",
@@ -3196,9 +3316,10 @@
         },
         {
           "name": "--document",
-          "type": "string",
+          "type": "stringSlice",
+          "default": "[]",
           "required": false,
-          "description": "Document/block ID for block-level search"
+          "description": "Document ID(s). One ID: block-level search. Multiple IDs (repeat or comma-separate): scope document search"
         },
         {
           "name": "--fields",
@@ -3208,9 +3329,10 @@
         },
         {
           "name": "--folder",
-          "type": "string",
+          "type": "stringSlice",
+          "default": "[]",
           "required": false,
-          "description": "Filter by folder ID"
+          "description": "Folder ID(s) to scope the search (repeat or comma-separate)"
         },
         {
           "name": "--limit",
@@ -3308,6 +3430,12 @@
               "description": "Deadline date (YYYY-MM-DD)"
             },
             {
+              "name": "--diff",
+              "type": "bool",
+              "required": false,
+              "description": "Not supported for tasks; returns CAPABILITY_UNAVAILABLE"
+            },
+            {
               "name": "--document",
               "type": "string",
               "required": false,
@@ -3325,6 +3453,62 @@
               "default": "inbox",
               "required": false,
               "description": "Location: inbox, document"
+            },
+            {
+              "name": "--repeat",
+              "type": "string",
+              "required": false,
+              "description": "Repeat rule: daily, weekly, monthly, yearly"
+            },
+            {
+              "name": "--repeat-dynamic-days",
+              "type": "bool",
+              "required": false,
+              "description": "Reschedule relative to completion date"
+            },
+            {
+              "name": "--repeat-end",
+              "type": "string",
+              "required": false,
+              "description": "Repeat end date (YYYY-MM-DD)"
+            },
+            {
+              "name": "--repeat-frequency",
+              "type": "string",
+              "required": false,
+              "description": "Repeat frequency key (daily, weekly, monthly, yearly)"
+            },
+            {
+              "name": "--repeat-interval",
+              "type": "int",
+              "default": "0",
+              "required": false,
+              "description": "Repeat every N periods"
+            },
+            {
+              "name": "--repeat-reminder",
+              "type": "string",
+              "required": false,
+              "description": "Reminder time (HH:MM)"
+            },
+            {
+              "name": "--repeat-skip-weekends",
+              "type": "bool",
+              "required": false,
+              "description": "Skip weekend occurrences"
+            },
+            {
+              "name": "--repeat-weekdays",
+              "type": "intSlice",
+              "default": "[]",
+              "required": false,
+              "description": "Repeat weekdays, 0=Sunday..6=Saturday (comma-separated)"
+            },
+            {
+              "name": "--save-revert",
+              "type": "string",
+              "required": false,
+              "description": "Not supported for tasks; returns CAPABILITY_UNAVAILABLE (use craft blocks update --save-revert)"
             },
             {
               "name": "--schedule",
@@ -3354,14 +3538,26 @@
         },
         {
           "name": "delete",
-          "description": "Delete a task",
-          "usage": "craft tasks delete [task-id] [flags]",
+          "description": "Delete one or more tasks",
+          "usage": "craft tasks delete \u003ctask-id...\u003e [flags]",
           "flags": [
+            {
+              "name": "--diff",
+              "type": "bool",
+              "required": false,
+              "description": "Not supported for tasks; returns CAPABILITY_UNAVAILABLE"
+            },
             {
               "name": "--json",
               "type": "string",
               "required": false,
               "description": "Raw REST delete tasks payload JSON"
+            },
+            {
+              "name": "--save-revert",
+              "type": "string",
+              "required": false,
+              "description": "Not supported for tasks; returns CAPABILITY_UNAVAILABLE (use craft blocks update --save-revert)"
             },
             {
               "name": "--stdin",
@@ -3398,8 +3594,9 @@
             {
               "name": "--scope",
               "type": "string",
+              "default": "all",
               "required": false,
-              "description": "Filter scope: active, upcoming, inbox, logbook"
+              "description": "Filter scope: all, active, upcoming, inbox, logbook"
             }
           ],
           "safety": {
@@ -3427,10 +3624,72 @@
               "description": "Deadline date (YYYY-MM-DD)"
             },
             {
+              "name": "--diff",
+              "type": "bool",
+              "required": false,
+              "description": "Not supported for tasks; returns CAPABILITY_UNAVAILABLE"
+            },
+            {
               "name": "--json",
               "type": "string",
               "required": false,
               "description": "Raw REST update tasks payload JSON"
+            },
+            {
+              "name": "--repeat",
+              "type": "string",
+              "required": false,
+              "description": "Repeat rule: daily, weekly, monthly, yearly"
+            },
+            {
+              "name": "--repeat-dynamic-days",
+              "type": "bool",
+              "required": false,
+              "description": "Reschedule relative to completion date"
+            },
+            {
+              "name": "--repeat-end",
+              "type": "string",
+              "required": false,
+              "description": "Repeat end date (YYYY-MM-DD)"
+            },
+            {
+              "name": "--repeat-frequency",
+              "type": "string",
+              "required": false,
+              "description": "Repeat frequency key (daily, weekly, monthly, yearly)"
+            },
+            {
+              "name": "--repeat-interval",
+              "type": "int",
+              "default": "0",
+              "required": false,
+              "description": "Repeat every N periods"
+            },
+            {
+              "name": "--repeat-reminder",
+              "type": "string",
+              "required": false,
+              "description": "Reminder time (HH:MM)"
+            },
+            {
+              "name": "--repeat-skip-weekends",
+              "type": "bool",
+              "required": false,
+              "description": "Skip weekend occurrences"
+            },
+            {
+              "name": "--repeat-weekdays",
+              "type": "intSlice",
+              "default": "[]",
+              "required": false,
+              "description": "Repeat weekdays, 0=Sunday..6=Saturday (comma-separated)"
+            },
+            {
+              "name": "--save-revert",
+              "type": "string",
+              "required": false,
+              "description": "Not supported for tasks; returns CAPABILITY_UNAVAILABLE (use craft blocks update --save-revert)"
             },
             {
               "name": "--schedule",
@@ -3488,6 +3747,12 @@
           "description": "Max bytes per insert chunk (helps avoid API payload limits)"
         },
         {
+          "name": "--diff",
+          "type": "bool",
+          "required": false,
+          "description": "Include MCP edit-review metadata in output when possible (title-only updates)"
+        },
+        {
           "name": "--file",
           "type": "string",
           "required": false,
@@ -3511,6 +3776,12 @@
           "default": "append",
           "required": false,
           "description": "Update mode (append, replace)"
+        },
+        {
+          "name": "--save-revert",
+          "type": "string",
+          "required": false,
+          "description": "Save MCP revertInfo JSON to a file (title-only updates)"
         },
         {
           "name": "--section",

@@ -288,6 +288,7 @@ func init() {
 	tasksAddCmd.Flags().StringVar(&taskJSON, "json", "", "Raw REST add tasks payload JSON")
 	tasksAddCmd.Flags().BoolVar(&taskStdin, "stdin", false, "Read raw REST add tasks payload from stdin")
 
+	tasksCmd.AddCommand(tasksUpdateCmd)
 	tasksUpdateCmd.Flags().StringVar(&taskState, "state", "", "New state: todo, done, canceled")
 	tasksUpdateCmd.Flags().StringVar(&taskScheduleDate, "schedule", "", "Schedule date (YYYY-MM-DD)")
 	tasksUpdateCmd.Flags().StringVar(&taskDeadlineDate, "deadline", "", "Deadline date (YYYY-MM-DD)")

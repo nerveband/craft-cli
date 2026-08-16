@@ -18,6 +18,7 @@ No interactive login. Set credentials via:
 ## Agent guardrails
 
 - Always use `--dry-run` before delete, move, or clear
+- Batch deletes and moves accept multiple positional IDs and send one API request: `craft delete ID1 ID2`, `craft move ID1 ID2 --to-folder FID`, `craft tasks delete ID1 ID2`, `craft folders delete ID1 ID2`, `craft blocks delete ID1 ID2`
 - Use `--quiet` to suppress status messages (cleaner for parsing)
 - Use `--id-only` or `--output-only <field>` to reduce output tokens
 - Use `--limit N` to cap list/search results
@@ -72,7 +73,7 @@ When the user says "go release", "run the release", or otherwise asks to release
 - IDs with path traversals (`../`), query params (`?`), or control characters are rejected.
 - `craft get --output` refuses paths outside the current working directory unless `--allow-outside-cwd` is explicit.
 - Errors include `(retryable)` or `(not retryable)` in the hint. Only retry on rate limits and server errors.
-- REST is best for deterministic direct API operations. MCP may expose richer agent-facing capabilities such as link resolution, themes/covers/backdrops, collection views, and block revert metadata.
+- `--save-revert`/`--diff` on `craft tasks ...` always return `CAPABILITY_UNAVAILABLE`: Craft MCP has no task-write surface. Use `craft blocks update <block-id> --save-revert` on the task's block instead. On `craft update` they support title-only updates.
 - Collection view controls (`collections views ...`, `collections active-view set`) are MCP-backed because the captured REST docs do not expose stable view endpoints.
 - Whole-doc `craft update --mode replace` is markdown-based: it clears and reinserts content blocks, so block IDs change and block-only styling/state such as `color`, `font`, `textAlignment`, card layout, task state, media/embed fields, comments, and revert anchors is not preserved. Do not use whole-doc replace on styled documents just to make text edits. Prefer `craft blocks update BLOCK_ID --markdown ...` for existing blocks, which preserves omitted styling fields. If new blocks are created, style only those changed/new blocks.
 - `craft update --mode replace --section "Heading"` uses a block-boundary delta replacement: only the target section's top-level block range is deleted/reinserted, preserving IDs and styling outside that section.
