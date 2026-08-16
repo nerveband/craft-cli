@@ -30,7 +30,7 @@ var (
 	transformExpr string
 	dataSource    string
 	cfgManager    *config.Manager
-	version       = "1.11.4"
+	version       = "1.12.0"
 
 	// Global flags for LLM/scripting friendliness
 	quietMode      bool
