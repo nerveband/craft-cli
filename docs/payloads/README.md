@@ -1,31 +1,10 @@
-# Craft payloads: "Craft Everything In One"
+# Local payload comparisons
 
-Payload snapshots are intentionally **not committed** to git because they may contain private document content.
-
-## Regenerate locally
-
-Document ID: 6DB46B0B-FBE5-4936-88E7-38B91A4F888C
-
-### MCP (JSON-RPC tools/call blocks_get, format=json)
+Private document snapshots must stay outside source control. Use existing profiles and an explicitly selected document. Do not paste working link identifiers or API keys into scripts or reports.
 
 ```bash
-curl -sS -X POST https://mcp.craft.do/links/548eu6Zqdao/mcp \
-  -H 'Content-Type: application/json' \
-  -H 'Accept: application/json, text/event-stream' \
-  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"blocks_get","arguments":{"id":"6DB46B0B-FBE5-4936-88E7-38B91A4F888C","format":"json"}}}' \
-  > docs/payloads/craft-everything-mcp.json
+craft get DOCUMENT_ID --profile work --format structured --deliver file:document-rest.json
+craft mcp call craft_read --command "blocks get --id DOCUMENT_ID --format json" --profile work-mcp > document-mcp.json
 ```
 
-### API (documents?documentId=<id>)
-
-```bash
-curl -sS "https://connect.craft.do/links/HHRuPxZZTJ6/api/v1/documents?documentId=6DB46B0B-FBE5-4936-88E7-38B91A4F888C" \
-  > docs/payloads/craft-everything-api.json
-```
-
-### CLI (craft get --format json)
-
-```bash
-craft get "6DB46B0B-FBE5-4936-88E7-38B91A4F888C" --format json \
-  > docs/payloads/craft-everything-cli.json
-```
+REST document content comes from `GET /blocks?id=DOCUMENT_ID`, not `GET /documents?documentId=...`. Craft MCP exposes `craft_read` with a command string, not a `blocks_get` tool. Confirm current command options through `craft mcp call craft_read --command "blocks get --help"` before fetching private content. Use fixture data for tests.

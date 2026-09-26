@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	listFolderID       string
-	listLocation       string
+	listFolderID        string
+	listLocation        string
 	listCreatedAfter    string
 	listCreatedBefore   string
 	listModifiedAfter   string
@@ -18,11 +18,11 @@ var (
 	listDailyNoteAfter  string
 	listDailyNoteBefore string
 	listMetadata        bool
-	listLimit          int
-	listCount          bool
-	listFields         string
-	listCursor         string
-	listOffset         int
+	listLimit           int
+	listCount           bool
+	listFields          string
+	listCursor          string
+	listOffset          int
 )
 
 var listCmd = &cobra.Command{
@@ -51,7 +51,10 @@ Examples:
   craft list --created-after 2025-01-01           # Created since Jan 2025
   craft list --modified-after 2025-06-01 --metadata  # Recently modified with metadata`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if backendName == "mcp" || listCursor != "" || listOffset > 0 {
+		if backendName == "rest" && (listCursor != "" || listOffset > 0) {
+			return fmt.Errorf("REST document listing has no server pagination; use --backend mcp for --cursor/--offset")
+		}
+		if backendName == "mcp" || selectedMCPProfile() || listCursor != "" || listOffset > 0 {
 			return runMCPListDocuments()
 		}
 
@@ -134,8 +137,8 @@ func init() {
 	listCmd.Flags().StringVar(&listDailyNoteAfter, "daily-note-after", "", "Filter daily notes dated on or after this date (YYYY-MM-DD)")
 	listCmd.Flags().StringVar(&listDailyNoteBefore, "daily-note-before", "", "Filter daily notes dated on or before this date (YYYY-MM-DD)")
 	listCmd.Flags().BoolVar(&listMetadata, "metadata", false, "Fetch document metadata (dates, authors)")
-	listCmd.Flags().IntVar(&listLimit, "limit", 0, "Maximum number of results to return (0 = all)")
-	listCmd.Flags().BoolVar(&listCount, "count", false, "Output only the matching document count")
+	listCmd.Flags().IntVar(&listLimit, "limit", 0, "Maximum returned records (REST truncates locally; MCP pages on the server; 0 = all)")
+	listCmd.Flags().BoolVar(&listCount, "count", false, "Count matching documents (REST fetches all records; upstream has no count endpoint)")
 	listCmd.Flags().StringVar(&listFields, "fields", "", "Comma-separated fields to include in JSON output (e.g. id,title,lastModifiedAt)")
 	listCmd.Flags().StringVar(&listCursor, "cursor", "", "MCP pagination cursor")
 	listCmd.Flags().IntVar(&listOffset, "offset", 0, "MCP pagination offset")

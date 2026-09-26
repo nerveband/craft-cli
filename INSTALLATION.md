@@ -5,33 +5,33 @@
 ### macOS (ARM64)
 ```bash
 cd /usr/local/bin
-curl -L https://github.com/ashrafali/craft-cli/releases/latest/download/craft-cli_Darwin_arm64.tar.gz | tar xz
+curl -L https://github.com/nerveband/craft-cli/releases/latest/download/craft-cli_Darwin_arm64.tar.gz | tar xz
 chmod +x craft
 ```
 
 ### macOS (Intel)
 ```bash
 cd /usr/local/bin
-curl -L https://github.com/ashrafali/craft-cli/releases/latest/download/craft-cli_Darwin_x86_64.tar.gz | tar xz
+curl -L https://github.com/nerveband/craft-cli/releases/latest/download/craft-cli_Darwin_x86_64.tar.gz | tar xz
 chmod +x craft
 ```
 
 ### Linux (x64)
 ```bash
 cd /usr/local/bin
-sudo curl -L https://github.com/ashrafali/craft-cli/releases/latest/download/craft-cli_Linux_x86_64.tar.gz | tar xz
+sudo curl -L https://github.com/nerveband/craft-cli/releases/latest/download/craft-cli_Linux_x86_64.tar.gz | tar xz
 sudo chmod +x craft
 ```
 
 ### Linux (ARM64)
 ```bash
 cd /usr/local/bin
-sudo curl -L https://github.com/ashrafali/craft-cli/releases/latest/download/craft-cli_Linux_arm64.tar.gz | tar xz
+sudo curl -L https://github.com/nerveband/craft-cli/releases/latest/download/craft-cli_Linux_arm64.tar.gz | tar xz
 sudo chmod +x craft
 ```
 
 ### Windows (x64)
-1. Download `craft-cli_Windows_x86_64.zip` from [releases](https://github.com/ashrafali/craft-cli/releases/latest)
+1. Download `craft-cli_Windows_x86_64.zip` from [releases](https://github.com/nerveband/craft-cli/releases/latest)
 2. Extract `craft.exe` to a directory in your PATH
 3. Verify installation: `craft version`
 
@@ -44,7 +44,7 @@ sudo chmod +x craft
 ### Steps
 ```bash
 # Clone the repository
-git clone https://github.com/ashrafali/craft-cli.git
+git clone https://github.com/nerveband/craft-cli.git
 cd craft-cli
 
 # Build
@@ -134,7 +134,7 @@ You can edit this file directly or use `craft config` commands.
 ## Support
 
 For issues and questions:
-- GitHub Issues: https://github.com/ashrafali/craft-cli/issues
+- GitHub Issues: https://github.com/nerveband/craft-cli/issues
 - Documentation: See README.md
 
 ## Next Steps

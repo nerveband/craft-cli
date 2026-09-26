@@ -172,10 +172,14 @@ var listProfilesCmd = &cobra.Command{
 	Long:  "Show all saved API profiles",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		profiles, err := cfgManager.ListProfiles()
+		profiles = safeProfiles(profiles)
 		if err != nil {
 			return fmt.Errorf("failed to list profiles: %w", err)
 		}
 
+		if isJSONFormat(getOutputFormat()) {
+			return outputJSON(map[string]interface{}{"items": profiles, "source": "config_file"})
+		}
 		if len(profiles) == 0 {
 			fmt.Println("No profiles configured. Run 'craft config add-rest <name> --api-url URL' or 'craft config add-mcp <name> --mcp-url URL' to add one.")
 			return nil
@@ -208,7 +212,7 @@ var resetCmd = &cobra.Command{
 	Long:  "Remove the configuration file and reset all settings",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Skip confirmation if --force flag is used or in quiet mode
-		if !forceReset && !isQuiet() {
+		if !forceReset && !yesFlag && !isQuiet() {
 			profiles, _ := cfgManager.ListProfiles()
 			if len(profiles) > 0 {
 				fmt.Println("This will delete all profiles:")

@@ -26,8 +26,11 @@ Examples:
 }
 
 var (
-	taskScope      string
-	taskDocumentID string
+	taskClearSchedule bool
+	taskClearDeadline bool
+	taskNoRepeat      bool
+	taskScope         string
+	taskDocumentID    string
 )
 
 var tasksListCmd = &cobra.Command{
@@ -136,6 +139,9 @@ Examples:
 			return err
 		}
 
+		if isDryRun() {
+			return dryRunOutput("create task", map[string]interface{}{"markdown": description, "location": taskLocation, "documentId": taskDocumentID, "repeat": repeat, "scheduleDate": taskScheduleDate, "deadlineDate": taskDeadlineDate, "reversible": false})
+		}
 		task, err := client.AddTask(description, taskLocation, taskDocumentID, taskScheduleDate, taskDeadlineDate, repeat)
 		if err != nil {
 			return err
@@ -191,28 +197,77 @@ Examples:
 		if err != nil {
 			return err
 		}
-		if taskState == "" && taskScheduleDate == "" && taskDeadlineDate == "" && repeat == nil {
-			return fmt.Errorf("at least one of --state, --schedule, --deadline, or a --repeat flag is required")
+		if err := validateResourceID(args[0], "task-id"); err != nil {
+			return err
 		}
-
+		if taskClearSchedule && taskScheduleDate != "" || taskClearDeadline && taskDeadlineDate != "" || taskNoRepeat && repeat != nil {
+			return fmt.Errorf("clear flags cannot be combined with replacement values")
+		}
+		info := map[string]interface{}{}
+		item := map[string]interface{}{"id": args[0]}
+		if taskState != "" {
+			if taskState != "todo" && taskState != "done" && taskState != "canceled" {
+				return fmt.Errorf("invalid state %q; valid: todo, done, canceled", taskState)
+			}
+			info["state"] = taskState
+		}
+		if taskScheduleDate != "" {
+			info["scheduleDate"] = taskScheduleDate
+		}
+		if taskDeadlineDate != "" {
+			info["deadlineDate"] = taskDeadlineDate
+		}
+		if taskClearSchedule {
+			info["scheduleDate"] = nil
+		}
+		if taskClearDeadline {
+			info["deadlineDate"] = nil
+		}
+		if len(info) > 0 {
+			item["taskInfo"] = info
+		}
+		if repeat != nil {
+			item["repeat"] = repeat
+		}
+		if taskNoRepeat {
+			item["repeat"] = nil
+		}
+		if cmd.Flags().Changed("markdown") {
+			item["markdown"] = taskMarkdown
+		}
+		if cmd.Flags().Changed("location") || cmd.Flags().Changed("document") {
+			loc := taskLocation
+			if taskDocumentID != "" {
+				loc = "document"
+			}
+			if loc != "inbox" && loc != "document" {
+				return fmt.Errorf("invalid location %q; valid: inbox, document", loc)
+			}
+			location := map[string]string{"type": loc}
+			if loc == "document" {
+				if err := validateResourceID(taskDocumentID, "document-id"); err != nil {
+					return err
+				}
+				location["documentId"] = taskDocumentID
+			}
+			item["location"] = location
+		}
+		if len(item) == 1 {
+			return fmt.Errorf("provide --state, --schedule, --deadline, --markdown, --location, a repeat rule or a clear flag")
+		}
+		payload := map[string]interface{}{"tasksToUpdate": []interface{}{item}}
 		if isDryRun() {
-			return dryRunOutput("update task", map[string]interface{}{"id": args[0]})
+			return dryRunOutput("update task", map[string]interface{}{"payload": payload, "reversible": false})
 		}
-
 		client, err := getAPIClient()
 		if err != nil {
 			return err
 		}
-
-		taskID := args[0]
-		if err := client.UpdateTask(taskID, taskState, taskScheduleDate, taskDeadlineDate, repeat); err != nil {
+		result, err := client.RequestJSON("PUT", "/tasks", payload)
+		if err != nil {
 			return err
 		}
-
-		if !isQuiet() {
-			fmt.Printf("Task %s updated\n", taskID)
-		}
-		return nil
+		return outputRawJSON(result)
 	},
 }
 
@@ -289,6 +344,12 @@ func init() {
 	tasksAddCmd.Flags().BoolVar(&taskStdin, "stdin", false, "Read raw REST add tasks payload from stdin")
 
 	tasksCmd.AddCommand(tasksUpdateCmd)
+	tasksUpdateCmd.Flags().BoolVar(&taskClearSchedule, "clear-schedule", false, "Clear scheduled date with null")
+	tasksUpdateCmd.Flags().BoolVar(&taskClearDeadline, "clear-deadline", false, "Clear deadline with null")
+	tasksUpdateCmd.Flags().BoolVar(&taskNoRepeat, "no-repeat", false, "Remove recurrence with null")
+	tasksUpdateCmd.Flags().StringVar(&taskMarkdown, "markdown", "", "Update task markdown")
+	tasksUpdateCmd.Flags().StringVar(&taskLocation, "location", "inbox", "Move task to inbox or document")
+	tasksUpdateCmd.Flags().StringVar(&taskDocumentID, "document", "", "Destination document ID")
 	tasksUpdateCmd.Flags().StringVar(&taskState, "state", "", "New state: todo, done, canceled")
 	tasksUpdateCmd.Flags().StringVar(&taskScheduleDate, "schedule", "", "Schedule date (YYYY-MM-DD)")
 	tasksUpdateCmd.Flags().StringVar(&taskDeadlineDate, "deadline", "", "Deadline date (YYYY-MM-DD)")
@@ -316,14 +377,13 @@ func init() {
 }
 
 // rejectTaskRevertFlags returns a structured error when --save-revert/--diff
-// are used on tasks: Craft MCP exposes no task-write commands, so there is no
-// revert metadata to capture for task mutations.
+// are used on tasks: task-write revert support has not been verified for this adapter.
 func rejectTaskRevertFlags() error {
 	if taskSaveRevert == "" && !taskDiff {
 		return nil
 	}
 	return newCLIError("CAPABILITY_UNAVAILABLE",
-		"Craft MCP does not expose task writes; revert metadata is unavailable for tasks. For the task's underlying block, use craft blocks update <block-id> --save-revert")
+		"Craft MCP exposes task writes, but task-write revert metadata is not verified by this CLI. For the task's underlying block, use craft blocks update <block-id> --save-revert")
 }
 
 // repeatFlagValues carries repeat flag inputs so validation is testable.
@@ -366,20 +426,48 @@ func buildRepeatConfig(v repeatFlagValues) (*models.RepeatConfig, error) {
 		}
 	}
 	if v.EndDate != "" {
-		if _, err := time.Parse("2006-01-02", v.EndDate); err != nil {
-			return nil, fmt.Errorf("invalid --repeat-end %q (expected YYYY-MM-DD)", v.EndDate)
+		return nil, fmt.Errorf("--repeat-end is not supported by the current Craft contract; omit it")
+	}
+	frequency := v.Type
+	if frequency == "" {
+		frequency = v.Frequency
+	}
+	if v.Type != "" && v.Frequency != "" && v.Type != v.Frequency {
+		return nil, fmt.Errorf("--repeat and --repeat-frequency must agree")
+	}
+	r := &models.RepeatConfig{Type: "fixed", Frequency: frequency, Interval: v.Interval}
+	if v.DynamicDays {
+		r.Type = "flexible"
+	}
+	if len(v.Weekdays) > 0 {
+		if frequency != "weekly" {
+			return nil, fmt.Errorf("--repeat-weekdays requires --repeat weekly")
+		}
+		days := []string{}
+		names := []string{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"}
+		for _, d := range v.Weekdays {
+			days = append(days, names[d])
+		}
+		r.Weekly = map[string]interface{}{"days": days}
+	}
+	if v.SkipWeekends {
+		switch frequency {
+		case "daily":
+			r.Daily = map[string]interface{}{"skipWeekends": true}
+		case "monthly":
+			r.Monthly = map[string]interface{}{"skipWeekends": true}
+		default:
+			return nil, fmt.Errorf("--repeat-skip-weekends requires daily or monthly")
 		}
 	}
-	return &models.RepeatConfig{
-		Type:         v.Type,
-		Frequency:    v.Frequency,
-		Interval:     v.Interval,
-		Weekdays:     v.Weekdays,
-		EndDate:      v.EndDate,
-		Reminder:     v.Reminder,
-		SkipWeekends: v.SkipWeekends,
-		DynamicDays:  v.DynamicDays,
-	}, nil
+	if v.Reminder != "" {
+		parsed, err := time.Parse("15:04", v.Reminder)
+		if err != nil {
+			return nil, fmt.Errorf("invalid --repeat-reminder %q; expected HH:MM", v.Reminder)
+		}
+		r.Reminder = map[string]interface{}{"enabled": true, "dateOffset": parsed.Hour()*60 + parsed.Minute()}
+	}
+	return r, nil
 }
 
 func repeatFlagsFromVars() repeatFlagValues {

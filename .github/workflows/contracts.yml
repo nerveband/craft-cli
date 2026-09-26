@@ -1,0 +1,33 @@
+name: Contract verification
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 9 * * 1'
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go test ./... && go vet ./... && go build -o /tmp/craft-cli .
+        env:
+          CRAFT_LIVE_TESTS: '0'
+          CRAFT_LIVE_MUTATION_TESTS: '0'
+      - run: python3 scripts/verify_agent_contract.py /tmp/craft-cli
+      - run: python3 -m pip install jsonschema==4.26.0
+      - run: python3 scripts/validate_clispec.py
+  upstream-drift:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: python3 scripts/craft_contract.py --check

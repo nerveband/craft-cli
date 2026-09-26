@@ -1,17 +1,12 @@
 {
   "tools": [
     {
-      "annotations": {
-        "destructiveHint": false,
-        "openWorldHint": false,
-        "readOnlyHint": true
-      },
-      "description": "Read/search Craft; batch with semicolons.\nKeywords: find/open/read/search docs/pages/cards/blocks, daily notes, tasks/inbox/logbook, folders/spaces, collections/tables/schema/items/fields/relations, links/URLs/richUrl, images/files/videos, themes/washi.\nCmds:\n  folders list [--filter \u003cregex\u003e]\n  folders explore-icons \u003cterm\u003e\n  documents list [--location unsorted|trash|templates|daily_notes | --folder \u003cfolderId\u003e]\n  documents resolve-link \u003curl\u003e -\u003e rootBlockId for blocks/write commands\n  tasks list [--scope active|upcoming|inbox|logbook|document|all]  # all = every task block in full-space, not a union of other scopes\n  blocks get \u003crootBlockId\u003e [--depth \u003cdepth\u003e] [--format json|markdown]\n  blocks get --date today\n  blocks explore-themes --type page|fonts|code\n  blocks explore-washi\n  blocks search-unsplash \u003cquery\u003e\n  collections list [--document \u003crootBlockId\u003e]\n  collections schema --collection \u003ccollectionId\u003e\n  collections items-get --collection \u003ccollectionId\u003e\n  collections views-list --collection \u003ccollectionId\u003e\n  connection info\n  whiteboards elements get --whiteboard \u003cwhiteboardId\u003e\n  images view --url \u003cimage-url\u003e\n  search \u003cquery\u003e [--location unsorted|trash|templates|daily_notes]\nCommon flags: --offset, --cursor, --filter \u003cregex\u003e, --format json|markdown. Help: \"\u003centity\u003e \u003caction\u003e --help\". Example batch: folders list; documents list; blocks get ABC-123 --format markdown For Craft links, run 'documents resolve-link \u003curl\u003e' first; use returned rootBlockId for blocks get/write commands, not raw URL documentId.",
-      "execution": {
-        "taskSupport": "forbidden"
-      },
+      "name": "craft_read",
+      "title": "Craft Read",
+      "description": "Read/search Craft; batch with semicolons.\nKeywords: find/open/read/search docs/pages/cards/blocks, daily notes, tasks/inbox/logbook, folders/spaces, collections/tables/schema/items/fields/relations, links/URLs/richUrl, images/files/videos, themes/washi.\nCmds:\n  folders list [--filter <regex>]\n  folders explore-icons <term>\n  documents list [--location unsorted|trash|templates|daily_notes | --folder <folderId>]\n  documents resolve-link <url> -> rootBlockId for blocks/write commands\n  tasks list [--scope active|upcoming|inbox|logbook|document|all]  # all = every task block in full-space, not a union of other scopes\n  blocks get <rootBlockId> [--depth <depth>] [--format json|markdown]\n  blocks get --date today\n  blocks explore-themes --type page|fonts|code\n  blocks explore-washi\n  blocks search-unsplash <query>\n  collections list [--document <rootBlockId>]\n  collections schema --collection <collectionId>\n  collections items-get --collection <collectionId>\n  collections views-list --collection <collectionId>\n  connection info\n  whiteboards elements get --whiteboard <whiteboardId>\n  images view --url <image-url>\n  search <query> [--location unsorted|trash|templates|daily_notes]\nCommon flags: --offset, --cursor, --filter <regex>, --format json|markdown. Help: \"<entity> <action> --help\". Example batch: folders list; documents list; blocks get ABC-123 --format markdown For Craft links, run 'documents resolve-link <url>' first; use returned rootBlockId for blocks get/write commands, not raw URL documentId.\nBlock reminders: reminders list [--status incomplete|completed|upcoming|all]\nTask dates notify in-app. For timed alerts on any block: reminders --help.",
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
         "properties": {
           "command": {
             "description": "Command to execute. Use --help to discover commands.",
@@ -20,47 +15,157 @@
         },
         "required": [
           "command"
-        ],
-        "type": "object"
+        ]
       },
-      "name": "craft_read",
-      "title": "Craft Read"
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
     },
     {
+      "name": "craft_write",
+      "title": "Craft Write",
+      "description": "Write; batch semicolons. docs blocks daily notes tasks todos folders collections tables schema items links files; add append update rename delete trash move reorder repeat\n  folders create --name <name> [--parent <folderId>]\n  documents create --title <requestedTitle> [--destination unsorted|templates | --folder <folderId>]\n  tasks add --markdown <text> [--state todo|done|canceled] [--schedule <date>] [--deadline <date>]\n  tasks update/delete --task <taskId> ...\n  blocks add --id <pageId> --markdown <text>\n  blocks add --siblingId <blockId> --markdown <text> [--position before|after]\n  blocks update --id <blockId> --markdown <text>\n  blocks delete --id <blockId>\n  blocks move --id <blockId> --targetId <pageId>\n  collections create --help\n  collections rename --collection <collectionId> --name <name>\n  collections items-add --collection <collectionId> --<PropertyName> <value>\n  collections items-update --collection <collectionId> --id <itemId> --<PropertyName> <value>\n  collections items-delete --collection <collectionId> --id <itemId>\n  collections views-create/update/delete/set-active --collection <collectionId> ...\n  comments add --comments '[{\"blockId\":\"blockId\",\"content\":\"text\"}]'\n  whiteboards create [--position <json>]; whiteboards elements add/update/delete --whiteboard <whiteboardId> ...\nMD: MCP command text needs actual newline chars; not to type backslash-n text for rows; \\n\\n=blocks. After + Toggle, rewrite child text as \"  - child\"; never plain/flush-left. update:first replaces;rest inserts. Style: blocks update --help. IDs:resolve;rootBlockId!=URL docId. Date YYYY-MM-DD/today/tomorrow. Ext:<callout>,+ Toggle,> quote. Help:<entity> <action> --help\nBlock reminders: reminders --help\nTask dates notify in-app. For timed alerts on any block: reminders --help.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "command": {
+            "description": "Command to execute. Use --help to discover commands.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      },
       "_meta": {
         "openai/outputTemplate": "ui://craft/edit-review",
         "openai/widgetAccessible": true,
         "ui": {
-          "description": "Review and approve changes",
-          "resourceUri": "ui://craft/edit-review"
+          "resourceUri": "ui://craft/edit-review",
+          "description": "Review and approve changes"
         }
-      },
-      "annotations": {
-        "destructiveHint": true,
-        "openWorldHint": false,
-        "readOnlyHint": false
-      },
-      "description": "Write; batch semicolons. docs blocks daily notes tasks todos folders collections tables schema items links files; add append update rename delete trash move reorder repeat\nCmds:\n  folders create --name \u003cname\u003e [--parent \u003cfolderId\u003e] [--icon \u003cemoji\u003e]\n  documents create --title \u003crequestedTitle\u003e [--destination unsorted|templates | --folder \u003cfolderId\u003e]\n  tasks add --markdown \u003ctext\u003e [--state todo|done|canceled] [--schedule \u003cdate\u003e] [--deadline \u003cdate\u003e]\n  tasks update --id \u003ctaskId\u003e [--state done] [--markdown \u003ctext\u003e]\n  tasks delete --id \u003ctaskId\u003e\n  blocks add --id \u003cpageId\u003e --markdown \u003ctext\u003e [--position start|end]\n  blocks add --siblingId \u003cblockId\u003e --markdown \u003ctext\u003e [--position before|after]\n  blocks update --id \u003cblockId\u003e --markdown \u003ctext\u003e\n  blocks delete --id \u003cblockId\u003e\n  blocks move --id \u003cblockId\u003e --targetId \u003cpageId\u003e [--position start|end]\n  collections create --name \u003cname\u003e --title \u003ctitleColumn\u003e --\u003cProperty\u003e \u003ctype\u003e --document \u003crootBlockId\u003e\n  collections rename --collection \u003ccollectionId\u003e --name \u003cname\u003e\n  collections items-add --collection \u003ccollectionId\u003e --\u003cPropertyName\u003e \u003cvalue\u003e\n  collections items-update --collection \u003ccollectionId\u003e --id \u003citemId\u003e --\u003cPropertyName\u003e \u003cvalue\u003e\n  collections items-delete --collection \u003ccollectionId\u003e --id \u003citemId\u003e\n  collections views-create/update/delete/set-active --collection \u003ccollectionId\u003e ...\n  comments add --comments '[{\"blockId\":\"blockId\",\"content\":\"text\"}]'\n  whiteboards create [--position \u003cjson\u003e]; whiteboards elements add/update/delete --whiteboard \u003cwhiteboardId\u003e ...\nMD: MCP command text needs actual newline chars; not to type backslash-n text for rows; \\n\\n=blocks. After + Toggle, rewrite child text as \"  - child\"; never plain/flush-left. update:first replaces;rest inserts. Style:--theme-id,--font,--separator,--washi-pattern,--cover-url,--backdrop-type/color(s)/url,--cover-crop. IDs:resolve;rootBlockId!=URL docId. Coll:schema;prop:. Date YYYY-MM-DD/today/tomorrow/yesterday. Ext:\u003ccallout\u003e,+ Toggle,\u003e quote. Help:\u003centity\u003e \u003caction\u003e --help",
-      "execution": {
-        "taskSupport": "forbidden"
-      },
+      }
+    },
+    {
+      "name": "blocks_revert",
+      "title": "Revert Block Changes",
+      "description": "Reverts a previous mutation if blocks haven't been modified since. Used by widgets for undo/redo functionality.",
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
         "properties": {
-          "command": {
-            "description": "Command to execute. Use --help to discover commands.",
-            "type": "string"
+          "revertInfo": {
+            "type": "object",
+            "properties": {
+              "operation": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "const": "add"
+                  },
+                  {
+                    "type": "string",
+                    "const": "update"
+                  },
+                  {
+                    "type": "string",
+                    "const": "delete"
+                  }
+                ]
+              },
+              "blockIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "originalBlocks": {
+                "type": "array",
+                "items": {}
+              },
+              "siblingsBefore": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "stamp": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              "siblingsAfter": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "stamp": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              "parentBlockId": {
+                "type": "string"
+              },
+              "documentId": {
+                "type": "string"
+              },
+              "expectedStamps": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "operation",
+              "blockIds",
+              "expectedStamps"
+            ]
           }
         },
         "required": [
-          "command"
-        ],
-        "type": "object"
+          "revertInfo"
+        ]
       },
-      "name": "craft_write",
-      "title": "Craft Write"
-    },
-    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      },
       "_meta": {
         "openai/widgetAccessible": true,
         "ui": {
@@ -71,112 +176,7 @@
         "ui/visibility": [
           "app"
         ]
-      },
-      "annotations": {
-        "destructiveHint": true,
-        "openWorldHint": false,
-        "readOnlyHint": false
-      },
-      "description": "Reverts a previous mutation if blocks haven't been modified since. Used by widgets for undo/redo functionality.",
-      "execution": {
-        "taskSupport": "forbidden"
-      },
-      "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "properties": {
-          "revertInfo": {
-            "properties": {
-              "blockIds": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "documentId": {
-                "type": "string"
-              },
-              "expectedStamps": {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "propertyNames": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              "operation": {
-                "anyOf": [
-                  {
-                    "const": "add",
-                    "type": "string"
-                  },
-                  {
-                    "const": "update",
-                    "type": "string"
-                  },
-                  {
-                    "const": "delete",
-                    "type": "string"
-                  }
-                ]
-              },
-              "originalBlocks": {
-                "items": {},
-                "type": "array"
-              },
-              "parentBlockId": {
-                "type": "string"
-              },
-              "siblingsAfter": {
-                "items": {
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "stamp": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "id"
-                  ],
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              "siblingsBefore": {
-                "items": {
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "stamp": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "id"
-                  ],
-                  "type": "object"
-                },
-                "type": "array"
-              }
-            },
-            "required": [
-              "operation",
-              "blockIds",
-              "expectedStamps"
-            ],
-            "type": "object"
-          }
-        },
-        "required": [
-          "revertInfo"
-        ],
-        "type": "object"
-      },
-      "name": "blocks_revert",
-      "title": "Revert Block Changes"
+      }
     }
   ]
 }

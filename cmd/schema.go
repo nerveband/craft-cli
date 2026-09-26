@@ -12,6 +12,7 @@ import (
 
 // CommandSchema describes a CLI command for machine consumption
 type CommandSchema struct {
+	Effect               *CommandEffect  `json:"contract,omitempty"`
 	SchemaVersion        string          `json:"schema_version,omitempty"`
 	Name                 string          `json:"name"`
 	Description          string          `json:"description"`
@@ -58,17 +59,29 @@ Examples:
   craft schema --commands-only    # Just command names and descriptions`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		commandFilter, _ := cmd.Flags().GetString("command")
+		if commandFilter == "" && len(args) > 0 {
+			commandFilter = strings.Join(args, " ")
+		}
+		if commandFilter != "" {
+			found, rest, err := rootCmd.Find(strings.Fields(commandFilter))
+			if err != nil || found == rootCmd || len(rest) > 0 {
+				return fmt.Errorf("unknown command: %s", commandFilter)
+			}
+		}
 		commandsOnly, _ := cmd.Flags().GetBool("commands-only")
 
+		legacy, _ := cmd.Flags().GetBool("legacy")
+		if !legacy && !commandsOnly {
+			return outputSchemaJSON(cliSpec(commandFilter))
+		}
 		schema := buildSchema(rootCmd)
 
 		if commandFilter != "" {
-			for _, sc := range schema.Subcommands {
-				if sc.Name == commandFilter {
-					return outputSchemaJSON(sc)
-				}
+			found, rest, err := rootCmd.Find(strings.Fields(commandFilter))
+			if err != nil || len(rest) > 0 || found == rootCmd {
+				return fmt.Errorf("unknown command: %s", commandFilter)
 			}
-			return fmt.Errorf("unknown command: %s", commandFilter)
+			return outputSchemaJSON(buildSchema(found))
 		}
 
 		if commandsOnly {
@@ -89,6 +102,7 @@ Examples:
 
 func init() {
 	rootCmd.AddCommand(schemaCmd)
+	schemaCmd.Flags().Bool("legacy", false, "Emit the pre-CLI-Spec nested manifest for compatibility")
 	schemaCmd.Flags().String("command", "", "Show schema for a specific command only")
 	schemaCmd.Flags().Bool("commands-only", false, "Output only command names and descriptions")
 }
@@ -114,9 +128,10 @@ func buildSchema(cmd *cobra.Command) CommandSchema {
 			return
 		}
 		fs := FlagSchema{
-			Name: "--" + f.Name,
-			Type: f.Value.Type(),
-			Desc: f.Usage,
+			Name:     "--" + f.Name,
+			Type:     f.Value.Type(),
+			Desc:     f.Usage,
+			Required: len(f.Annotations[cobra.BashCompOneRequiredFlag]) > 0,
 		}
 		if f.Shorthand != "" {
 			fs.Short = "-" + f.Shorthand
@@ -128,7 +143,11 @@ func buildSchema(cmd *cobra.Command) CommandSchema {
 	})
 
 	// Add safety metadata based on command name
-	schema.Safety = inferSafety(cmd.Name())
+	effect, declared := declaredEffect(cmd)
+	if declared {
+		schema.Safety = &SafetyInfo{ReadOnly: effect.Effects == "read_only", Destructive: effect.Destructive, Idempotent: effect.Effects == "read_only" || effect.Effects == "idempotent", DryRun: effect.Effects != "read_only"}
+		schema.Effect = &effect
+	}
 	schema.Backends, schema.RequiredCapabilities, schema.OptionalCapabilities = inferCommandCapabilities(cmd)
 
 	// Collect subcommands
@@ -162,14 +181,13 @@ func inferCommandCapabilities(cmd *cobra.Command) ([]string, []string, []string)
 	if strings.HasPrefix(path, "craft profiles") {
 		return []string{"local"}, []string{"profiles"}, nil
 	}
-	if strings.HasPrefix(path, "craft collections views") ||
-		strings.HasPrefix(path, "craft collections active-view") ||
-		path == "craft collections rename" {
-		if name == "list" {
-			return []string{"mcp"}, []string{"mcp", "read", "collections.views"}, nil
-		}
-		return []string{"mcp"}, []string{"mcp", "write", "collections.views"}, nil
+	if strings.HasPrefix(path, "craft collections views") || strings.HasPrefix(path, "craft collections active-view") {
+		return []string{"rest", "mcp"}, []string{"collections.views"}, []string{"mcp", "blocks.revert"}
 	}
+	if path == "craft collections rename" {
+		return []string{"mcp"}, []string{"mcp", "write"}, nil
+	}
+
 	if strings.HasPrefix(path, "craft whiteboards elements") {
 		return []string{"mcp"}, []string{"mcp", "whiteboards.read"}, nil
 	}
@@ -232,21 +250,6 @@ func uniqueStrings(values []string) []string {
 		result = append(result, value)
 	}
 	return result
-}
-
-func inferSafety(name string) *SafetyInfo {
-	switch name {
-	case "list", "get", "search", "info", "connection", "version", "folders", "tasks", "collections", "llm", "schema":
-		return &SafetyInfo{ReadOnly: true, Destructive: false, Idempotent: true, DryRun: false}
-	case "create":
-		return &SafetyInfo{ReadOnly: false, Destructive: false, Idempotent: false, DryRun: true}
-	case "update", "move":
-		return &SafetyInfo{ReadOnly: false, Destructive: false, Idempotent: true, DryRun: true}
-	case "delete", "clear":
-		return &SafetyInfo{ReadOnly: false, Destructive: true, Idempotent: true, DryRun: true}
-	default:
-		return &SafetyInfo{ReadOnly: false, Destructive: false, Idempotent: false, DryRun: true}
-	}
 }
 
 func schemaParseExamples(examples string) []string {

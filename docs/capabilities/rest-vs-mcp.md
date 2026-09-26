@@ -29,7 +29,7 @@ The public Craft MCP endpoint currently exposes:
 - You need to resolve a Craft app/web URL to a `rootBlockId`.
 - You need page styling features such as themes, fonts, covers, backdrops, separators, or washi.
 - You need exploration helpers for icons, themes, washi, or Unsplash images.
-- You need richer collection view controls.
+- You need edit-review or revert metadata for collection writes. View configuration itself is supported by REST.
 - You need reversible block mutation metadata or `blocks_revert`.
 - You want to inspect Craft's agent-oriented capability surface.
 
@@ -70,7 +70,7 @@ When the active profile is REST and the feature is MCP-only, use this escalation
 5. Verify it with `craft profiles test <name>-mcp` and `craft mcp tools --profile <name>-mcp`.
 6. Retry the operation with `--profile <name>-mcp` or `--backend mcp`. For writes, use `--dry-run` first, then `--yes --save-revert FILE --diff` when supported.
 
-## Native MCP-Backed Commands
+## Native Commands With MCP Augmentation
 
 ```bash
 craft documents resolve-link "https://..."
@@ -83,7 +83,7 @@ craft blocks add PAGE_ID --markdown "test" --backend mcp --save-revert revert.js
 craft blocks revert --revert-info revert.json --dry-run
 craft list --backend mcp --cursor CURSOR --limit 5
 craft collections views list COLLECTION_ID
-craft collections views create COLLECTION_ID --name Board --dry-run
+craft collections views create COLLECTION_ID --name Board --type table --dry-run
 craft collections views update COLLECTION_ID --view VIEW_ID --name Backlog --dry-run
 craft collections views delete COLLECTION_ID --view VIEW_ID --dry-run
 craft collections active-view set COLLECTION_ID --view VIEW_ID --dry-run
@@ -93,3 +93,5 @@ craft collections add COLLECTION_ID --backend mcp --property Status=Todo --dry-r
 craft whiteboards elements get WHITEBOARD_ID
 craft images view "https://example.com/image.png"
 ```
+
+Collection views now default to REST. Reminders expose REST list/create/update/delete and server cursors. Raw page `styling` JSON is supported by REST; the CLI routes only capabilities that need MCP to MCP. No write automatically fails over between backends.

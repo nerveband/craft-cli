@@ -21,6 +21,13 @@ var infoCmd = &cobra.Command{
 			return err
 		}
 
+		if isJSONFormat(getOutputFormat()) {
+			info, err := client.GetConnection()
+			if err != nil {
+				return err
+			}
+			return outputJSON(map[string]interface{}{"connection": info, "permissions": map[string]string{"write": "unverified: local dry-run does not validate server permissions", "delete": "unverified"}})
+		}
 		// Get current config
 		cfg, err := cfgManager.Load()
 		if err != nil {
@@ -36,7 +43,7 @@ var infoCmd = &cobra.Command{
 		if cfg.ActiveProfile != "" {
 			fmt.Printf("Active Profile:   %s\n", cfg.ActiveProfile)
 			if profile, ok := cfg.Profiles[cfg.ActiveProfile]; ok {
-				fmt.Printf("API URL:          %s\n", profile.URL)
+				fmt.Printf("API URL:          %s\n", redactedURL(profile.URL))
 				if profile.APIKey != "" {
 					fmt.Printf("Authentication:   API Key (configured)\n")
 				} else {
@@ -76,16 +83,15 @@ var infoCmd = &cobra.Command{
 
 			fmt.Println()
 			fmt.Println("Note: Write and delete permissions are difficult to test")
-			fmt.Println("without making actual changes. Try the operations with")
-			fmt.Println("--dry-run flag to see if you get PERMISSION_DENIED errors.")
+			fmt.Println("without making actual changes. Local previews do not validate")
+			fmt.Println("server permissions.")
 			fmt.Println()
 		}
 
 		// Try to fetch documents to show scope
 		result, err := client.GetDocuments()
 		if err != nil {
-			fmt.Printf("Error fetching documents: %v\n", err)
-			return nil
+			return err
 		}
 
 		fmt.Printf("Total Documents: %d\n", len(result.Items))

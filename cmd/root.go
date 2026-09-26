@@ -2,9 +2,12 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	craftmcp "github.com/ashrafali/craft-cli/internal/mcp"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/ashrafali/craft-cli/internal/api"
 	"github.com/ashrafali/craft-cli/internal/config"
@@ -20,17 +23,19 @@ const (
 )
 
 var (
-	apiURL        string
-	apiKey        string
-	mcpURL        string
-	profileName   string
-	backendName   string
-	outputFormat  string
-	deliverTarget string
-	transformExpr string
-	dataSource    string
-	cfgManager    *config.Manager
-	version       = "1.12.0"
+	requestTimeout time.Duration
+	apiKeyEnv      string
+	apiURL         string
+	apiKey         string
+	mcpURL         string
+	profileName    string
+	backendName    string
+	outputFormat   string
+	deliverTarget  string
+	transformExpr  string
+	dataSource     string
+	cfgManager     *config.Manager
+	version        = "2.0.0"
 
 	// Global flags for LLM/scripting friendliness
 	quietMode      bool
@@ -68,22 +73,35 @@ Fast, token-efficient, and built for LLM/agent integration.
 Output is JSON by default for easy parsing. Use --format for alternatives.
 Use --quiet to suppress status messages for cleaner piping.
 Use --json-errors for machine-readable error output.`,
-	SilenceUsage:  true,
-	SilenceErrors: true,
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		// Skip update check for upgrade, version, and help commands
-		cmdName := cmd.Name()
-		if cmdName == "upgrade" || cmdName == "version" || cmdName == "help" || cmdName == "completion" {
-			return
-		}
-		// Check for updates in background (non-blocking)
-		go notifyUpdateAvailable()
-	},
+	SilenceUsage:      true,
+	SilenceErrors:     true,
+	PersistentPreRunE: commandPreflight,
 }
 
 // Execute runs the root command
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
+	if c, flags, err := rootCmd.Find(os.Args[1:]); err == nil && c == schemaCmd {
+		c.InitDefaultHelpFlag()
+		if err := c.ParseFlags(flags); err != nil {
+			handleError(err)
+			return
+		}
+		if help, _ := c.Flags().GetBool("help"); help {
+			c.Help()
+			return
+		}
+		if err := c.RunE(c, c.Flags().Args()); err != nil {
+			handleError(err)
+		}
+		return
+	}
+	if handled, err := inspectSchemaArgs(os.Args[1:]); handled {
+		if err != nil {
+			handleError(err)
+		}
+		return
+	}
+	if err := executeCaptured(); err != nil {
 		handleError(err)
 	}
 }
@@ -128,6 +146,8 @@ Documentation:
   Craft API docs:   https://connect.craft.do/api-docs
 `)
 
+	rootCmd.PersistentFlags().DurationVar(&requestTimeout, "timeout", 30*time.Second, "HTTP request timeout (for example 10s)")
+	rootCmd.PersistentFlags().StringVar(&apiKeyEnv, "api-key-env", "", "Environment variable containing the API key")
 	// API and format flags
 	rootCmd.PersistentFlags().StringVar(&apiURL, "api-url", "", "Craft API URL (overrides config)")
 	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", "", "API key for authentication (overrides config)")
@@ -163,8 +183,20 @@ func initConfig() {
 
 // getAPIClient returns a configured API client
 func getAPIClient() (*api.Client, error) {
+	if backendName == "mcp" || backendName == "local" {
+		return nil, newCLIError("CAPABILITY_UNAVAILABLE", "this command has no adapter for the selected backend; use --backend rest or craft mcp call for verified MCP commands")
+	}
 	url := apiURL
 	key := apiKey
+	if key == "" && apiKeyEnv != "" {
+		key = os.Getenv(apiKeyEnv)
+		if key == "" {
+			return nil, fmt.Errorf("--api-key-env %s is not set", apiKeyEnv)
+		}
+	}
+	if key == "" {
+		key = os.Getenv("CRAFT_API_KEY")
+	}
 	if profileName != "" && url == "" {
 		profile, err := cfgManager.GetProfile(profileName)
 		if err != nil {
@@ -198,7 +230,7 @@ func getAPIClient() (*api.Client, error) {
 	// Get API key: flag > config > empty
 	if key == "" {
 		var err error
-		if profileName == "" {
+		if profileName == "" && apiURL == "" {
 			key, err = cfgManager.GetActiveAPIKey()
 			if err != nil {
 				key = ""
@@ -206,18 +238,37 @@ func getAPIClient() (*api.Client, error) {
 		}
 	}
 
-	if key != "" {
-		return api.NewClientWithKey(url, key), nil
+	client := api.NewClientWithKey(url, key)
+	client.SetTimeout(requestTimeout)
+	client.ObserveResponse = func(data []byte) { lastRESTResponse = append([]byte(nil), data...) }
+	if isDryRun() {
+		client.BeforeWrite = func(method, path string, payload interface{}) error {
+			if err := dryRunOutput(method+" "+path, map[string]interface{}{"payload": payload, "reversible": false}); err != nil {
+				return err
+			}
+			return previewComplete
+		}
 	}
-	return api.NewClient(url), nil
+	client.ObserveWrite = func(data []byte) {
+		if json.Valid(data) {
+			writeResponses = append(writeResponses, append(json.RawMessage(nil), data...))
+		}
+	}
+	return client, nil
 }
 
 // getOutputFormat returns the output format to use
 func getOutputFormat() string {
+	if outputFormat == "jsonl" || outputFormat == "yaml" || outputFormat == "raw" {
+		return "json"
+	}
 	if outputFormat != "" {
 		return outputFormat
 	}
 
+	if cfgManager == nil {
+		return "json"
+	}
 	cfg, err := cfgManager.Load()
 	if err != nil {
 		return "json"
@@ -239,18 +290,38 @@ func printStatus(format string, args ...interface{}) {
 
 // handleError handles errors with appropriate exit codes and formatting
 func handleError(err error) {
-	if jsonErrors {
+	if jsonErrors || (outputFormat != "table" && outputFormat != "markdown" && outputFormat != "rich") {
 		code := categorizeError(err)
 		errObj := map[string]interface{}{
-			"error": err.Error(),
-			"code":  code,
+			"error":     err.Error(),
+			"message":   err.Error(),
+			"retryable": code == "RATE_LIMIT" || code == "API_ERROR",
+			"code":      code,
 		}
 		if hint := errorHint(code); hint != "" {
 			errObj["hint"] = hint
 		}
+		var toolErr *craftmcp.ToolError
+		if errors.As(err, &toolErr) {
+			errObj["details"] = toolErr.Result
+		}
+		var httpErr *craftmcp.HTTPError
+		if errors.As(err, &httpErr) {
+			errObj["status"] = httpErr.Status
+			errObj["details"] = httpErr.Headers
+		}
 		if apiErr, ok := err.(*api.APIError); ok {
 			errObj["status"] = apiErr.StatusCode
+			errObj["details"] = apiErr.Headers
 		}
+		details := map[string]interface{}{"kind": strings.ToLower(code), "message": err.Error(), "retryable": errObj["retryable"]}
+		if h, ok := errObj["hint"]; ok {
+			details["hint"] = h
+		}
+		if d, ok := errObj["details"]; ok {
+			details["details"] = d
+		}
+		errObj["error"] = details
 		json.NewEncoder(os.Stderr).Encode(errObj)
 	} else {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -262,7 +333,7 @@ func handleError(err error) {
 	switch categorizeError(err) {
 	case "CONFIG_ERROR":
 		os.Exit(ExitConfigError)
-	case "API_ERROR", "API_TIMEOUT":
+	case "API_ERROR", "API_TIMEOUT", "MCP_TOOL_ERROR", "PARTIAL_FAILURE", "RATE_LIMIT", "AUTH_ERROR", "PERMISSION_DENIED", "NOT_FOUND", "PAYLOAD_TOO_LARGE":
 		os.Exit(ExitAPIError)
 	default:
 		os.Exit(ExitUserError)
@@ -271,10 +342,22 @@ func handleError(err error) {
 
 // categorizeError returns an error category for JSON output
 func categorizeError(err error) string {
+	var httpErr *craftmcp.HTTPError
+	if errors.As(err, &httpErr) {
+		return categorizeError(&api.APIError{StatusCode: httpErr.Status, Message: httpErr.Message})
+	}
+	var toolErr *craftmcp.ToolError
+	var rpcErr *craftmcp.Error
+	if errors.As(err, &toolErr) || errors.As(err, &rpcErr) {
+		return "MCP_TOOL_ERROR"
+	}
 	if coded, ok := err.(*cliCodeError); ok {
 		return coded.Code
 	}
 	if apiErr, ok := err.(*api.APIError); ok {
+		if apiErr.Err == "partial_failure" {
+			return "PARTIAL_FAILURE"
+		}
 		switch apiErr.StatusCode {
 		case 401:
 			return "AUTH_ERROR"
@@ -310,7 +393,7 @@ func categorizeError(err error) string {
 		return "API_TIMEOUT"
 	case contains(errStr, "request entity too large"), contains(errStr, "entity too large"), contains(errStr, "payload too large"), contains(errStr, "413"):
 		return "PAYLOAD_TOO_LARGE"
-	case contains(errStr, "server"), contains(errStr, "500"):
+	case contains(errStr, "server"), contains(errStr, "500"), contains(errStr, "request failed"):
 		return "API_ERROR"
 	default:
 		return "USER_ERROR"
@@ -324,7 +407,7 @@ func errorHint(code string) string {
 	case "PERMISSION_DENIED":
 		return "Check link permissions in Craft. Use 'craft info --test-permissions'. (not retryable)"
 	case "AUTH_ERROR":
-		return "Check API key. Use --api-key flag or 'craft config add'. (not retryable)"
+		return "Check API key. Prefer profiles add-rest --api-key-env CRAFT_API_KEY. (not retryable)"
 	case "CONFIG_ERROR":
 		return "Run 'craft config list' or 'craft setup' to reconfigure. (not retryable)"
 	case "NOT_FOUND":
@@ -375,9 +458,10 @@ func isQuiet() bool {
 func dryRunOutput(action string, target map[string]interface{}) error {
 	if getOutputFormat() == "json" || jsonErrors {
 		result := map[string]interface{}{
-			"dry_run": true,
-			"action":  action,
-			"target":  target,
+			"dry_run":   true,
+			"validated": "local",
+			"action":    action,
+			"target":    target,
 		}
 		return outputJSON(result)
 	}

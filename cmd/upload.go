@@ -11,12 +11,14 @@ import (
 )
 
 var (
-	uploadPageID    string
-	uploadDate      string
-	uploadSiblingID string
-	uploadPosition  string
-	uploadStdin     bool
-	uploadJSON      string
+	uploadPageID      string
+	uploadDate        string
+	uploadSiblingID   string
+	uploadPosition    string
+	uploadStdin       bool
+	uploadJSON        string
+	uploadContentType string
+	uploadFileName    string
 )
 
 var uploadCmd = &cobra.Command{
@@ -88,6 +90,12 @@ Examples:
 			return fmt.Errorf("at least one of --page, --date, or --sibling is required")
 		}
 
+		if err := validateUploadPlacement(uploadPageID, uploadDate, uploadSiblingID, uploadPosition); err != nil {
+			return err
+		}
+		if uploadFileName != "" {
+			fileName = uploadFileName
+		}
 		// Dry run mode
 		if isDryRun() {
 			return dryRunOutput("upload file", map[string]interface{}{
@@ -105,7 +113,7 @@ Examples:
 			return err
 		}
 
-		result, err := client.UploadFile(fileData, uploadPageID, uploadDate, uploadSiblingID, uploadPosition)
+		result, err := client.UploadFileNamed(fileData, uploadPageID, uploadDate, uploadSiblingID, uploadPosition, fileName, uploadContentType)
 		if err != nil {
 			return err
 		}
@@ -129,6 +137,8 @@ Examples:
 }
 
 func init() {
+	uploadCmd.Flags().StringVar(&uploadContentType, "content-type", "", "MIME type override (default: detect from bytes)")
+	uploadCmd.Flags().StringVar(&uploadFileName, "file-name", "", "Uploaded file name (use with stdin)")
 	rootCmd.AddCommand(uploadCmd)
 	uploadCmd.Flags().StringVar(&uploadPageID, "page", "", "Target page ID for placement")
 	uploadCmd.Flags().StringVar(&uploadDate, "date", "", "Target daily note date (YYYY-MM-DD)")
@@ -175,6 +185,9 @@ func runUploadRaw(payload map[string]interface{}) error {
 		return fmt.Errorf("raw upload payload must include filePath or dataBase64")
 	}
 
+	if err := validateUploadPlacement(pageID, date, siblingID, position); err != nil {
+		return err
+	}
 	if isDryRun() {
 		return dryRunOutput("upload file", map[string]interface{}{
 			"file":     fileName,
@@ -190,7 +203,7 @@ func runUploadRaw(payload map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
-	result, err := client.UploadFile(fileData, pageID, date, siblingID, position)
+	result, err := client.UploadFileNamed(fileData, pageID, date, siblingID, position, fileName, payloadString(payload, "contentType"))
 	if err != nil {
 		return err
 	}
@@ -199,4 +212,30 @@ func runUploadRaw(payload map[string]interface{}) error {
 		return nil
 	}
 	return outputJSON(result)
+}
+
+func validateUploadPlacement(page, date, sibling, position string) error {
+	count := 0
+	for _, value := range []string{page, date, sibling} {
+		if value != "" {
+			count++
+		}
+	}
+	if count != 1 {
+		return fmt.Errorf("provide exactly one of --page, --date, --sibling")
+	}
+	if sibling != "" {
+		if position != "before" && position != "after" {
+			return fmt.Errorf("--sibling requires --position before or after")
+		}
+	} else if position != "start" && position != "end" {
+		return fmt.Errorf("page/date position must be start or end")
+	}
+	if page != "" {
+		return validateResourceID(page, "page-id")
+	}
+	if sibling != "" {
+		return validateResourceID(sibling, "sibling-id")
+	}
+	return nil
 }

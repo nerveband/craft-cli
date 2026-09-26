@@ -454,12 +454,11 @@ Examples:
 
 var collectionsViewsCmd = &cobra.Command{
 	Use:   "views",
-	Short: "Manage collection views through Craft MCP",
-	Long: `Manage collection views through Craft MCP.
+	Short: "Manage stored collection views (REST by default)",
+	Long: `Manage stored collection views (REST by default).
 
-The captured REST docs do not expose stable collection view endpoints, while
-Craft MCP exposes the collection view command surface. These commands use
-craft_read for list and craft_write for create/update/delete.`,
+Views store configuration only; they do not execute filters or change items.
+Use --backend mcp for MCP review or revert workflows.`,
 }
 
 var collectionsViewsListCmd = &cobra.Command{
@@ -467,7 +466,7 @@ var collectionsViewsListCmd = &cobra.Command{
 	Short: "List collection views",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runMCPCollectionCommand("collections.views.list", "collections views list "+quoteMCPArg(args[0]), "craft_read")
+		return runCollectionView("list", args[0])
 	},
 }
 
@@ -476,20 +475,7 @@ var collectionsViewsCreateCmd = &cobra.Command{
 	Short: "Create a collection view",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		command := "collections views create " + quoteMCPArg(args[0])
-		if collectionViewName != "" {
-			command += " --name " + quoteMCPArg(collectionViewName)
-		}
-		if collectionViewType != "" {
-			command += " --type " + quoteMCPArg(collectionViewType)
-		}
-		if collectionJSON != "" {
-			command += " --json " + quoteMCPArg(collectionJSON)
-		}
-		if collectionStdin {
-			return fmt.Errorf("--stdin is not supported for MCP collection view commands; use --json")
-		}
-		return runMCPCollectionCommand("collections.views.create", command, "craft_write")
+		return runCollectionView("create", args[0])
 	},
 }
 
@@ -498,23 +484,7 @@ var collectionsViewsUpdateCmd = &cobra.Command{
 	Short: "Update a collection view",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if collectionViewID == "" {
-			return fmt.Errorf("--view is required")
-		}
-		command := "collections views update " + quoteMCPArg(args[0]) + " --view " + quoteMCPArg(collectionViewID)
-		if collectionViewName != "" {
-			command += " --name " + quoteMCPArg(collectionViewName)
-		}
-		if collectionViewType != "" {
-			command += " --type " + quoteMCPArg(collectionViewType)
-		}
-		if collectionJSON != "" {
-			command += " --json " + quoteMCPArg(collectionJSON)
-		}
-		if collectionStdin {
-			return fmt.Errorf("--stdin is not supported for MCP collection view commands; use --json")
-		}
-		return runMCPCollectionCommand("collections.views.update", command, "craft_write")
+		return runCollectionView("update", args[0])
 	},
 }
 
@@ -523,11 +493,7 @@ var collectionsViewsDeleteCmd = &cobra.Command{
 	Short: "Delete a collection view",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if collectionViewID == "" {
-			return fmt.Errorf("--view is required")
-		}
-		command := "collections views delete " + quoteMCPArg(args[0]) + " --view " + quoteMCPArg(collectionViewID)
-		return runMCPCollectionCommand("collections.views.delete", command, "craft_write")
+		return runCollectionView("delete", args[0])
 	},
 }
 
@@ -541,11 +507,7 @@ var collectionsActiveViewSetCmd = &cobra.Command{
 	Short: "Set active collection view",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if collectionViewID == "" {
-			return fmt.Errorf("--view is required")
-		}
-		command := "collections active-view set " + quoteMCPArg(args[0]) + " --view " + quoteMCPArg(collectionViewID)
-		return runMCPCollectionCommand("collections.active-view.set", command, "craft_write")
+		return runCollectionView("set-active", args[0])
 	},
 }
 
@@ -599,13 +561,13 @@ func init() {
 	collectionsViewsCmd.AddCommand(collectionsViewsCreateCmd)
 	collectionsViewsCreateCmd.Flags().StringVar(&collectionViewName, "name", "", "View name")
 	collectionsViewsCreateCmd.Flags().StringVar(&collectionViewType, "type", "", "View type")
-	collectionsViewsCreateCmd.Flags().StringVar(&collectionJSON, "json", "", "Raw MCP collection view payload JSON")
+	collectionsViewsCreateCmd.Flags().StringVar(&collectionJSON, "json", "", "Raw REST collection view payload JSON")
 	collectionsViewsCreateCmd.Flags().BoolVar(&collectionStdin, "stdin", false, "Read raw MCP collection view payload from stdin")
 	collectionsViewsCmd.AddCommand(collectionsViewsUpdateCmd)
 	collectionsViewsUpdateCmd.Flags().StringVar(&collectionViewID, "view", "", "View ID")
 	collectionsViewsUpdateCmd.Flags().StringVar(&collectionViewName, "name", "", "View name")
 	collectionsViewsUpdateCmd.Flags().StringVar(&collectionViewType, "type", "", "View type")
-	collectionsViewsUpdateCmd.Flags().StringVar(&collectionJSON, "json", "", "Raw MCP collection view payload JSON")
+	collectionsViewsUpdateCmd.Flags().StringVar(&collectionJSON, "json", "", "Raw REST collection view payload JSON")
 	collectionsViewsUpdateCmd.Flags().BoolVar(&collectionStdin, "stdin", false, "Read raw MCP collection view payload from stdin")
 	collectionsViewsCmd.AddCommand(collectionsViewsDeleteCmd)
 	collectionsViewsDeleteCmd.Flags().StringVar(&collectionViewID, "view", "", "View ID")

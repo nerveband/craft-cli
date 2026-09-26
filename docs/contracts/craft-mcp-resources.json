@@ -1,8 +1,8 @@
 {
   "resources": [
     {
-      "name": "ui://craft/edit-review",
-      "uri": "ui://craft/edit-review"
+      "uri": "ui://craft/edit-review",
+      "name": "ui://craft/edit-review"
     }
   ]
 }

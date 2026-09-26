@@ -2,64 +2,52 @@ package models
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 )
 
-func TestRepeatConfigJSONRoundTrip(t *testing.T) {
-	cfg := RepeatConfig{
-		Type:         "weekly",
-		Frequency:    "weekly",
-		Interval:     2,
-		Weekdays:     []int{1, 3, 5},
-		EndDate:      "2026-12-31",
-		SkipWeekends: true,
-		DynamicDays:  true,
-		Reminder:     "09:00",
-	}
-
-	data, err := json.Marshal(cfg)
-	if err != nil {
-		t.Fatalf("Marshal error: %v", err)
-	}
-	for _, key := range []string{`"type":"weekly"`, `"frequency":"weekly"`, `"interval":2`,
-		`"weekdays":[1,3,5]`, `"endDate":"2026-12-31"`, `"skipWeekends":true`,
-		`"dynamicDays":true`, `"reminder":"09:00"`} {
-		if !strings.Contains(string(data), key) {
-			t.Errorf("marshaled RepeatConfig missing %s in %s", key, data)
+func TestCurrentResponseVariants(t *testing.T) {
+	for _, input := range []string{`{"id":"p","type":"page","title":{"value":"Page","color":"#fff"},"cover":{"url":"https://example.org/a"},"content":[]}`, `{"id":"p","type":"url","title":"Link","url":"https://example.org"}`} {
+		var b Block
+		if err := json.Unmarshal([]byte(input), &b); err != nil {
+			t.Fatal(err)
+		}
+		data, err := json.Marshal(b)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var before, after map[string]interface{}
+		json.Unmarshal([]byte(input), &before)
+		json.Unmarshal(data, &after)
+		for key, v := range before {
+			a, _ := json.Marshal(v)
+			z, _ := json.Marshal(after[key])
+			if string(a) != string(z) {
+				t.Errorf("lost %s: %s != %s", key, a, z)
+			}
 		}
 	}
-
-	var decoded RepeatConfig
-	if err := json.Unmarshal(data, &decoded); err != nil {
-		t.Fatalf("Unmarshal error: %v", err)
+	var tasks TaskList
+	if err := json.Unmarshal([]byte(`{"items":[{"id":"t","markdown":"Task","taskInfo":{"state":"done","scheduleDate":"2026-09-26"},"repeat":{"type":"fixed","frequency":"daily"},"location":{"type":"inbox"}}]}`), &tasks); err != nil {
+		t.Fatal(err)
 	}
-	if !repeatConfigEqual(decoded, cfg) {
-		t.Errorf("round trip mismatch: got %+v want %+v", decoded, cfg)
+	if tasks.Total != 1 || tasks.Items[0].State != "done" || tasks.Items[0].Location["type"] != "inbox" {
+		t.Fatalf("nested task lost: %+v", tasks)
 	}
 }
 
-func repeatConfigEqual(a, b RepeatConfig) bool {
-	if a.Type != b.Type || a.Frequency != b.Frequency || a.Interval != b.Interval ||
-		a.EndDate != b.EndDate || a.SkipWeekends != b.SkipWeekends ||
-		a.DynamicDays != b.DynamicDays || a.Reminder != b.Reminder ||
-		len(a.Weekdays) != len(b.Weekdays) {
-		return false
+func TestRepeatConfigCurrentShape(t *testing.T) {
+	input := `{"type":"fixed","frequency":"weekly","interval":2,"weekly":{"days":["monday","friday"]},"reminder":{"enabled":true,"dateOffset":540}}`
+	var r RepeatConfig
+	if err := json.Unmarshal([]byte(input), &r); err != nil {
+		t.Fatal(err)
 	}
-	for i := range a.Weekdays {
-		if a.Weekdays[i] != b.Weekdays[i] {
-			return false
-		}
-	}
-	return true
-}
-
-func TestRepeatConfigOmitsEmptyFields(t *testing.T) {
-	data, err := json.Marshal(RepeatConfig{Type: "daily"})
+	b, err := json.Marshal(r)
 	if err != nil {
-		t.Fatalf("Marshal error: %v", err)
+		t.Fatal(err)
 	}
-	if string(data) != `{"type":"daily"}` {
-		t.Errorf("expected omitempty on all optional fields, got %s", data)
+	var actual map[string]interface{}
+	json.Unmarshal(b, &actual)
+	if actual["type"] != "fixed" || actual["weekly"] == nil || actual["reminder"] == nil {
+		t.Fatalf("invalid repeat: %s", b)
 	}
 }

@@ -10,12 +10,14 @@ import (
 )
 
 type AgentDXAuditResult struct {
-	Score      int                 `json:"score"`
-	Max        int                 `json:"max"`
-	Grade      string              `json:"grade"`
-	Categories []AgentDXCategory   `json:"categories"`
-	Failures   []AgentDXAuditCheck `json:"failures,omitempty"`
-	Checks     []AgentDXAuditCheck `json:"checks,omitempty"`
+	Methodology string              `json:"methodology"`
+	Warning     string              `json:"warning"`
+	Score       int                 `json:"score"`
+	Max         int                 `json:"max"`
+	Grade       string              `json:"grade"`
+	Categories  []AgentDXCategory   `json:"categories"`
+	Failures    []AgentDXAuditCheck `json:"failures,omitempty"`
+	Checks      []AgentDXAuditCheck `json:"checks,omitempty"`
 }
 
 type AgentDXCategory struct {
@@ -43,16 +45,20 @@ var auditCmd = &cobra.Command{
 
 var auditAgentDXCmd = &cobra.Command{
 	Use:   "agent-dx",
-	Short: "Score craft-cli against the 85-point agent-DX checklist",
+	Short: "Inspect legacy flag presence (not a behavior audit)",
 	Long: `Score craft-cli against the v2 85-point agent-DX checklist from
-nerveband/cli-best-practices. The audit is local and does not call Craft APIs.`,
+nerveband/cli-best-practices. This is a legacy presence diagnostic, not Audit v3
+behavioral evidence. Use scripts/verify_agent_contract.py and the audit reports.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		result := runAgentDXAudit()
+		result.Methodology = "legacy_presence"
+		result.Warning = "Flag presence is not behavioral compliance. Use Audit v3 reports and scripts/verify_agent_contract.py."
 		format := getOutputFormat()
 		if isJSONFormat(format) {
 			return outputJSON(result)
 		}
-		fmt.Printf("Agent DX: %d/%d (%s)\n", result.Score, result.Max, result.Grade)
+		fmt.Println(result.Warning)
+		fmt.Printf("Legacy presence: %d/%d (%s)\n", result.Score, result.Max, result.Grade)
 		for _, category := range result.Categories {
 			fmt.Printf("%-22s %d/%d\n", category.Name, category.Score, category.Max)
 		}

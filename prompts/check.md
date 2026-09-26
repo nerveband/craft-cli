@@ -15,13 +15,13 @@ Run the full local verification pass and docs/content audit. Do these steps:
 
 **API integration checks:**
 6. Test core read operations against the live API:
-   - `./craft-cli list` — verify document listing works
-   - `./craft-cli folders` — verify folder listing works
-   - `./craft-cli search "test"` — verify search works
+   - `./craft-cli list` , verify document listing works
+   - `./craft-cli folders` , verify folder listing works
+   - `./craft-cli search "test"` , verify search works
 7. If staging credentials or test workspace is available, run broader integration tests:
-   - `./craft-cli get <known-doc-id>` — verify document retrieval
-   - `./craft-cli blocks get <known-doc-id>` — verify block-level access
-   - `./craft-cli collections` — verify collections listing
+   - `./craft-cli get <known-doc-id>` , verify document retrieval
+   - `./craft-cli blocks get <known-doc-id>` , verify block-level access
+   - `./craft-cli collections` , verify collections listing
 
 **Docs & content audit:**
 8. Check `git diff --name-only HEAD~5` to see what changed recently
@@ -32,7 +32,7 @@ Run the full local verification pass and docs/content audit. Do these steps:
 **Agent DX audit:**
 12. Run the built-in scorecard:
     - `./craft-cli audit agent-dx --format json`
-    - Confirm the score is 85/85 on the v2 audit and there is no regression from the previous run
+    - Run the Audit v3 behavior gate and compare the baseline/final reports, recording remaining failures and declared exemptions
 13. Run live checks only when explicitly configured:
     - `CRAFT_LIVE_TESTS=1 CRAFT_LIVE_REST_URL=... CRAFT_LIVE_MCP_URL=... go test ./... -run Live`
     - `CRAFT_LIVE_TESTS=1 CRAFT_LIVE_WRITEONLY_URL=... go test ./internal/api -run LiveRESTWriteOnlyState`
