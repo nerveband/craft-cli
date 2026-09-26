@@ -127,9 +127,7 @@ func outputRaw(doc *models.Document) error {
 
 // outputJSON prints data as JSON
 func outputJSON(data interface{}) error {
-	encoder := json.NewEncoder(os.Stdout)
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(data)
+	return renderData(data)
 }
 
 func projectItems[T any](items []T, fields string) ([]map[string]interface{}, error) {

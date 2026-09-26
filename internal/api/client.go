@@ -27,6 +27,7 @@ type APIError struct {
 	Err        string
 	Message    string
 	RawBody    string
+	Headers    map[string]string
 }
 
 func (e *APIError) Error() string {
@@ -45,9 +46,12 @@ func (e *APIError) Error() string {
 
 // Client represents the Craft API client
 type Client struct {
-	baseURL    string
-	apiKey     string
-	httpClient *http.Client
+	baseURL         string
+	apiKey          string
+	httpClient      *http.Client
+	ObserveWrite    func([]byte)
+	ObserveResponse func([]byte)
+	BeforeWrite     func(string, string, interface{}) error
 }
 
 // NewClient creates a new API client
@@ -73,6 +77,11 @@ func NewClientWithKey(baseURL, apiKey string) *Client {
 
 // doRequest performs an HTTP request and handles errors
 func (c *Client) doRequest(method, path string, body interface{}) ([]byte, error) {
+	if method != "GET" && c.BeforeWrite != nil {
+		if err := c.BeforeWrite(method, path, body); err != nil {
+			return nil, err
+		}
+	}
 	var reqBody io.Reader
 	if body != nil {
 		jsonData, err := json.Marshal(body)
@@ -109,9 +118,27 @@ func (c *Client) doRequest(method, path string, body interface{}) ([]byte, error
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, c.handleErrorResponse(resp.StatusCode, respBody)
+		return nil, c.errorWithHeaders(resp, respBody)
 	}
 
+	if c.ObserveResponse != nil {
+		c.ObserveResponse(respBody)
+	}
+	if method != "GET" && method != "HEAD" {
+		if c.ObserveWrite != nil {
+			c.ObserveWrite(respBody)
+		}
+		var result struct {
+			Items []map[string]interface{} `json:"items"`
+		}
+		if json.Unmarshal(respBody, &result) == nil {
+			for _, item := range result.Items {
+				if failure, ok := item["error"]; ok && failure != nil && failure != "" {
+					return nil, &APIError{StatusCode: 200, Err: "partial_failure", Message: "partial write failure; inspect per-item results before retrying", RawBody: string(respBody)}
+				}
+			}
+		}
+	}
 	return respBody, nil
 }
 
@@ -141,7 +168,7 @@ func (c *Client) handleErrorResponse(statusCode int, body []byte) error {
 		if c.apiKey != "" {
 			msg = "authentication failed: invalid or expired API key"
 		} else {
-			msg = "authentication required. Use --api-key or configure a profile with an API key"
+			msg = "authentication required. Configure a profile with --api-key-env or use CRAFT_API_KEY"
 		}
 	case 403:
 		// Check for specific permission messages in the response
@@ -207,7 +234,14 @@ func (c *Client) GetDocumentsFiltered(folderID, location string) (*models.Docume
 
 // GetDocument retrieves a single document by ID using the blocks endpoint
 func (c *Client) GetDocument(id string) (*models.Document, error) {
+	return c.GetDocumentWithDepth(id, -1)
+}
+
+func (c *Client) GetDocumentWithDepth(id string, depth int) (*models.Document, error) {
 	path := fmt.Sprintf("/blocks?id=%s", url.QueryEscape(id))
+	if depth >= 0 {
+		path += "&maxDepth=" + strconv.Itoa(depth)
+	}
 	data, err := c.doRequest("GET", path, nil)
 	if err != nil {
 		return nil, err
@@ -218,6 +252,14 @@ func (c *Client) GetDocument(id string) (*models.Document, error) {
 		return nil, fmt.Errorf("invalid response from API: %w", err)
 	}
 
+	if blocksResp.Markdown == "" {
+		var title struct {
+			Value string `json:"value"`
+		}
+		if json.Unmarshal(blocksResp.Extra["title"], &title) == nil {
+			blocksResp.Markdown = title.Value
+		}
+	}
 	// Combine markdown from all blocks (include title as H1 for readability)
 	markdown := CombineBlocksMarkdown(blocksResp, true)
 
@@ -669,7 +711,7 @@ func (c *Client) GetFolders() (*models.FolderList, error) {
 type createFolderRequest struct {
 	Folders []struct {
 		Name     string `json:"name"`
-		ParentID string `json:"parentId,omitempty"`
+		ParentID string `json:"parentFolderId,omitempty"`
 	} `json:"folders"`
 }
 
@@ -686,7 +728,7 @@ func (c *Client) CreateFolder(name string, parentID string) (*models.Folder, err
 	req := createFolderRequest{
 		Folders: []struct {
 			Name     string `json:"name"`
-			ParentID string `json:"parentId,omitempty"`
+			ParentID string `json:"parentFolderId,omitempty"`
 		}{{Name: name, ParentID: parentID}},
 	}
 
@@ -874,38 +916,10 @@ func (c *Client) AddBlockRelative(siblingID, markdown, relative string) (*models
 }
 
 // moveBlockRequest is the request body for moving blocks
-type moveBlockRequest struct {
-	Blocks []struct {
-		ID       string `json:"id"`
-		Position struct {
-			PageID   string `json:"pageId,omitempty"`
-			Position string `json:"position,omitempty"`
-		} `json:"position"`
-	} `json:"blocks"`
-}
-
 // MoveBlock moves a block to a new position
 func (c *Client) MoveBlock(blockID, targetPageID, position string) error {
-	req := moveBlockRequest{
-		Blocks: []struct {
-			ID       string `json:"id"`
-			Position struct {
-				PageID   string `json:"pageId,omitempty"`
-				Position string `json:"position,omitempty"`
-			} `json:"position"`
-		}{{
-			ID: blockID,
-			Position: struct {
-				PageID   string `json:"pageId,omitempty"`
-				Position string `json:"position,omitempty"`
-			}{
-				PageID:   targetPageID,
-				Position: position,
-			},
-		}},
-	}
-
-	_, err := c.doRequest("PUT", "/blocks", req)
+	req := map[string]interface{}{"blockIds": []string{blockID}, "position": map[string]string{"pageId": targetPageID, "position": position}}
+	_, err := c.doRequest("PUT", "/blocks/move", req)
 	return err
 }
 
@@ -933,7 +947,7 @@ func (c *Client) GetTasks(scope string) (*models.TaskList, error) {
 
 // GetDocumentTasks retrieves tasks for a specific document
 func (c *Client) GetDocumentTasks(docID string) (*models.TaskList, error) {
-	path := fmt.Sprintf("/tasks?documentId=%s", url.QueryEscape(docID))
+	path := fmt.Sprintf("/tasks?scope=document&documentId=%s", url.QueryEscape(docID))
 
 	data, err := c.doRequest("GET", path, nil)
 	if err != nil {
@@ -952,6 +966,7 @@ func (c *Client) GetDocumentTasks(docID string) (*models.TaskList, error) {
 type addTaskRequest struct {
 	Tasks []struct {
 		Markdown string                 `json:"markdown"`
+		Repeat   *models.RepeatConfig   `json:"repeat,omitempty"`
 		TaskInfo map[string]interface{} `json:"taskInfo,omitempty"`
 		Location map[string]string      `json:"location,omitempty"`
 	} `json:"tasks"`
@@ -978,9 +993,6 @@ func (c *Client) AddTask(markdown, location, docID, scheduleDate, deadlineDate s
 	if deadlineDate != "" {
 		taskInfo["deadlineDate"] = deadlineDate
 	}
-	if repeat != nil {
-		taskInfo["repeat"] = repeat
-	}
 	if len(taskInfo) == 0 {
 		taskInfo = nil
 	}
@@ -992,10 +1004,12 @@ func (c *Client) AddTask(markdown, location, docID, scheduleDate, deadlineDate s
 	req := addTaskRequest{
 		Tasks: []struct {
 			Markdown string                 `json:"markdown"`
+			Repeat   *models.RepeatConfig   `json:"repeat,omitempty"`
 			TaskInfo map[string]interface{} `json:"taskInfo,omitempty"`
 			Location map[string]string      `json:"location,omitempty"`
 		}{{
 			Markdown: markdown,
+			Repeat:   repeat,
 			TaskInfo: taskInfo,
 			Location: locationObj,
 		}},
@@ -1082,6 +1096,7 @@ func (c *Client) AddTasksRaw(req map[string]interface{}) ([]models.Task, error) 
 type updateTaskRequest struct {
 	TasksToUpdate []struct {
 		ID       string                 `json:"id"`
+		Repeat   *models.RepeatConfig   `json:"repeat,omitempty"`
 		TaskInfo map[string]interface{} `json:"taskInfo,omitempty"`
 	} `json:"tasksToUpdate"`
 }
@@ -1098,15 +1113,14 @@ func (c *Client) UpdateTask(taskID, state, scheduleDate, deadlineDate string, re
 	if deadlineDate != "" {
 		taskInfo["deadlineDate"] = deadlineDate
 	}
-	if repeat != nil {
-		taskInfo["repeat"] = repeat
-	}
 	req := updateTaskRequest{
 		TasksToUpdate: []struct {
 			ID       string                 `json:"id"`
+			Repeat   *models.RepeatConfig   `json:"repeat,omitempty"`
 			TaskInfo map[string]interface{} `json:"taskInfo,omitempty"`
 		}{{
 			ID:       taskID,
+			Repeat:   repeat,
 			TaskInfo: taskInfo,
 		}},
 	}
@@ -1403,7 +1417,14 @@ func (c *Client) AddCommentsRaw(req map[string]interface{}) (*models.CommentResp
 
 // SearchBlocks searches for blocks matching a pattern within a document.
 func (c *Client) SearchBlocks(blockID, pattern string, caseSensitive bool, beforeCount, afterCount int) (*models.BlockSearchResultList, error) {
+	return c.SearchBlocksWithOptions(blockID, pattern, caseSensitive, beforeCount, afterCount, false)
+}
+
+func (c *Client) SearchBlocksWithOptions(blockID, pattern string, caseSensitive bool, beforeCount, afterCount int, fetchBlocks bool) (*models.BlockSearchResultList, error) {
 	params := url.Values{}
+	if fetchBlocks {
+		params.Set("fetchBlocks", "true")
+	}
 	params.Set("blockId", blockID)
 	params.Set("pattern", pattern)
 	if caseSensitive {
@@ -1447,7 +1468,9 @@ type SearchOptions struct {
 // SearchDocumentsAdvanced searches for documents with full option support.
 func (c *Client) SearchDocumentsAdvanced(query string, opts SearchOptions) (*models.SearchResult, error) {
 	params := url.Values{}
-	params.Set("include", query)
+	if query != "" {
+		params.Set("include", query)
+	}
 
 	if opts.Regexps != "" {
 		params.Set("regexps", opts.Regexps)
@@ -1456,13 +1479,17 @@ func (c *Client) SearchDocumentsAdvanced(query string, opts SearchOptions) (*mod
 		params.Set("location", opts.Location)
 	}
 	if opts.FolderIDs != "" {
-		params.Set("folderIDs", opts.FolderIDs)
+		for _, id := range strings.Split(opts.FolderIDs, ",") {
+			params.Add("folderIds", id)
+		}
 	}
 	if opts.DocumentIDs != "" {
-		params.Set("documentIDs", opts.DocumentIDs)
+		for _, id := range strings.Split(opts.DocumentIDs, ",") {
+			params.Add("documentIds", id)
+		}
 	}
 	if opts.FetchMetadata {
-		params.Set("fetchMetadata", "true")
+		params.Set("fetchBlocks", "true")
 	}
 	if opts.CreatedDateGte != "" {
 		params.Set("createdDateGte", opts.CreatedDateGte)
@@ -1635,6 +1662,11 @@ func (c *Client) AddBlockToDate(date, markdown, position string) (*models.Block,
 
 // doRequestRaw sends raw bytes with a custom content type.
 func (c *Client) doRequestRaw(method, path string, body []byte, contentType string) ([]byte, error) {
+	if method != "GET" && c.BeforeWrite != nil {
+		if err := c.BeforeWrite(method, path, map[string]interface{}{"bytes": len(body), "content_type": contentType}); err != nil {
+			return nil, err
+		}
+	}
 	var reqBody io.Reader
 	if body != nil {
 		reqBody = bytes.NewReader(body)
@@ -1666,16 +1698,44 @@ func (c *Client) doRequestRaw(method, path string, body []byte, contentType stri
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, c.handleErrorResponse(resp.StatusCode, respBody)
+		return nil, c.errorWithHeaders(resp, respBody)
 	}
 
+	if c.ObserveResponse != nil {
+		c.ObserveResponse(respBody)
+	}
+	if method != "GET" && method != "HEAD" {
+		if c.ObserveWrite != nil {
+			c.ObserveWrite(respBody)
+		}
+		var result struct {
+			Items []map[string]interface{} `json:"items"`
+		}
+		if json.Unmarshal(respBody, &result) == nil {
+			for _, item := range result.Items {
+				if failure, ok := item["error"]; ok && failure != nil && failure != "" {
+					return nil, &APIError{StatusCode: 200, Err: "partial_failure", Message: "partial write failure; inspect per-item results before retrying", RawBody: string(respBody)}
+				}
+			}
+		}
+	}
 	return respBody, nil
 }
 
 // UploadFile uploads a file as raw binary data.
 // Exactly one of pageID, date, or siblingID must be provided to indicate placement.
 func (c *Client) UploadFile(fileData []byte, pageID, date, siblingID, position string) (*models.UploadResponse, error) {
+	return c.UploadFileNamed(fileData, pageID, date, siblingID, position, "", "application/octet-stream")
+}
+
+func (c *Client) UploadFileNamed(fileData []byte, pageID, date, siblingID, position, fileName, contentType string) (*models.UploadResponse, error) {
 	params := url.Values{}
+	if fileName != "" {
+		params.Set("fileName", fileName)
+	}
+	if contentType == "" {
+		contentType = http.DetectContentType(fileData)
+	}
 	if position != "" {
 		params.Set("position", position)
 	}
@@ -1694,7 +1754,7 @@ func (c *Client) UploadFile(fileData []byte, pageID, date, siblingID, position s
 		path = path + "?" + encoded
 	}
 
-	data, err := c.doRequestRaw("POST", path, fileData, "application/octet-stream")
+	data, err := c.doRequestRaw("POST", path, fileData, contentType)
 	if err != nil {
 		return nil, err
 	}
@@ -1853,4 +1913,40 @@ func (c *Client) DeleteWhiteboardElements(whiteboardID string, elementIDs []stri
 	path := fmt.Sprintf("/whiteboards/%s/elements", url.PathEscape(whiteboardID))
 	_, err := c.doRequest("DELETE", path, req)
 	return err
+}
+
+// errorWithHeaders retains server rate-limit guidance without exposing request credentials.
+func (c *Client) errorWithHeaders(resp *http.Response, body []byte) error {
+	err := c.handleErrorResponse(resp.StatusCode, body)
+	if apiErr, ok := err.(*APIError); ok {
+		apiErr.Headers = map[string]string{}
+		for key, values := range resp.Header {
+			lower := strings.ToLower(key)
+			if lower == "retry-after" || strings.Contains(lower, "ratelimit") || strings.Contains(lower, "rate-limit") {
+				apiErr.Headers[key] = strings.Join(values, ", ")
+			}
+		}
+	}
+	return err
+}
+
+// RequestJSON exposes documented REST operations without discarding new fields.
+func (c *Client) RequestJSON(method, path string, payload interface{}) (json.RawMessage, error) {
+	data, err := c.doRequest(method, path, payload)
+	if err != nil {
+		return nil, err
+	}
+	if len(bytes.TrimSpace(data)) == 0 {
+		return json.RawMessage(`{}`), nil
+	}
+	if !json.Valid(data) {
+		return nil, fmt.Errorf("invalid JSON response from API")
+	}
+	return json.RawMessage(data), nil
+}
+
+func (c *Client) SetTimeout(timeout time.Duration) {
+	if timeout > 0 {
+		c.httpClient.Timeout = timeout
+	}
 }

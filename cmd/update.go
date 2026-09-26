@@ -128,6 +128,12 @@ Examples:
 			return fmt.Errorf("at least one of --title, --file, --markdown, or --section is required")
 		}
 
+		// Replace mode deletes and recreates content blocks, so it needs the same
+		// explicit commitment as other data-losing commands. Append does not.
+		if mode == "replace" && !isDryRun() && !yesFlag {
+			return newCLIError("CONFIRMATION_REQUIRED", "--mode replace deletes and recreates content blocks; review --dry-run and rerun with --yes")
+		}
+
 		// Dry run mode
 		if isDryRun() {
 			fmt.Printf("Would update document %s:\n", docID)

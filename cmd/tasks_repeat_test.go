@@ -15,20 +15,16 @@ func TestBuildRepeatConfig(t *testing.T) {
 
 	t.Run("builds full config", func(t *testing.T) {
 		cfg, err := buildRepeatConfig(repeatFlagValues{
-			Type:         "weekly",
-			Interval:     2,
-			Weekdays:     []int{1, 3},
-			EndDate:      "2026-12-31",
-			Reminder:     "09:00",
-			SkipWeekends: true,
-			DynamicDays:  true,
+			Type:        "weekly",
+			Interval:    2,
+			Weekdays:    []int{1, 3},
+			Reminder:    "09:00",
+			DynamicDays: true,
 		})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if cfg.Type != "weekly" || cfg.Interval != 2 || len(cfg.Weekdays) != 2 ||
-			cfg.EndDate != "2026-12-31" || cfg.Reminder != "09:00" ||
-			!cfg.SkipWeekends || !cfg.DynamicDays {
+		if cfg.Type != "flexible" || cfg.Frequency != "weekly" || cfg.Interval != 2 || cfg.Weekly == nil || cfg.Reminder == nil {
 			t.Errorf("unexpected config: %+v", cfg)
 		}
 	})

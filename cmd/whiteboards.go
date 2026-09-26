@@ -74,39 +74,44 @@ Examples:
 		return cobra.ExactArgs(1)(cmd, args)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		pageID := ""
+		payload := map[string]interface{}{}
 		if whiteboardCreateJSON != "" || whiteboardCreateStdin {
-			payload, err := readRawPayload(whiteboardCreateJSON, whiteboardCreateStdin)
+			var err error
+			payload, err = readRawPayload(whiteboardCreateJSON, whiteboardCreateStdin)
 			if err != nil {
 				return err
 			}
-			pageID = payloadString(payload, "pageId", "pageID", "id")
-			if pageID == "" {
-				return fmt.Errorf("raw whiteboard create payload must include \"pageId\"")
-			}
 		} else {
-			pageID = args[0]
+			payload["position"] = map[string]interface{}{"pageId": args[0], "position": "end"}
 		}
-		if err := validateResourceID(pageID, "page-id"); err != nil {
+		if payload["position"] == nil {
+			if id := payloadString(payload, "pageId", "pageID", "id"); id != "" {
+				payload = map[string]interface{}{"position": map[string]interface{}{"pageId": id, "position": "end"}}
+			}
+		}
+		position, ok := payload["position"].(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("whiteboard payload requires a position object")
+		}
+		page, _ := position["pageId"].(string)
+		date, _ := position["date"].(string)
+		sibling, _ := position["siblingId"].(string)
+		place, _ := position["position"].(string)
+		if err := validateUploadPlacement(page, date, sibling, place); err != nil {
 			return err
 		}
 		if isDryRun() {
-			return dryRunOutput("create whiteboard", map[string]interface{}{
-				"page_id": pageID,
-			})
+			return dryRunOutput("create whiteboard", map[string]interface{}{"payload": payload, "reversible": false})
 		}
-
 		client, err := getAPIClient()
 		if err != nil {
 			return err
 		}
-
-		result, err := client.CreateWhiteboard(pageID)
+		result, err := client.RequestJSON("POST", "/whiteboards", payload)
 		if err != nil {
 			return err
 		}
-
-		return outputJSON(result)
+		return outputRawJSON(result)
 	},
 }
 
@@ -167,6 +172,22 @@ Examples:
 			return fmt.Errorf("provide --json or --stdin with element data")
 		}
 
+		var check []map[string]interface{}
+		if err := json.Unmarshal([]byte(data), &check); err != nil {
+			var single map[string]interface{}
+			if err := json.Unmarshal([]byte(data), &single); err != nil {
+				return fmt.Errorf("invalid elements JSON: %w", err)
+			}
+			check = []map[string]interface{}{single}
+		}
+		if len(check) < 1 || len(check) > 500 {
+			return fmt.Errorf("whiteboard writes require 1 to 500 elements")
+		}
+		for _, e := range check {
+			if id, ok := e["id"].(string); !ok || id == "" {
+				return fmt.Errorf("every element requires an id")
+			}
+		}
 		if isDryRun() {
 			return dryRunOutput("add whiteboard elements", map[string]interface{}{
 				"whiteboard_id": args[0],
@@ -221,6 +242,22 @@ Examples:
 			return fmt.Errorf("provide --json or --stdin with element data")
 		}
 
+		var check []map[string]interface{}
+		if err := json.Unmarshal([]byte(data), &check); err != nil {
+			var single map[string]interface{}
+			if err := json.Unmarshal([]byte(data), &single); err != nil {
+				return fmt.Errorf("invalid elements JSON: %w", err)
+			}
+			check = []map[string]interface{}{single}
+		}
+		if len(check) < 1 || len(check) > 500 {
+			return fmt.Errorf("whiteboard writes require 1 to 500 elements")
+		}
+		for _, e := range check {
+			if id, ok := e["id"].(string); !ok || id == "" {
+				return fmt.Errorf("every element requires an id")
+			}
+		}
 		if isDryRun() {
 			return dryRunOutput("update whiteboard elements", map[string]interface{}{
 				"whiteboard_id": args[0],

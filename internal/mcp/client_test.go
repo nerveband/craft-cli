@@ -126,3 +126,49 @@ func TestClient_ReturnsJSONRPCError(t *testing.T) {
 		t.Fatal("expected error")
 	}
 }
+
+func TestSessionNegotiationAndToolError(t *testing.T) {
+	notified := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var request map[string]interface{}
+		json.NewDecoder(r.Body).Decode(&request)
+		method, _ := request["method"].(string)
+		if method == "initialize" {
+			w.Header().Set("Mcp-Session-Id", "fixture-session")
+			json.NewEncoder(w).Encode(map[string]interface{}{"jsonrpc": "2.0", "id": request["id"], "result": map[string]interface{}{"protocolVersion": "2025-06-18", "capabilities": map[string]interface{}{}, "serverInfo": map[string]string{"name": "fixture", "version": "1"}}})
+			return
+		}
+		if r.Header.Get("Mcp-Session-Id") != "fixture-session" {
+			t.Error("session not propagated")
+		}
+		if method == "notifications/initialized" {
+			notified = true
+			w.WriteHeader(202)
+			return
+		}
+		if !notified {
+			t.Error("called tool before initialization notification")
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{"jsonrpc": "2.0", "id": request["id"], "result": map[string]interface{}{"isError": true, "structuredContent": map[string]string{"reason": "fixture"}, "content": []map[string]string{{"type": "text", "text": "refused"}}}})
+	}))
+	defer server.Close()
+	client := NewClient(server.URL)
+	if _, err := client.Initialize(); err != nil {
+		t.Fatal(err)
+	}
+	result, err := client.CallTool("craft_read", map[string]interface{}{"command": "documents list"})
+	if _, ok := err.(*ToolError); !ok || len(result) == 0 {
+		t.Fatalf("tool error lost: %s %v", result, err)
+	}
+}
+
+func TestSSESeparatesNotifications(t *testing.T) {
+	data := []byte("event: message\ndata: {\"jsonrpc\":\"2.0\",\"method\":\"notifications/progress\"}\n\nevent: message\ndata: {\"jsonrpc\":\"2.0\",\"id\":8,\"result\":{\"ok\":true}}\n\n")
+	response, err := matchingSSEData(data, 8)
+	if err != nil || !json.Valid(response) {
+		t.Fatalf("SSE failed: %s %v", response, err)
+	}
+	if _, err := matchingSSEData(data, 9); err == nil {
+		t.Fatal("accepted wrong response ID")
+	}
+}

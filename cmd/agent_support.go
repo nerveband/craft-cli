@@ -7,24 +7,20 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/ashrafali/craft-cli/internal/agentdoc"
 	"github.com/spf13/cobra"
 )
 
 var skillPathCmd = &cobra.Command{
 	Use:   "skill-path",
-	Short: "Print the bundled SKILL.md path",
-	Long:  "Print the absolute path to the bundled craft-cli SKILL.md file for agent installers.",
+	Short: "Emit bundled skill content and metadata",
+	Long:  "Emit the embedded craft-cli skill from any working directory. JSON includes name, source, and content; text output can be redirected to SKILL.md.",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		wd, err := os.Getwd()
-		if err != nil {
-			return err
-		}
-		path := filepath.Join(wd, "SKILL.md")
 		if isJSONFormat(getOutputFormat()) {
-			return outputJSON(map[string]string{"path": path})
+			return outputJSON(map[string]string{"name": "craft-cli", "source": "bundled", "content": agentdoc.Content})
 		}
-		fmt.Println(path)
+		fmt.Print(agentdoc.Content)
 		return nil
 	},
 }

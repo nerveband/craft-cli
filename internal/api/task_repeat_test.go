@@ -2,80 +2,57 @@ package api
 
 import (
 	"encoding/json"
+	"github.com/ashrafali/craft-cli/internal/models"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/ashrafali/craft-cli/internal/models"
 )
 
-func TestClient_AddTaskWithRepeat(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var body struct {
-			Tasks []struct {
-				Markdown string `json:"markdown"`
-				TaskInfo struct {
-					Repeat *models.RepeatConfig `json:"repeat"`
-				} `json:"taskInfo"`
-			} `json:"tasks"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			t.Fatalf("Failed to decode request body: %v", err)
-		}
-		if len(body.Tasks) != 1 {
-			t.Fatalf("Expected 1 task, got %d", len(body.Tasks))
-		}
-		repeat := body.Tasks[0].TaskInfo.Repeat
-		if repeat == nil {
-			t.Fatal("Expected taskInfo.repeat in payload")
-		}
-		if repeat.Type != "weekly" || repeat.Interval != 2 || !repeat.SkipWeekends || repeat.Reminder != "09:00" {
-			t.Errorf("Unexpected repeat payload: %+v", repeat)
-		}
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"items": []map[string]interface{}{{"id": "task1", "markdown": "Water plants", "state": "todo"}},
+func TestTaskRepeatContract(t *testing.T) {
+	for _, method := range []string{"POST", "PUT"} {
+		t.Run(method, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != method || r.URL.Path != "/tasks" {
+					t.Errorf("unexpected request %s %s", r.Method, r.URL)
+				}
+				var body map[string][]map[string]json.RawMessage
+				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+					t.Error(err)
+					return
+				}
+				key := "tasks"
+				if method == "PUT" {
+					key = "tasksToUpdate"
+				}
+				if len(body[key]) != 1 {
+					t.Errorf("invalid body: %v", body)
+					return
+				}
+				item := body[key][0]
+				var repeat map[string]interface{}
+				json.Unmarshal(item["repeat"], &repeat)
+				if repeat["type"] != "fixed" || repeat["frequency"] != "weekly" {
+					t.Errorf("wrong repeat discriminator: %s", item["repeat"])
+				}
+				var info map[string]interface{}
+				json.Unmarshal(item["taskInfo"], &info)
+				if _, ok := info["repeat"]; ok {
+					t.Error("repeat belongs at task level, not taskInfo")
+				}
+				w.Write([]byte(`{"items":[{"id":"task1","markdown":"Water","taskInfo":{"state":"todo"},"location":{"type":"inbox"}}]}`))
+			}))
+			defer server.Close()
+			client := NewClient(server.URL)
+			repeat := &models.RepeatConfig{Type: "fixed", Frequency: "weekly", Weekly: map[string]interface{}{"days": []string{"monday"}}}
+			var err error
+			if method == "POST" {
+				_, err = client.AddTask("Water", "inbox", "", "", "", repeat)
+			} else {
+				err = client.UpdateTask("task1", "todo", "", "", repeat)
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
 		})
-	}))
-	defer server.Close()
-
-	client := NewClient(server.URL)
-	repeat := &models.RepeatConfig{Type: "weekly", Interval: 2, SkipWeekends: true, Reminder: "09:00"}
-	task, err := client.AddTask("Water plants", "inbox", "", "", "", repeat)
-	if err != nil {
-		t.Fatalf("AddTask() error = %v", err)
-	}
-	if task.ID != "task1" {
-		t.Errorf("task.ID = %q, want task1", task.ID)
-	}
-}
-
-func TestClient_UpdateTaskWithRepeat(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var body struct {
-			TasksToUpdate []struct {
-				ID       string `json:"id"`
-				TaskInfo struct {
-					Repeat *models.RepeatConfig `json:"repeat"`
-				} `json:"taskInfo"`
-			} `json:"tasksToUpdate"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			t.Fatalf("Failed to decode request body: %v", err)
-		}
-		if len(body.TasksToUpdate) != 1 || body.TasksToUpdate[0].ID != "task1" {
-			t.Fatalf("Unexpected tasksToUpdate: %+v", body.TasksToUpdate)
-		}
-		repeat := body.TasksToUpdate[0].TaskInfo.Repeat
-		if repeat == nil || repeat.Frequency != "daily" || !repeat.DynamicDays {
-			t.Errorf("Unexpected repeat payload: %+v", repeat)
-		}
-		json.NewEncoder(w).Encode(map[string]interface{}{"items": []string{"task1"}})
-	}))
-	defer server.Close()
-
-	client := NewClient(server.URL)
-	repeat := &models.RepeatConfig{Frequency: "daily", DynamicDays: true}
-	if err := client.UpdateTask("task1", "", "", "", repeat); err != nil {
-		t.Fatalf("UpdateTask() error = %v", err)
 	}
 }

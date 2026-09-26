@@ -88,11 +88,12 @@ var profilesListCmd = &cobra.Command{
 	Short: "List REST and MCP profiles",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		profiles, err := cfgManager.ListProfiles()
+		profiles = safeProfiles(profiles)
 		if err != nil {
 			return err
 		}
 		if isJSONFormat(getOutputFormat()) {
-			return outputJSON(profiles)
+			return outputJSON(map[string]interface{}{"items": profiles, "source": "config_file"})
 		}
 		for _, p := range profiles {
 			marker := "  "
@@ -125,7 +126,9 @@ var profilesShowCmd = &cobra.Command{
 		if profile.APIKey != "" {
 			profile.APIKey = "***redacted***"
 		}
-		return outputJSON(profile)
+		profile.URL = redactedURL(profile.URL)
+		profile.MCPURL = redactedURL(profile.MCPURL)
+		return outputJSON(map[string]interface{}{"profile": profile, "source": "config_file"})
 	},
 }
 

@@ -57,6 +57,9 @@ func init() {
 }
 
 func runSetup() error {
+	if !stdinIsTerminal() {
+		return newCLIError("CONFIRMATION_REQUIRED", "setup requires a terminal; use profiles add-rest NAME --api-url URL --api-key-env CRAFT_API_KEY for non-interactive setup")
+	}
 	reader := bufio.NewReader(os.Stdin)
 
 	// Show welcome
@@ -227,6 +230,9 @@ func openCraftApp() {
 // checkFirstRun checks if this is a first run and offers setup
 // Returns true if setup was run successfully, false otherwise
 func checkFirstRun() bool {
+	if !stdinIsTerminal() {
+		return false
+	}
 	// Don't interrupt if quiet mode
 	if isQuiet() {
 		return false

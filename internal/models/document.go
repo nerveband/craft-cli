@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // Document represents a Craft document
 type Document struct {
@@ -20,11 +23,13 @@ type Document struct {
 // Block represents a content block from the Craft blocks API
 // Enhanced for MCP parity with full styling and metadata support
 type Block struct {
-	ID        string  `json:"id"`
-	Type      string  `json:"type"`                   // text, page, table, code, line, image, file, richUrl
-	TextStyle string  `json:"textStyle,omitempty"`    // h1, h2, h3, h4, page, card, caption
-	Markdown  string  `json:"markdown,omitempty"`
-	Content   []Block `json:"content,omitempty"`
+	Extra      map[string]json.RawMessage `json:"-"`
+	TitleValue json.RawMessage            `json:"-"`
+	ID         string                     `json:"id"`
+	Type       string                     `json:"type"`                // text, page, table, code, line, image, file, richUrl
+	TextStyle  string                     `json:"textStyle,omitempty"` // h1, h2, h3, h4, page, card, caption
+	Markdown   string                     `json:"markdown,omitempty"`
+	Content    []Block                    `json:"content,omitempty"`
 
 	// Styling properties (MCP parity)
 	ListStyle        string   `json:"listStyle,omitempty"`        // bullet, numbered, task, toggle
@@ -62,24 +67,30 @@ type Block struct {
 
 // TaskInfo represents task-specific metadata
 type TaskInfo struct {
-	State        string `json:"state,omitempty"`        // todo, done, canceled
-	CompletedAt  string `json:"completedAt,omitempty"`  // ISO 8601 timestamp
-	CanceledAt   string `json:"canceledAt,omitempty"`   // ISO 8601 timestamp
-	ScheduleDate string `json:"scheduleDate,omitempty"` // YYYY-MM-DD
-	DeadlineDate string `json:"deadlineDate,omitempty"` // YYYY-MM-DD
+	State        string        `json:"state,omitempty"`        // todo, done, canceled
+	CompletedAt  string        `json:"completedAt,omitempty"`  // ISO 8601 timestamp
+	CanceledAt   string        `json:"canceledAt,omitempty"`   // ISO 8601 timestamp
+	ScheduleDate string        `json:"scheduleDate,omitempty"` // YYYY-MM-DD
+	DeadlineDate string        `json:"deadlineDate,omitempty"` // YYYY-MM-DD
 	Repeat       *RepeatConfig `json:"repeat,omitempty"`
 }
 
 // RepeatConfig represents task repeat configuration
 type RepeatConfig struct {
-	Type         string `json:"type,omitempty"`         // daily, weekly, monthly, yearly
-	Frequency    string `json:"frequency,omitempty"`    // alternate frequency key used by some Craft payloads
-	Interval     int    `json:"interval,omitempty"`     // every N days/weeks/etc
-	Weekdays     []int  `json:"weekdays,omitempty"`     // 0=Sunday, 6=Saturday
-	EndDate      string `json:"endDate,omitempty"`      // YYYY-MM-DD
-	SkipWeekends bool   `json:"skipWeekends,omitempty"` // skip Saturday/Sunday occurrences
-	DynamicDays  bool   `json:"dynamicDays,omitempty"`  // reschedule relative to completion
-	Reminder     string `json:"reminder,omitempty"`     // HH:MM reminder time
+	Type      string                 `json:"type"`
+	Frequency string                 `json:"frequency"`
+	Interval  int                    `json:"interval,omitempty"`
+	StartDate string                 `json:"startDate,omitempty"`
+	Daily     map[string]interface{} `json:"daily,omitempty"`
+	Weekly    map[string]interface{} `json:"weekly,omitempty"`
+	Monthly   map[string]interface{} `json:"monthly,omitempty"`
+	Yearly    map[string]interface{} `json:"yearly,omitempty"`
+	Reminder  interface{}            `json:"reminder,omitempty"`
+	// Legacy flag inputs are normalized before sending a request.
+	Weekdays     []int  `json:"-"`
+	EndDate      string `json:"-"`
+	SkipWeekends bool   `json:"-"`
+	DynamicDays  bool   `json:"-"`
 }
 
 // TableCell represents a cell in a table block
@@ -90,7 +101,7 @@ type TableCell struct {
 
 // TextAttr represents text formatting attributes
 type TextAttr struct {
-	Type  string `json:"type"`            // bold, italic, highlight, strikethrough, code, link
+	Type  string `json:"type"` // bold, italic, highlight, strikethrough, code, link
 	Start int    `json:"start"`
 	End   int    `json:"end"`
 	Color string `json:"color,omitempty"` // for highlights (e.g., gradient-blue)
@@ -99,21 +110,23 @@ type TextAttr struct {
 
 // BlockMetadata contains block timing and authorship information
 type BlockMetadata struct {
-	CreatedAt      string `json:"createdAt,omitempty"`
-	LastModifiedAt string `json:"lastModifiedAt,omitempty"`
-	CreatedBy      string `json:"createdBy,omitempty"`
-	LastModifiedBy string `json:"lastModifiedBy,omitempty"`
-	ClickableLink  string `json:"clickableLink,omitempty"`
+	Comments       []map[string]interface{} `json:"comments,omitempty"`
+	CreatedAt      string                   `json:"createdAt,omitempty"`
+	LastModifiedAt string                   `json:"lastModifiedAt,omitempty"`
+	CreatedBy      string                   `json:"createdBy,omitempty"`
+	LastModifiedBy string                   `json:"lastModifiedBy,omitempty"`
+	ClickableLink  string                   `json:"clickableLink,omitempty"`
 }
 
 // BlocksResponse represents the response from the blocks API
 // Now supports all block properties for MCP parity
 type BlocksResponse struct {
-	ID        string  `json:"id"`
-	Type      string  `json:"type"`
-	TextStyle string  `json:"textStyle,omitempty"`
-	Markdown  string  `json:"markdown"`
-	Content   []Block `json:"content,omitempty"`
+	Extra     map[string]json.RawMessage `json:"-"`
+	ID        string                     `json:"id"`
+	Type      string                     `json:"type"`
+	TextStyle string                     `json:"textStyle,omitempty"`
+	Markdown  string                     `json:"markdown"`
+	Content   []Block                    `json:"content,omitempty"`
 
 	// Additional properties that may appear on root block
 	CardLayout string         `json:"cardLayout,omitempty"`
@@ -122,10 +135,11 @@ type BlocksResponse struct {
 
 // Folder represents a Craft folder
 type Folder struct {
-	ID            string `json:"id"`
-	Name          string `json:"name"`
-	ParentID      string `json:"parentId,omitempty"`
-	DocumentCount int    `json:"documentCount,omitempty"`
+	Folders       []Folder `json:"folders,omitempty"`
+	ID            string   `json:"id"`
+	Name          string   `json:"name"`
+	ParentID      string   `json:"parentId,omitempty"`
+	DocumentCount int      `json:"documentCount,omitempty"`
 }
 
 // FolderList represents a list of folders
@@ -142,16 +156,17 @@ type MoveRequest struct {
 
 // Task represents a task from the tasks API
 type Task struct {
-	ID           string    `json:"id"`
-	BlockID      string    `json:"blockId"`
-	DocumentID   string    `json:"documentId"`
-	Markdown     string    `json:"markdown"`
-	State        string    `json:"state"` // todo, done, canceled
-	CompletedAt  string    `json:"completedAt,omitempty"`
-	CanceledAt   string    `json:"canceledAt,omitempty"`
-	ScheduleDate string    `json:"scheduleDate,omitempty"`
-	DeadlineDate string    `json:"deadlineDate,omitempty"`
-	Repeat       *RepeatConfig `json:"repeat,omitempty"`
+	Location     map[string]interface{} `json:"location,omitempty"`
+	ID           string                 `json:"id"`
+	BlockID      string                 `json:"blockId,omitempty"`
+	DocumentID   string                 `json:"documentId,omitempty"`
+	Markdown     string                 `json:"markdown"`
+	State        string                 `json:"state"` // todo, done, canceled
+	CompletedAt  string                 `json:"completedAt,omitempty"`
+	CanceledAt   string                 `json:"canceledAt,omitempty"`
+	ScheduleDate string                 `json:"scheduleDate,omitempty"`
+	DeadlineDate string                 `json:"deadlineDate,omitempty"`
+	Repeat       *RepeatConfig          `json:"repeat,omitempty"`
 }
 
 // TaskList represents a list of tasks
@@ -226,14 +241,17 @@ type UpdateDocumentRequest struct {
 
 // SearchResult represents a search result
 type SearchResult struct {
-	Items []SearchItem `json:"items"`
-	Total int          `json:"total"`
+	Metadata map[string]interface{} `json:"_metadata,omitempty"`
+	Items    []SearchItem           `json:"items"`
+	Total    int                    `json:"total"`
 }
 
 // SearchItem represents a single search result item from the Craft API
 type SearchItem struct {
-	DocumentID string `json:"documentId"`
-	Markdown   string `json:"markdown"`
+	BlockIDs   []string `json:"blockIds,omitempty"`
+	Blocks     []Block  `json:"blocks,omitempty"`
+	DocumentID string   `json:"documentId"`
+	Markdown   string   `json:"markdown"`
 }
 
 // ErrorResponse represents an API error response
@@ -245,10 +263,11 @@ type ErrorResponse struct {
 
 // Collection represents a Craft collection (database)
 type Collection struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	ItemCount  int    `json:"itemCount"`
-	DocumentID string `json:"documentId"`
+	Schema     json.RawMessage `json:"schema,omitempty"`
+	ID         string          `json:"id"`
+	Name       string          `json:"name"`
+	ItemCount  int             `json:"itemCount"`
+	DocumentID string          `json:"documentId"`
 }
 
 // CollectionList represents a list of collections
@@ -258,6 +277,7 @@ type CollectionList struct {
 
 // CollectionSchema represents a collection's schema
 type CollectionSchema struct {
+	Raw                json.RawMessage        `json:"-"`
 	Key                string                 `json:"key"`
 	Name               string                 `json:"name"`
 	ContentPropDetails *CollectionPropDetails `json:"contentPropDetails,omitempty"`
@@ -294,6 +314,7 @@ type CollectionItemList struct {
 // ConnectionInfo represents the response from GET /connection
 type ConnectionInfo struct {
 	Space struct {
+		Name         string `json:"name,omitempty"`
 		ID           string `json:"id"`
 		Timezone     string `json:"timezone"`
 		Time         string `json:"time"`
@@ -315,13 +336,15 @@ type UploadResponse struct {
 
 // CommentResponse represents the response from POST /comments
 type CommentResponse struct {
-	Items []struct {
+	CommentID string `json:"commentId,omitempty"`
+	Items     []struct {
 		CommentID string `json:"commentId"`
 	} `json:"items"`
 }
 
 // BlockSearchResult represents a single block search match
 type BlockSearchResult struct {
+	Blocks        []Block          `json:"blocks,omitempty"`
 	BlockID       string           `json:"blockId"`
 	Markdown      string           `json:"markdown"`
 	PageBlockPath []PageBlockEntry `json:"pageBlockPath,omitempty"`

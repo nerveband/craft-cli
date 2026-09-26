@@ -73,7 +73,7 @@ Examples:
 		}
 
 		// Legacy formats use Document model
-		doc, err := client.GetDocument(docID)
+		doc, err := client.GetDocumentWithDepth(docID, getMaxDepth)
 		if err != nil {
 			return err
 		}
@@ -88,7 +88,7 @@ Examples:
 				content = doc.Content
 			}
 
-			if err := os.WriteFile(outputFile, []byte(content), 0644); err != nil {
+			if err := writeAtomicOutput(outputFile, []byte(content)); err != nil {
 				return fmt.Errorf("failed to write to file: %w", err)
 			}
 
@@ -124,7 +124,7 @@ func writeBlocksToFile(blocksResp *models.BlocksResponse, format string) error {
 		content = sb.String()
 	}
 
-	if err := os.WriteFile(outputFile, []byte(content), 0644); err != nil {
+	if err := writeAtomicOutput(outputFile, []byte(content)); err != nil {
 		return fmt.Errorf("failed to write to file: %w", err)
 	}
 

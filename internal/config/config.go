@@ -44,7 +44,10 @@ func NewManager() (*Manager, error) {
 		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	configDir := filepath.Join(homeDir, ConfigDirName)
+	configDir := os.Getenv("CRAFT_CONFIG_DIR")
+	if configDir == "" {
+		configDir = filepath.Join(homeDir, ConfigDirName)
+	}
 	configPath := filepath.Join(configDir, ConfigFileName)
 
 	return &Manager{
@@ -85,7 +88,7 @@ func (m *Manager) Load() (*Config, error) {
 // Save writes the configuration file
 func (m *Manager) Save(cfg *Config) error {
 	// Create config directory if it doesn't exist
-	if err := os.MkdirAll(m.configDir, 0755); err != nil {
+	if err := os.MkdirAll(m.configDir, 0700); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -94,11 +97,11 @@ func (m *Manager) Save(cfg *Config) error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	if err := os.WriteFile(m.configPath, data, 0644); err != nil {
+	if err := os.WriteFile(m.configPath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
-	return nil
+	return os.Chmod(m.configPath, 0600)
 }
 
 // AddProfile adds or updates a named profile

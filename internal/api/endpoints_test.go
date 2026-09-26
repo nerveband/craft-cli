@@ -215,11 +215,11 @@ func TestClient_SearchDocumentsAdvanced(t *testing.T) {
 			if q.Get("location") != "personal" {
 				t.Errorf("Expected location 'personal', got %s", q.Get("location"))
 			}
-			if q.Get("folderIDs") != "folder-1" {
-				t.Errorf("Expected folderIDs 'folder-1', got %s", q.Get("folderIDs"))
+			if q.Get("folderIds") != "folder-1" {
+				t.Errorf("Expected folderIds 'folder-1', got %s", q.Get("folderIds"))
 			}
-			if q.Get("fetchMetadata") != "true" {
-				t.Errorf("Expected fetchMetadata 'true', got %s", q.Get("fetchMetadata"))
+			if q.Get("fetchBlocks") != "true" {
+				t.Errorf("Expected fetchBlocks 'true', got %s", q.Get("fetchBlocks"))
 			}
 			if q.Get("createdDateGte") != "2025-01-01" {
 				t.Errorf("Expected createdDateGte '2025-01-01', got %s", q.Get("createdDateGte"))
@@ -270,8 +270,8 @@ func TestClient_SearchDocumentsAdvanced(t *testing.T) {
 			if q.Get("location") != "" {
 				t.Errorf("Expected no location param, got %s", q.Get("location"))
 			}
-			if q.Get("fetchMetadata") != "" {
-				t.Errorf("Expected no fetchMetadata param, got %s", q.Get("fetchMetadata"))
+			if q.Get("fetchBlocks") != "" {
+				t.Errorf("Expected no fetchBlocks param, got %s", q.Get("fetchBlocks"))
 			}
 
 			response := models.SearchResult{Items: []models.SearchItem{}, Total: 0}

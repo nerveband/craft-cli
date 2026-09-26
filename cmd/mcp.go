@@ -104,6 +104,12 @@ var mcpCallCmd = &cobra.Command{
 		if mcpCommand != "" {
 			arguments["command"] = mcpCommand
 		}
+		if isDryRun() {
+			return dryRunOutput("MCP call", map[string]interface{}{"tool": mcpToolName, "arguments": arguments})
+		}
+		if mcpToolName != "craft_read" && !yesFlag {
+			return fmt.Errorf("MCP tool %s may write; review --dry-run and rerun with --yes", mcpToolName)
+		}
 
 		client, err := getMCPClient()
 		if err != nil {
@@ -132,38 +138,29 @@ var mcpReadResourceCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		if mcpMetadataOnly {
+			listing, err := client.ListResources()
+			if err != nil {
+				return err
+			}
+			var catalog struct {
+				Resources []map[string]interface{} `json:"resources"`
+			}
+			if err := json.Unmarshal(listing, &catalog); err != nil {
+				return err
+			}
+			for _, resource := range catalog.Resources {
+				if resource["uri"] == mcpResourceURI {
+					return outputJSON(resource)
+				}
+			}
+			return fmt.Errorf("resource not listed: %s", mcpResourceURI)
+		}
 		result, err := client.ReadResource(mcpResourceURI)
 		if err != nil {
 			return err
 		}
-		if !mcpMetadataOnly {
-			return outputRawJSON(result)
-		}
-		var data map[string]interface{}
-		if err := json.Unmarshal(result, &data); err != nil {
-			return err
-		}
-		if contents, ok := data["contents"].([]interface{}); ok {
-			summaries := make([]map[string]interface{}, 0, len(contents))
-			for _, item := range contents {
-				entry, ok := item.(map[string]interface{})
-				if !ok {
-					continue
-				}
-				summary := map[string]interface{}{}
-				for _, key := range []string{"uri", "mimeType", "_meta"} {
-					if value, ok := entry[key]; ok {
-						summary[key] = value
-					}
-				}
-				if text, ok := entry["text"].(string); ok {
-					summary["text_bytes"] = len(text)
-				}
-				summaries = append(summaries, summary)
-			}
-			data["contents"] = summaries
-		}
-		return outputJSON(data)
+		return outputRawJSON(result)
 	},
 }
 
@@ -291,7 +288,15 @@ func runMCPBatch(cmd *cobra.Command) error {
 			break
 		}
 	}
-	return outputJSON(map[string]interface{}{"items": results, "total": len(results)})
+	if err := outputJSON(map[string]interface{}{"items": results, "total": len(results)}); err != nil {
+		return err
+	}
+	for _, entry := range results {
+		if entry["ok"] == false {
+			return newCLIError("API_ERROR", "MCP batch failed; inspect the partial results on stdout before retrying")
+		}
+	}
+	return nil
 }
 
 func getMCPClient() (*craftmcp.Client, error) {
@@ -318,7 +323,13 @@ func getMCPClient() (*craftmcp.Client, error) {
 	if url == "" {
 		return nil, fmt.Errorf("Craft MCP URL required. Use --mcp-url, set CRAFT_MCP_URL, or create an MCP profile with 'craft config add-mcp <name> --mcp-url URL'")
 	}
-	return craftmcp.NewClient(url), nil
+	client := craftmcp.NewClient(url)
+	client.SetTimeout(requestTimeout)
+	client.ClientVersion = version
+	if _, err := client.Initialize(); err != nil {
+		return nil, err
+	}
+	return client, nil
 }
 
 func outputRawJSON(raw json.RawMessage) error {

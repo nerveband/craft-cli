@@ -229,6 +229,7 @@ JSON Examples:
 		if useMCP {
 			return runMCPBlocksMutation(cmd, "add", blocks, position)
 		}
+		applyRESTPageStyling(blocks)
 		if isDryRun() {
 			return dryRunOutput("add blocks", map[string]interface{}{
 				"blocks":   blocks,
@@ -330,6 +331,7 @@ JSON Examples:
 		if useMCP {
 			return runMCPBlocksMutation(cmd, "update", blocks, nil)
 		}
+		applyRESTPageStyling(blocks)
 
 		if isDryRun() {
 			ids := []string{}
@@ -339,7 +341,7 @@ JSON Examples:
 				}
 			}
 			return dryRunOutput("update blocks", map[string]interface{}{
-				"block_ids": ids, "count": len(blocks),
+				"block_ids": ids, "count": len(blocks), "blocks": blocks, "backend": "rest",
 			})
 		}
 
@@ -809,7 +811,6 @@ func addStylingToMap(cmd *cobra.Command, block map[string]interface{}) {
 func shouldUseMCPBlocks(cmd *cobra.Command) (bool, error) {
 	needsMCP := blockSaveRevert != "" || blockDiff
 	for _, flag := range []string{
-		"theme-id", "text-color", "bg-color", "theme-color", "cover-url",
 		"cover-crop", "cover-attribution", "backdrop-type", "backdrop-color",
 		"backdrop-colors", "backdrop-direction", "backdrop-url", "separator",
 		"washi-pattern", "washi-color",
@@ -819,7 +820,7 @@ func shouldUseMCPBlocks(cmd *cobra.Command) (bool, error) {
 			break
 		}
 	}
-	if backendName == "mcp" {
+	if backendName == "mcp" || selectedMCPProfile() {
 		return true, nil
 	}
 	if needsMCP && backendName == "rest" {
@@ -1008,11 +1009,11 @@ func registerStylingFlags(cmd *cobra.Command, includeType bool) {
 	cmd.Flags().StringVar(&blockDecorations, "decorations", "", "Decorations (comma-separated): callout, quote")
 	cmd.Flags().StringVar(&blockColor, "color", "", "Block color as #RRGGBB hex (e.g. #ef052a)")
 	cmd.Flags().StringVar(&blockFont, "font", "", "Font: system, serif, mono, rounded")
-	cmd.Flags().StringVar(&blockThemeID, "theme-id", "", "MCP page theme ID")
-	cmd.Flags().StringVar(&blockTextColor, "text-color", "", "MCP page text color")
-	cmd.Flags().StringVar(&blockBGColor, "bg-color", "", "MCP page background color")
-	cmd.Flags().StringVar(&blockThemeColor, "theme-color", "", "MCP page theme color")
-	cmd.Flags().StringVar(&blockCoverURL, "cover-url", "", "MCP page cover image URL")
+	cmd.Flags().StringVar(&blockThemeID, "theme-id", "", "Page theme ID (REST; MCP with review/revert)")
+	cmd.Flags().StringVar(&blockTextColor, "text-color", "", "Page text color")
+	cmd.Flags().StringVar(&blockBGColor, "bg-color", "", "Page background color")
+	cmd.Flags().StringVar(&blockThemeColor, "theme-color", "", "Page theme color")
+	cmd.Flags().StringVar(&blockCoverURL, "cover-url", "", "Page cover image URL")
 	cmd.Flags().StringVar(&blockCoverCrop, "cover-crop", "", "MCP page cover crop JSON/string")
 	cmd.Flags().StringVar(&blockCoverAttribution, "cover-attribution", "", "MCP page cover attribution")
 	cmd.Flags().StringVar(&blockBackdropType, "backdrop-type", "", "MCP backdrop type")
@@ -1113,4 +1114,27 @@ func readRevertInfoPayload() (map[string]interface{}, error) {
 		return payload, nil
 	}
 	return map[string]interface{}{"revertInfo": payload}, nil
+}
+
+// These flags have exact equivalents in the current REST Page Styling schema.
+func applyRESTPageStyling(blocks []map[string]interface{}) {
+	for _, block := range blocks {
+		style, _ := block["styling"].(map[string]interface{})
+		if style == nil {
+			style = map[string]interface{}{}
+		}
+		for from, to := range map[string]string{"themeId": "themeId", "textColor": "textColor", "bgColor": "backgroundColor", "themeColor": "themeColor"} {
+			if v, ok := block[from]; ok {
+				style[to] = v
+				delete(block, from)
+			}
+		}
+		if v, ok := block["coverURL"]; ok {
+			style["coverImage"] = map[string]interface{}{"url": v}
+			delete(block, "coverURL")
+		}
+		if len(style) > 0 {
+			block["styling"] = style
+		}
+	}
 }

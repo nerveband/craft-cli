@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"text/tabwriter"
 
@@ -16,6 +17,10 @@ var (
 	searchRegex          string
 	searchCaseSensitive  bool
 	searchContext        int
+	searchBefore         int
+	searchAfter          int
+	searchDailyAfter     string
+	searchDailyBefore    string
 	searchLocation       string
 	searchFolders        []string
 	searchMetadata       bool
@@ -91,6 +96,11 @@ Block search (with --document):
 }
 
 func init() {
+	searchCmd.Flags().IntVar(&searchBefore, "context-before", -1, "Context blocks before each match; overrides --context")
+	searchCmd.Flags().IntVar(&searchAfter, "context-after", -1, "Context blocks after each match; overrides --context")
+	searchCmd.Flags().StringVar(&searchDailyAfter, "daily-note-after", "", "Daily-note date lower bound YYYY-MM-DD")
+	searchCmd.Flags().StringVar(&searchDailyBefore, "daily-note-before", "", "Daily-note date upper bound YYYY-MM-DD")
+	searchCmd.Flags().BoolVar(&searchMetadata, "fetch-blocks", false, "Include matching blocks in document search responses")
 	rootCmd.AddCommand(searchCmd)
 
 	searchCmd.Flags().StringSliceVar(&searchDocuments, "document", nil, "Document ID(s). One ID: block-level search. Multiple IDs (repeat or comma-separate): scope document search")
@@ -114,7 +124,7 @@ func runBlockSearch(client *api.Client, args []string, format, docID string) err
 	// Determine the search pattern: positional arg or --regex
 	pattern := ""
 	if len(args) > 0 {
-		pattern = args[0]
+		pattern = regexp.QuoteMeta(args[0])
 	}
 	if searchRegex != "" {
 		pattern = searchRegex
@@ -123,7 +133,14 @@ func runBlockSearch(client *api.Client, args []string, format, docID string) err
 		return fmt.Errorf("block search requires a query argument or --regex pattern")
 	}
 
-	result, err := client.SearchBlocks(docID, pattern, searchCaseSensitive, searchContext, searchContext)
+	before, after := searchContext, searchContext
+	if searchBefore >= 0 {
+		before = searchBefore
+	}
+	if searchAfter >= 0 {
+		after = searchAfter
+	}
+	result, err := client.SearchBlocksWithOptions(docID, pattern, searchCaseSensitive, before, after, searchMetadata)
 	if err != nil {
 		return err
 	}
@@ -155,11 +172,12 @@ func runDocumentSearch(client *api.Client, args []string, format string, scope s
 	}
 
 	opts := api.SearchOptions{
-		Regexps:             searchRegex,
-		Location:            searchLocation,
-		FolderIDs:           scope.FolderIDs,
-		DocumentIDs:         scope.DocumentIDs,
-		FetchMetadata:       searchMetadata,
+		Regexps:          searchRegex,
+		Location:         searchLocation,
+		FolderIDs:        scope.FolderIDs,
+		DocumentIDs:      scope.DocumentIDs,
+		FetchMetadata:    searchMetadata,
+		DailyNoteDateGte: searchDailyAfter, DailyNoteDateLte: searchDailyBefore,
 		CreatedDateGte:      searchCreatedAfter,
 		CreatedDateLte:      searchCreatedBefore,
 		LastModifiedDateGte: searchModifiedAfter,
@@ -172,6 +190,9 @@ func runDocumentSearch(client *api.Client, args []string, format string, scope s
 	}
 
 	if searchCount {
+		if isJSONFormat(format) {
+			return outputJSON(map[string]interface{}{"count": result.Total, "_metadata": result.Metadata})
+		}
 		return outputCount(result.Total)
 	}
 

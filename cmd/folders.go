@@ -68,11 +68,14 @@ var foldersCreateCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
+			if _, ok := payload["folders"]; ok {
+				return runFoldersNative("POST", "/folders", payload)
+			}
 			name := payloadString(payload, "name")
 			if name == "" {
 				return fmt.Errorf("raw folder create payload must include \"name\"")
 			}
-			parentID := payloadString(payload, "parentId", "parentID", "parent")
+			parentID := payloadString(payload, "parentFolderId", "parentId", "parentID", "parent")
 			if isDryRun() {
 				return dryRunOutput("create folder", map[string]interface{}{"payload": payload})
 			}
@@ -97,6 +100,9 @@ var foldersCreateCmd = &cobra.Command{
 		}
 
 		name := args[0]
+		if isDryRun() {
+			return dryRunOutput("create folder", map[string]interface{}{"name": name, "parentFolderId": folderParentID, "reversible": false})
+		}
 		folder, err := client.CreateFolder(name, folderParentID)
 		if err != nil {
 			return err
@@ -377,4 +383,19 @@ func outputFolder(folder *models.Folder, format string) error {
 	default:
 		return fmt.Errorf("unsupported format: %s", format)
 	}
+}
+
+func runFoldersNative(method, path string, payload map[string]interface{}) error {
+	if isDryRun() {
+		return dryRunOutput(method+" "+path, map[string]interface{}{"payload": payload, "reversible": false})
+	}
+	client, err := getAPIClient()
+	if err != nil {
+		return err
+	}
+	result, err := client.RequestJSON(method, path, payload)
+	if err != nil {
+		return err
+	}
+	return outputRawJSON(result)
 }

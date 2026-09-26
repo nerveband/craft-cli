@@ -1,4 +1,6 @@
-# Craft Connect API — Upgrade Map
+> Historical migration notes. The current source of truth is docs/contracts/craft-rest-space-openapi.json and the 2026-09-26 API audit plan. Do not implement old payload claims without checking that contract.
+
+# Craft Connect API , Upgrade Map
 
 **Date:** 2026-04-01
 **craft-cli version:** v1.8.0
@@ -42,14 +44,14 @@
 | **Collections** | GET /collections | `craft collections` | Covered |
 | | POST /collections | `craft collections create` | Covered |
 | | GET /collections/{id}/schema | `craft collections schema` | Covered |
-| | PUT /collections/{id}/schema | — | Needs verification |
+| | PUT /collections/{id}/schema | , | Needs verification |
 | | GET /collections/{id}/items | `craft collections items` | Covered |
 | | POST /collections/{id}/items | `craft collections add` | Covered |
 | | PUT /collections/{id}/items | `craft collections update` | Covered |
 | | DELETE /collections/{id}/items | `craft collections delete` | Covered |
 | **Comments** | POST /comments | `craft comments add` | Covered |
 
-### NOT Covered (5 endpoints) — NEW
+### NOT Covered (5 endpoints) , NEW
 
 | Resource | Endpoints | Proposed CLI Commands | Priority |
 |----------|-----------|----------------------|----------|
@@ -63,7 +65,7 @@
 
 ## New Features to Implement
 
-### 1. Whiteboards (NEW — 5 endpoints)
+### 1. Whiteboards (NEW , 5 endpoints)
 
 Excalidraw-format whiteboard management. This is the only entirely missing API surface.
 
@@ -76,7 +78,7 @@ craft whiteboards delete WHITEBOARD_ID --ids "id1,id2" # Remove elements
 ```
 
 ### 2. Collections Schema Update (verify coverage)
-- `PUT /collections/{id}/schema` — may need new `craft collections schema update` subcommand
+- `PUT /collections/{id}/schema` , may need new `craft collections schema update` subcommand
 
 ### 3. API Enhancements to Existing Commands
 
@@ -127,9 +129,9 @@ Test against: `https://connect.craft.do/links/HHRuPxZZTJ6/api/v1` (no auth requi
 
 ## Priority Order
 
-1. **Verify existing coverage** against live API — some endpoints may have drifted
-2. **Whiteboards** — only entirely missing surface
-3. **fetchMetadata flag** — quick win, adds useful info
-4. **Date filters** — useful for list command
-5. **Max depth control** — useful for large documents
-6. **Collections schema update** — verify and add if missing
+1. **Verify existing coverage** against live API , some endpoints may have drifted
+2. **Whiteboards** , only entirely missing surface
+3. **fetchMetadata flag** , quick win, adds useful info
+4. **Date filters** , useful for list command
+5. **Max depth control** , useful for large documents
+6. **Collections schema update** , verify and add if missing
