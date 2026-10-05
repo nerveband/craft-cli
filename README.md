@@ -70,6 +70,8 @@ craft list --deliver file:documents.json
 
 Reminder times need an explicit UTC offset for the intended date, including daylight saving. Omitted time creates Save for later. Views store configuration; they do not execute filters or alter items. Repeat rules now use Craft's fixed/flexible discriminator and nested frequency settings; `--repeat-end` is rejected because the current contract has no end-date field.
 
+`craft collections schema update` replaces every column and choice: include all you want to retain. Even retained columns lose stored `isHidden`, `defaultValue`, and select `config.limit` settings, and choice themes lose icons and extra metadata. Omitted choice colors reuse the existing palette color for the same column and exact name; unrecognized stored colors fall back to gray. Renaming a choice does not migrate existing selections. Preview with `--dry-run` and use `--yes` only after reviewing these losses.
+
 REST supports page `styling` JSON. Native theme, text/background color and cover URL flags use REST when no MCP review/revert is requested. The remaining backdrop, crop, attribution and washi convenience flags use MCP. Raw block JSON can express the complete documented REST styling object.
 
 ### Verification and limitations

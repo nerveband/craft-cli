@@ -44374,13 +44374,14 @@
                 "properties": {
                   "schema": {
                     "title": "Updated Collection Schema",
-                    "description": "The updated schema definition. Replaces the existing schema entirely - include all fields you want to keep.",
+                    "description": "Replaces the existing schema: include every column and choice to retain. Stored settings not exposed here (isHidden, defaultValue, select config.limit) are dropped, even on retained columns. Choice themes are rewritten as color only, removing icon/extra metadata. Omitted colors reuse an existing choice's palette color; unrecognized stored colors fall back to gray.",
                     "type": "object",
                     "properties": {
                       "name": {
                         "type": "string"
                       },
                       "properties": {
+                        "description": "Complete replacement: include every column to retain.",
                         "maxItems": 20,
                         "type": "array",
                         "items": {
@@ -44624,7 +44625,7 @@
                                       },
                                       "color": {
                                         "title": "Color",
-                                        "description": "If not provided in update calls, a default color will be assigned. Valid values: yellow, lime, mint-green, aqua-blue, sky-blue, lavender, pink, red, gray",
+                                        "description": "Omit to reuse an existing choice's palette color (same column, exact choice name); new choices without colors receive defaults. Changing a choice name creates a new identity; existing selections are not migrated, even if you supply its previous color. Valid values: yellow, lime, mint-green, aqua-blue, sky-blue, lavender, pink, red, gray",
                                         "type": "string"
                                       }
                                     },
@@ -44665,7 +44666,7 @@
                                       },
                                       "color": {
                                         "title": "Color",
-                                        "description": "If not provided in update calls, a default color will be assigned. Valid values: yellow, lime, mint-green, aqua-blue, sky-blue, lavender, pink, red, gray",
+                                        "description": "Omit to reuse an existing choice's palette color (same column, exact choice name); new choices without colors receive defaults. Changing a choice name creates a new identity; existing selections are not migrated, even if you supply its previous color. Valid values: yellow, lime, mint-green, aqua-blue, sky-blue, lavender, pink, red, gray",
                                         "type": "string"
                                       }
                                     },
