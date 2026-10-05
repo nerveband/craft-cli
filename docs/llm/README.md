@@ -30,6 +30,7 @@ craft audit agent-dx   # Legacy presence diagnostic, not behavioral proof
 - Use multi-value `--folder` and `--document` on `craft search` to scope searches across multiple targets.
 - Use REST for theme/color/cover flags and raw page styling. Use MCP for review/revert and the remaining convenience flags.
 - Use native wrappers instead of generic MCP calls for edit review, image view, collection rename/dynamic properties, and whiteboard element reads.
+- Collection schema updates replace every column and choice. Include all retained fields, but do not assume a get/update round trip is lossless: stored `isHidden`, `defaultValue`, select `config.limit`, and choice icon/extra theme metadata are dropped. Omitted colors reuse the existing palette color only for the same column and exact choice name; unrecognized stored colors fall back to gray. Renaming choices does not migrate selections. Use `--dry-run` and review losses before `--yes`.
 ## MCP Escalation Flow
 
 If the active profile is REST and the requested feature is MCP-only:
