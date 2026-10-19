@@ -9,7 +9,7 @@ permissions:
   contents: read
 jobs:
   offline:
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
@@ -24,7 +24,7 @@ jobs:
       - run: python3 scripts/validate_clispec.py
   upstream-drift:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
