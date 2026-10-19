@@ -46,12 +46,13 @@ When the user says "go release", "run the release", or otherwise asks to release
 - Run the full pre-release checks: `go test ./...`, `go vet ./...`, and `go build -o craft-cli .`
 - Verify `cmd/root.go` has the intended version before tagging
 - Run the documented live/core CLI checks and output-format checks when credentials/profiles are available
-- Check dependencies with `go list -m -u all 2>/dev/null | grep '\[' | head -10`
+- Check direct dependencies with `go list -m -u -f '{{if and (not .Indirect) .Update}}{{.Path}} {{.Version}} -> {{.Update.Version}}{{end}}' all`. Apply every direct update before releasing (`go get PKG@latest && go mod tidy`), then re-run `go vet ./...` and `go test ./...`. Do not defer updates to a later release. This includes `github.com/creativeprojects/go-selfupdate`, which powers `craft upgrade`
+- Verify the upgrader with the new dependencies before tagging: build a throwaway binary with an older version (`go build -ldflags "-X github.com/ashrafali/craft-cli/cmd.version=OLD" -o /tmp/upg/craft .`; the binary must be named `craft` or the updater cannot find it in the archive), run `/tmp/upg/craft upgrade`, and confirm it installs the latest published release. Also check the pinned GitHub Actions in `.github/workflows/` for newer majors and Node runtime deprecation annotations
 - Update `README.md`, `docs/llm/`, and `AGENTS.md` for any user-facing, LLM-facing, or process changes
 - Choose the version bump from compatibility: patch for fixes, minor for additive public behavior, major for breaking command/output changes
 - Commit release changes, tag `vX.Y.Z`, push main first, then push the tag
 - Run `goreleaser release --clean` or verify the GitHub Actions release completed
-- Post-release, install or download the released binary and verify `craft version`, `craft info`, `craft list`, and `gh release view vX.Y.Z`
+- Post-release, run `craft upgrade` (not a manual copy) on this host and verify `craft version`, `craft info`, `craft list`, and `gh release view vX.Y.Z`. When asked to roll out to other devices, use `craft upgrade` over the SSH aliases in `~/.config/agent-policy/reference/devices.md` and confirm `craft version` on each
 - If the intended version bump is ambiguous, ask the user before changing the version or tagging
 
 ## Exit codes

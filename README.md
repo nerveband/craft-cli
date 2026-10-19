@@ -713,7 +713,7 @@ craft-cli/
 
 ### Prerequisites
 
-- Go 1.21 or later
+- Go 1.26 or later
 - goreleaser (for releases)
 
 ### Building

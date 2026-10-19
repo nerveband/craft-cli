@@ -24,8 +24,10 @@ Run the full pre-release check, release pipeline, and post-release verification.
 6. Verify all output formats: `--format json`, `--format table`, `--format markdown`, `--format compact`
 
 **Dependency check:**
-7. Run `go list -m -u all 2>/dev/null | grep '\[' | head -10` to check for Go dependency updates
-8. If any critical updates, apply them before releasing
+7. Run `go list -m -u -f '{{if and (not .Indirect) .Update}}{{.Path}} {{.Version}} -> {{.Update.Version}}{{end}}' all` to list direct dependency updates
+8. Apply every direct update (`go get PKG@latest && go mod tidy`), including `go-selfupdate` (powers `craft upgrade`), then re-run `go vet ./...` and `go test ./...`
+8a. Verify the upgrader: build a throwaway binary with an older version via `-ldflags "-X github.com/ashrafali/craft-cli/cmd.version=OLD"`, name it `craft` in a temp dir, run its `upgrade`, and confirm it installs the latest published release
+8b. Check pinned GitHub Actions in `.github/workflows/` for newer majors and Node deprecation annotations
 
 **Docs & content sync:**
 9. Check `git log --oneline` since the last release tag to see all changes
@@ -50,8 +52,8 @@ Run the full pre-release check, release pipeline, and post-release verification.
 20. Monitor the release until all artifacts are published (Linux, macOS, Windows builds)
 
 **Post-release verification:**
-21. Download and install the released binary
-22. Run `craft version` to confirm the new version
+21. Install the released binary with `craft upgrade` (not a manual copy); on other devices, run `craft upgrade` over the SSH aliases when asked to roll out
+22. Run `craft version` to confirm the new version (on every device updated)
 23. Run `craft info` to verify API connectivity
 24. Run `craft list` to verify basic functionality
 25. Check `gh release view v<VERSION>` to confirm all assets are present
