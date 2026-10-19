@@ -1,6 +1,9 @@
 package cmd
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestParseMCPBatchInput(t *testing.T) {
 	tests := []struct {
@@ -151,5 +154,16 @@ func TestEnhanceMCPWriteErrorLeavesPlainNotFoundAlone(t *testing.T) {
 	err := enhanceMCPWriteError(`blocks add --page "missing" --markdown "Plain text"`, original)
 	if err != original {
 		t.Fatalf("expected original error, got %#v", err)
+	}
+}
+
+func TestBuildMCPBlocksCommandRejectsColorDark(t *testing.T) {
+	_, err := buildMCPBlocksCommand("update", []map[string]interface{}{{
+		"id":        "block123",
+		"color":     "#ef052a",
+		"colorDark": "#ff6680",
+	}}, nil)
+	if err == nil || !strings.Contains(err.Error(), "colorDark") {
+		t.Fatalf("expected colorDark capability error, got %v", err)
 	}
 }

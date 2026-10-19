@@ -88,7 +88,7 @@ Subcommands:
 				"craft clear deletes all content blocks in a document (cannot be undone without a backup).",
 				"craft update supports --mode append|replace for markdown content; replace clears/recreates blocks, changes block IDs, and does not preserve block-only styling/state. For text edits on styled docs, use craft blocks update BLOCK_ID --markdown ... and style only changed/new blocks.",
 				"If a write times out, verify with repeated reads/search before retrying. Craft may have applied the write even though the client did not receive the response.",
-				"Craft accepts #RRGGBB color input but may store adjusted palette/readability colors. Reapply original brand hexes, not returned adjusted colors.",
+				"Craft accepts #RRGGBB, #RRGGBBAA, or a #light #dark pair for color, plus optional colorDark (--color-dark, REST only). Without colorDark it may store adjusted palette/readability colors. Reapply original brand hexes; copy both color and colorDark to reproduce an exact appearance.",
 				"Craft MCP requires a separate profile with type=mcp and mcp_url; create it with craft profiles add-mcp or craft config add-mcp.",
 				"Run 'craft llm styles' for complete styling/formatting reference with JSON examples.",
 			},
@@ -284,9 +284,11 @@ Example:
 
 ## Block Colors (color)
 
-Text blocks accept a color field with #RRGGBB hex input. Craft may store an adjusted
-palette/readability color rather than the exact submitted hex, so keep original
-brand colors as source data and resend them when reapplying styles:
+Text blocks accept a color field with #RRGGBB or #RRGGBBAA hex input, or a "#light #dark"
+pair. Craft generates the dark variant from color unless colorDark is also supplied
+(--color-dark, REST only; requires color without a pair). Reads return both color and
+colorDark; copy both to reproduce an exact appearance. Keep original brand colors as
+source data and resend them when reapplying styles:
 
   #ef052a   Red
   #ff9200   Orange
@@ -450,7 +452,8 @@ Available styling flags:
   --text-style        h1, h2, h3, h4, caption, body, page, card
   --list-style        none, bullet, numbered, task, toggle
   --decorations       Comma-separated: callout, quote
-  --color             #RRGGBB hex (e.g. #ef052a)
+  --color             #RRGGBB or #RRGGBBAA hex, or "#light #dark" pair (e.g. #ef052a)
+  --color-dark        Exact dark-mode hex; requires --color without a pair (REST only)
   --font              system, serif, mono, rounded
   --text-alignment    left, center, right, justify
   --indentation-level 0-5

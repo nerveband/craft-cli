@@ -112,6 +112,7 @@ var (
 	blockListStyle         string
 	blockDecorations       string
 	blockColor             string
+	blockColorDark         string
 	blockFont              string
 	blockTextAlignment     string
 	blockIndentationLevel  string
@@ -702,6 +703,9 @@ func addStylingToMap(cmd *cobra.Command, block map[string]interface{}) {
 	if cmd.Flags().Changed("color") {
 		block["color"] = blockColor
 	}
+	if cmd.Flags().Changed("color-dark") {
+		block["colorDark"] = blockColorDark
+	}
 	if cmd.Flags().Changed("font") {
 		block["font"] = blockFont
 	}
@@ -873,6 +877,9 @@ func buildMCPBlocksCommand(action string, blocks []map[string]interface{}, posit
 		return "", fmt.Errorf("--backend mcp currently accepts exactly one block per command")
 	}
 	block := blocks[0]
+	if _, ok := block["colorDark"]; ok {
+		return "", newCLIError("CAPABILITY_UNAVAILABLE", "colorDark has no verified MCP translation; use the REST backend")
+	}
 	var parts []string
 	switch action {
 	case "add":
@@ -1007,7 +1014,8 @@ func registerStylingFlags(cmd *cobra.Command, includeType bool) {
 	cmd.Flags().StringVar(&blockTextStyle, "text-style", "", "Text style: h1, h2, h3, h4, caption, body, page, card")
 	cmd.Flags().StringVar(&blockListStyle, "list-style", "", "List style: none, bullet, numbered, task, toggle")
 	cmd.Flags().StringVar(&blockDecorations, "decorations", "", "Decorations (comma-separated): callout, quote")
-	cmd.Flags().StringVar(&blockColor, "color", "", "Block color as #RRGGBB hex (e.g. #ef052a)")
+	cmd.Flags().StringVar(&blockColor, "color", "", "Block color as #RRGGBB or #RRGGBBAA hex, or a '#light #dark' pair (e.g. #ef052a)")
+	cmd.Flags().StringVar(&blockColorDark, "color-dark", "", "Exact dark-mode color as #RRGGBB or #RRGGBBAA hex; requires --color without a pair (REST only)")
 	cmd.Flags().StringVar(&blockFont, "font", "", "Font: system, serif, mono, rounded")
 	cmd.Flags().StringVar(&blockThemeID, "theme-id", "", "Page theme ID (REST; MCP with review/revert)")
 	cmd.Flags().StringVar(&blockTextColor, "text-color", "", "Page text color")

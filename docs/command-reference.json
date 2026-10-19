@@ -121,8 +121,14 @@
           "type": "string"
         },
         {
-          "description": "Block color as #RRGGBB hex (e.g. #ef052a)",
+          "description": "Block color as #RRGGBB or #RRGGBBAA hex, or a '#light #dark' pair (e.g. #ef052a)",
           "name": "--color",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "description": "Exact dark-mode color as #RRGGBB or #RRGGBBAA hex; requires --color without a pair (REST only)",
+          "name": "--color-dark",
           "required": false,
           "type": "string"
         },
@@ -631,8 +637,14 @@
           "type": "string"
         },
         {
-          "description": "Block color as #RRGGBB hex (e.g. #ef052a)",
+          "description": "Block color as #RRGGBB or #RRGGBBAA hex, or a '#light #dark' pair (e.g. #ef052a)",
           "name": "--color",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "description": "Exact dark-mode color as #RRGGBB or #RRGGBBAA hex; requires --color without a pair (REST only)",
+          "name": "--color-dark",
           "required": false,
           "type": "string"
         },

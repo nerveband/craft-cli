@@ -77,7 +77,7 @@ When the user says "go release", "run the release", or otherwise asks to release
 - Collection view controls (`collections views ...`, `collections active-view set`) use REST by default. Explicit MCP routing supports verified flag translations.
 - Whole-doc `craft update --mode replace` is markdown-based: it clears and reinserts content blocks, so block IDs change and block-only styling/state such as `color`, `font`, `textAlignment`, card layout, task state, media/embed fields, comments, and revert anchors is not preserved. Do not use whole-doc replace on styled documents just to make text edits. Prefer `craft blocks update BLOCK_ID --markdown ...` for existing blocks, which preserves omitted styling fields. If new blocks are created, style only those changed/new blocks.
 - `craft update --mode replace --section "Heading"` uses a block-boundary delta replacement: only the target section's top-level block range is deleted/reinserted, preserving IDs and styling outside that section.
-- Craft accepts `#RRGGBB` color input but may store adjusted palette/readability colors. Keep original brand hexes as source data and resend those, not the adjusted colors returned by `get`.
+- Craft accepts `#RRGGBB`, `#RRGGBBAA`, or a `#light #dark` pair for `color`, plus optional `colorDark` (`--color-dark`, REST only; requires `color` without a pair). Without `colorDark` it generates the dark variant and may store adjusted palette/readability colors. Keep original brand hexes as source data and resend those; copy both `color` and `colorDark` from `get` to reproduce an exact appearance.
 
 ## MCP escalation flow
 

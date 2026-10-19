@@ -94,7 +94,7 @@ Do not use whole-doc replace on styled documents just to make text edits. Prefer
 
 Similar destructive restyling traps: `craft clear`, delete/re-add, whole-doc markdown replacement, and broad MCP writes can invalidate saved block IDs, comments, revert payloads, and styling assumptions. Markdown round trips preserve markdown-native structures such as headings, lists, quotes, callouts, dividers, and code fences, but not all block JSON fields or MCP page/card styling. Page-level styling may survive because it is attached to the root page block, but content-block styling generally does not.
 
-Craft accepts `#RRGGBB` color input but may store adjusted palette/readability colors. Keep original brand hexes as source data and resend those. Do not reuse Craft-returned adjusted colors as the source of truth.
+Craft accepts `#RRGGBB`, `#RRGGBBAA`, or a `#light #dark` pair for `color`, plus an optional `colorDark` (`--color-dark`, REST only; requires `color` without a pair). Without `colorDark`, Craft generates the dark variant and may store adjusted palette/readability colors. Keep original brand hexes as source data and resend those; copy both `color` and `colorDark` to reproduce an exact appearance.
 
 ## Verification
 
