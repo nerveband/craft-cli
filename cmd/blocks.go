@@ -878,7 +878,7 @@ func buildMCPBlocksCommand(action string, blocks []map[string]interface{}, posit
 	}
 	block := blocks[0]
 	if _, ok := block["colorDark"]; ok {
-		return "", newCLIError("CAPABILITY_UNAVAILABLE", "colorDark has no verified MCP translation; use the REST backend")
+		return "", newCLIError("USER_ERROR", "colorDark/--color-dark is REST-only: MCP has no verified translation; use --backend rest")
 	}
 	var parts []string
 	switch action {
