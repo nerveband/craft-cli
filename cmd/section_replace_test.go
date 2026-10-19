@@ -1,6 +1,9 @@
 package cmd
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestReplaceSectionByHeading(t *testing.T) {
 	md := "# Title\n\n## Overview\n\nOld overview.\n\n### Details\n\nOld details.\n\n## Next\n\nOther.\n"
@@ -9,13 +12,13 @@ func TestReplaceSectionByHeading(t *testing.T) {
 	if err != nil {
 		t.Fatalf("replaceSectionByHeading() error = %v", err)
 	}
-	if want := "## Overview\n\nNew overview"; !contains(out, want) {
+	if want := "## Overview\n\nNew overview"; !strings.Contains(out, want) {
 		t.Fatalf("expected output to contain %q, got:\n%s", want, out)
 	}
-	if contains(out, "Old overview") {
+	if strings.Contains(out, "Old overview") {
 		t.Fatalf("expected old section removed, got:\n%s", out)
 	}
-	if !contains(out, "## Next") {
+	if !strings.Contains(out, "## Next") {
 		t.Fatalf("expected subsequent sections preserved, got:\n%s", out)
 	}
 }
@@ -27,13 +30,13 @@ func TestReplaceSectionByDecoratedHeading(t *testing.T) {
 	if err != nil {
 		t.Fatalf("replaceSectionByHeading() error = %v", err)
 	}
-	if want := "<callout>## Your Overall Investment</callout>\n\nNew pricing"; !contains(out, want) {
+	if want := "<callout>## Your Overall Investment</callout>\n\nNew pricing"; !strings.Contains(out, want) {
 		t.Fatalf("expected output to contain %q, got:\n%s", want, out)
 	}
-	if contains(out, "Old pricing") {
+	if strings.Contains(out, "Old pricing") {
 		t.Fatalf("expected old decorated section removed, got:\n%s", out)
 	}
-	if !contains(out, "## Next") {
+	if !strings.Contains(out, "## Next") {
 		t.Fatalf("expected subsequent section preserved, got:\n%s", out)
 	}
 }
@@ -45,10 +48,10 @@ func TestReplaceSectionReplacementWithDecoratedHeading(t *testing.T) {
 	if err != nil {
 		t.Fatalf("replaceSectionByHeading() error = %v", err)
 	}
-	if want := "<callout>## New Pricing</callout>\n\nNew pricing"; !contains(out, want) {
+	if want := "<callout>## New Pricing</callout>\n\nNew pricing"; !strings.Contains(out, want) {
 		t.Fatalf("expected output to contain %q, got:\n%s", want, out)
 	}
-	if contains(out, "## Pricing\n\n<callout>## New Pricing</callout>") {
+	if strings.Contains(out, "## Pricing\n\n<callout>## New Pricing</callout>") {
 		t.Fatalf("expected decorated replacement heading not to be wrapped with original heading, got:\n%s", out)
 	}
 }

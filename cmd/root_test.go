@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -15,7 +16,7 @@ func TestCategorizeErrorTimeout(t *testing.T) {
 func TestErrorHintTimeoutWarnsWriteMayHaveLanded(t *testing.T) {
 	hint := errorHint("API_TIMEOUT")
 	for _, want := range []string{"may still have applied", "repeated reads", "avoid duplicates", "retryable"} {
-		if !contains(hint, want) {
+		if !strings.Contains(hint, want) {
 			t.Fatalf("hint %q does not contain %q", hint, want)
 		}
 	}

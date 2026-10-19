@@ -144,7 +144,7 @@ func TestEnhanceMCPWriteErrorForMarkdownImageNotFound(t *testing.T) {
 	if coded.Code != "IMAGE_ASSET_UNAVAILABLE" {
 		t.Fatalf("code = %q, want IMAGE_ASSET_UNAVAILABLE", coded.Code)
 	}
-	if !contains(coded.Message, "https://r.craft.do/dead") {
+	if !strings.Contains(coded.Message, "https://r.craft.do/dead") {
 		t.Fatalf("message does not include image URL: %q", coded.Message)
 	}
 }

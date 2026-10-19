@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
-	"golang.org/x/term"
 	"os"
 	"strings"
+
+	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 // CommandEffect declarations are keyed by complete canonical paths. Do not infer
@@ -148,7 +149,7 @@ func stdinIsTerminal() bool {
 	return term.IsTerminal(int(os.Stdin.Fd()))
 }
 
-var previewComplete = fmt.Errorf("local preview complete")
+var errPreviewComplete = fmt.Errorf("local preview complete")
 
 func commandPreflight(cmd *cobra.Command, args []string) error {
 	if requestTimeout <= 0 {
@@ -194,7 +195,7 @@ func commandPreflight(cmd *cobra.Command, args []string) error {
 		if err := dryRunOutput(cmd.CommandPath(), map[string]interface{}{"scope": "local", "arguments": redactedLocalArgs(cmd, args), "reversible": false}); err != nil {
 			return err
 		}
-		return previewComplete
+		return errPreviewComplete
 	}
 	if e.Destructive && !isDryRun() && !yesFlag {
 		return newCLIError("CONFIRMATION_REQUIRED", "operation changes or deletes existing state; review --dry-run and rerun with --yes")

@@ -274,28 +274,6 @@ func matchingSSEData(body []byte, id int64) ([]byte, error) {
 	return nil, fmt.Errorf("MCP event stream did not include response %d", id)
 }
 
-func firstSSEData(body []byte) ([]byte, error) {
-	scanner := bufio.NewScanner(bytes.NewReader(body))
-	scanner.Buffer(make([]byte, 0, 64*1024), 10*1024*1024)
-	var data strings.Builder
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "data:") {
-			if data.Len() > 0 {
-				data.WriteByte('\n')
-			}
-			data.WriteString(strings.TrimSpace(strings.TrimPrefix(line, "data:")))
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("failed to scan MCP event stream: %w", err)
-	}
-	if data.Len() == 0 {
-		return nil, fmt.Errorf("MCP event stream did not include data")
-	}
-	return []byte(data.String()), nil
-}
-
 func (c *Client) SetTimeout(timeout time.Duration) {
 	if timeout > 0 {
 		c.httpClient.Timeout = timeout

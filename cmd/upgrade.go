@@ -6,13 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
 
-	"github.com/ashrafali/craft-cli/internal/config"
 	"github.com/creativeprojects/go-selfupdate"
 	"github.com/spf13/cobra"
 )
@@ -23,132 +19,12 @@ const upgradeChangelogLimit = 4
 
 var githubAPIBaseURL = "https://api.github.com"
 
-// updateCheckCache stores the last version check
-type updateCheckCache struct {
-	LastCheck      time.Time `json:"last_check"`
-	LatestVersion  string    `json:"latest_version"`
-	UpdateRequired bool      `json:"update_required"`
-	LastNotified   time.Time `json:"last_notified"`
-}
-
 type githubRelease struct {
 	TagName string `json:"tag_name"`
 	Name    string `json:"name"`
 	Body    string `json:"body"`
 	HTMLURL string `json:"html_url"`
 	Draft   bool   `json:"draft"`
-}
-
-// checkForUpdates checks if a new version is available (without installing)
-func checkForUpdates() (hasUpdate bool, latestVersion string, err error) {
-	// Check cache first (only check once per day)
-	cached, err := loadUpdateCache()
-	if err == nil && time.Since(cached.LastCheck) < 24*time.Hour {
-		return cached.UpdateRequired, cached.LatestVersion, nil
-	}
-
-	source, err := selfupdate.NewGitHubSource(selfupdate.GitHubConfig{})
-	if err != nil {
-		return false, "", err
-	}
-
-	updater, err := selfupdate.NewUpdater(selfupdate.Config{
-		Source:    source,
-		Validator: &selfupdate.ChecksumValidator{UniqueFilename: "checksums.txt"},
-	})
-	if err != nil {
-		return false, "", err
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	latest, found, err := updater.DetectLatest(ctx, selfupdate.NewRepositorySlug(repoOwner, repoName))
-	if err != nil || !found {
-		return false, "", err
-	}
-
-	hasUpdate = latest.GreaterThan(version)
-	latestVer := latest.Version()
-
-	// Save to cache
-	saveUpdateCache(updateCheckCache{
-		LastCheck:      time.Now(),
-		LatestVersion:  latestVer,
-		UpdateRequired: hasUpdate,
-	})
-
-	return hasUpdate, latestVer, nil
-}
-
-// notifyUpdateAvailable shows update notification at most once per day
-func notifyUpdateAvailable() {
-	if quietMode {
-		return
-	}
-
-	// Check if we already notified recently (once per day max)
-	cached, cacheErr := loadUpdateCache()
-	if cacheErr == nil && !cached.LastNotified.IsZero() && time.Since(cached.LastNotified) < 24*time.Hour {
-		return
-	}
-
-	hasUpdate, latestVersion, err := checkForUpdates()
-	if err != nil || !hasUpdate {
-		return
-	}
-
-	fmt.Fprintf(os.Stderr, "\nNew version available: %s (current: %s)\n", latestVersion, version)
-	fmt.Fprintf(os.Stderr, "Run 'craft upgrade' to update\n\n")
-
-	// Mark that we showed the notification
-	if cached == nil {
-		cached = &updateCheckCache{}
-	}
-	cached.LastNotified = time.Now()
-	saveUpdateCache(*cached)
-}
-
-// loadUpdateCache loads the cached update check result
-func loadUpdateCache() (*updateCheckCache, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
-	}
-
-	cachePath := filepath.Join(homeDir, config.ConfigDirName, "update_cache.json")
-	data, err := os.ReadFile(cachePath)
-	if err != nil {
-		return nil, err
-	}
-
-	var cache updateCheckCache
-	if err := json.Unmarshal(data, &cache); err != nil {
-		return nil, err
-	}
-
-	return &cache, nil
-}
-
-// saveUpdateCache saves the update check result to cache
-func saveUpdateCache(cache updateCheckCache) error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	configDir := filepath.Join(homeDir, config.ConfigDirName)
-	if err := os.MkdirAll(configDir, 0755); err != nil {
-		return err
-	}
-
-	cachePath := filepath.Join(configDir, "update_cache.json")
-	data, err := json.MarshalIndent(cache, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(cachePath, data, 0644)
 }
 
 var upgradeCmd = &cobra.Command{

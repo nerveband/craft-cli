@@ -272,15 +272,6 @@ func (c *Client) GetDocumentWithDepth(id string, depth int) (*models.Document, e
 	return doc, nil
 }
 
-// GetDocumentContentMarkdown returns only the document content markdown (excluding the title/header).
-func (c *Client) GetDocumentContentMarkdown(id string) (string, error) {
-	blocksResp, err := c.GetDocumentBlocks(id)
-	if err != nil {
-		return "", err
-	}
-	return CombineBlocksMarkdown(blocksResp, false), nil
-}
-
 // GetDocumentBlocks retrieves the raw blocks response for a document.
 func (c *Client) GetDocumentBlocks(id string) (models.BlocksResponse, error) {
 	return c.GetDocumentBlocksWithDepth(id, -1)
@@ -493,13 +484,6 @@ type deleteBlocksRequest struct {
 	BlockIDs []string `json:"blockIds"`
 }
 
-// deleteBlocksResponse is the response from deleting blocks
-type deleteBlocksResponse struct {
-	Items []struct {
-		ID string `json:"id"`
-	} `json:"items"`
-}
-
 // DeleteDocuments soft-deletes documents by moving them to trash in one request.
 func (c *Client) DeleteDocuments(ids []string) error {
 	if len(ids) == 0 {
@@ -676,20 +660,6 @@ func collectBlockIDs(block *models.Block, ids *[]string) {
 	}
 }
 
-// DeleteBlock deletes a specific block by ID
-func (c *Client) DeleteBlock(blockID string) error {
-	deleteReq := deleteBlocksRequest{
-		BlockIDs: []string{blockID},
-	}
-
-	_, err := c.doRequest("DELETE", "/blocks", deleteReq)
-	if err != nil {
-		return fmt.Errorf("failed to delete block: %w", err)
-	}
-
-	return nil
-}
-
 // ========== Folder Operations ==========
 
 // GetFolders retrieves all folders
@@ -792,11 +762,6 @@ func (c *Client) DeleteFolders(ids []string) error {
 	return err
 }
 
-// DeleteFolder deletes a single folder.
-func (c *Client) DeleteFolder(folderID string) error {
-	return c.DeleteFolders([]string{folderID})
-}
-
 // ========== Document Move Operations ==========
 
 // moveDocumentRequest wraps the move document request
@@ -830,92 +795,6 @@ func (c *Client) MoveDocument(docID, folderID, location string) error {
 
 // ========== Block Operations (Enhanced) ==========
 
-// GetBlock retrieves a specific block by ID with optional depth
-func (c *Client) GetBlock(blockID string) (*models.Block, error) {
-	path := fmt.Sprintf("/blocks?id=%s", url.QueryEscape(blockID))
-	data, err := c.doRequest("GET", path, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	var block models.Block
-	if err := json.Unmarshal(data, &block); err != nil {
-		return nil, fmt.Errorf("invalid response from API: %w", err)
-	}
-
-	return &block, nil
-}
-
-// addBlockExtendedRequest is the request body for adding blocks with more control
-type addBlockExtendedRequest struct {
-	Markdown string `json:"markdown"`
-	Position struct {
-		PageID    string `json:"pageId,omitempty"`
-		Position  string `json:"position,omitempty"` // start, end, or block ID
-		SiblingID string `json:"siblingId,omitempty"`
-		Relative  string `json:"relative,omitempty"` // before, after
-	} `json:"position"`
-}
-
-// AddBlock adds a block with position control
-func (c *Client) AddBlock(pageID, markdown, position string) (*models.Block, error) {
-	req := addBlockExtendedRequest{
-		Markdown: markdown,
-	}
-	req.Position.PageID = pageID
-	req.Position.Position = position
-
-	data, err := c.doRequest("POST", "/blocks", req)
-	if err != nil {
-		return nil, err
-	}
-
-	var resp addBlockResponse
-	if err := json.Unmarshal(data, &resp); err != nil {
-		return nil, fmt.Errorf("invalid response from API: %w", err)
-	}
-
-	if len(resp.Items) == 0 {
-		return nil, fmt.Errorf("no block returned from API")
-	}
-
-	return &models.Block{
-		ID:       resp.Items[0].ID,
-		Type:     resp.Items[0].Type,
-		Markdown: resp.Items[0].Markdown,
-	}, nil
-}
-
-// AddBlockRelative adds a block relative to a sibling
-func (c *Client) AddBlockRelative(siblingID, markdown, relative string) (*models.Block, error) {
-	req := addBlockExtendedRequest{
-		Markdown: markdown,
-	}
-	req.Position.SiblingID = siblingID
-	req.Position.Relative = relative
-
-	data, err := c.doRequest("POST", "/blocks", req)
-	if err != nil {
-		return nil, err
-	}
-
-	var resp addBlockResponse
-	if err := json.Unmarshal(data, &resp); err != nil {
-		return nil, fmt.Errorf("invalid response from API: %w", err)
-	}
-
-	if len(resp.Items) == 0 {
-		return nil, fmt.Errorf("no block returned from API")
-	}
-
-	return &models.Block{
-		ID:       resp.Items[0].ID,
-		Type:     resp.Items[0].Type,
-		Markdown: resp.Items[0].Markdown,
-	}, nil
-}
-
-// moveBlockRequest is the request body for moving blocks
 // MoveBlock moves a block to a new position
 func (c *Client) MoveBlock(blockID, targetPageID, position string) error {
 	req := map[string]interface{}{"blockIds": []string{blockID}, "position": map[string]string{"pageId": targetPageID, "position": position}}
@@ -1833,28 +1712,6 @@ func (c *Client) GetBlockWithOptions(blockID string, maxDepth int, fetchMetadata
 }
 
 // ========== Whiteboards ==========
-
-// CreateWhiteboard creates a new whiteboard block inside a page.
-func (c *Client) CreateWhiteboard(pageID string) (map[string]interface{}, error) {
-	req := map[string]interface{}{
-		"position": map[string]interface{}{
-			"pageId":   pageID,
-			"position": "end",
-		},
-	}
-
-	data, err := c.doRequest("POST", "/whiteboards", req)
-	if err != nil {
-		return nil, err
-	}
-
-	var result map[string]interface{}
-	if err := json.Unmarshal(data, &result); err != nil {
-		return nil, fmt.Errorf("invalid response from API: %w", err)
-	}
-
-	return result, nil
-}
 
 // GetWhiteboardElements retrieves elements from a whiteboard.
 func (c *Client) GetWhiteboardElements(whiteboardID string) (map[string]interface{}, error) {

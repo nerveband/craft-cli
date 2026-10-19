@@ -1,27 +1,19 @@
 # Craft contract snapshots
 
-Captured data, not hand-maintained API definitions. Review source drift and request fixtures before refreshing snapshots.
+Captured data, not hand-maintained API definitions. Review upstream drift and update request fixtures before refreshing a snapshot. Record what changed in the refresh commit message.
 
 | File | Source | Capture |
 |---|---|---|
 | `craft-rest-space-openapi.json` | [Live Craft Connect docs](https://connect.craft.do/link/HHRuPxZZTJ6/docs/v1), embedded OpenAPI 3.1.1 | 2026-10-19, 44 operations across 21 paths |
-| `craft-rest-beta-openapi.json` | Historical baseline from the same all-documents source | Not an independently verified beta API; retained only for history |
 | `craft-mcp-tools.json` | User-supplied Craft MCP, tools/list | 2026-09-26; three workflow tools |
 | `craft-mcp-resources.json` | User-supplied Craft MCP, resources/list | 2026-09-26; edit-review UI resource metadata only |
-
-The older `docs/HHRuPxZZTJ6-docs.md` and exported JSON are absent from this checkout. The live docs embed OpenAPI; no separate stable public spec download URL was verified.
-
-Canonical REST SHA256 (sorted compact JSON): `db9adc89da6e13c5f27943608067fe2a1a84cd46da8856ce83c97edbd1e09dc2`.
-
-The 2026-10-19 refresh is additive: block and collection-choice `color` now also accepts `#RRGGBBAA` and a space-separated light/dark pair, a new optional `colorDark` field exists (requires `color`), and block read responses switched `anyOf` to `allOf`. Operation inventory is unchanged. The CLI passes `colorDark` and alpha through unchanged on reads (`Block.Extra`) and raw JSON writes (`--json`/`--stdin`); `blocks add/update` expose `--color-dark` (REST only, MCP has no verified translation and rejects it).
-
-The 2026-10-05 refresh changes descriptions only; operation inventory and request/response shapes are unchanged, so encoding fixtures remain unchanged. Collection schema updates replace every column and choice. Even retained columns lose unexposed `isHidden`, `defaultValue`, and select `config.limit` settings. Choice themes retain color only, dropping icons and extra metadata. Omitted choice colors reuse the existing palette color for the same column and exact choice name; unrecognized stored colors fall back to gray. Renaming a choice creates a new identity and does not migrate existing selections.
+| `clispec-v0.2.schema.json` | [Official frozen CLI Spec v0.2 schema](https://clispec.dev/schema/v0.2.json) | Validates `docs/command-reference.json` in CI |
 
 ```bash
-python3 scripts/craft_contract.py --check
-python3 scripts/craft_contract.py  # refresh after reviewing upstream changes
+python3 scripts/craft_contract.py --check   # exits 1 on drift, prints the canonical SHA256
+python3 scripts/craft_contract.py           # refresh after reviewing upstream changes
 ```
 
-The parser accepts data literals and loader references without executing JavaScript. Scheduled CI fails on any contract change. Default Go tests use fixtures and do not fetch Craft. MCP capture negotiated protocol 2025-06-18 and server craft-workflow-links 1.0.0; this does not claim support for all newer MCP revisions. Do not save private content, API keys or working MCP links here.
+The live docs embed OpenAPI; no separate stable public spec download URL was verified. The parser reads data literals and loader references without executing JavaScript. Scheduled CI fails on any contract change. Default Go tests use fixtures and do not fetch Craft.
 
-`clispec-v0.2.schema.json` is pinned from the [official frozen v0.2 schema](https://clispec.dev/schema/v0.2.json). `scripts/validate_clispec.py` validates the generated command manifest with jsonschema 4.26.0 in CI. CLI Spec 0.3.0 scoring requires the newer v0.3 vocabulary and reports that difference separately.
+MCP capture negotiated protocol 2025-06-18 and server craft-workflow-links 1.0.0; this does not claim support for newer MCP revisions. Do not save private content, API keys or working MCP links here.

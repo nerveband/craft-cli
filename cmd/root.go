@@ -246,7 +246,7 @@ func getAPIClient() (*api.Client, error) {
 			if err := dryRunOutput(method+" "+path, map[string]interface{}{"payload": payload, "reversible": false}); err != nil {
 				return err
 			}
-			return previewComplete
+			return errPreviewComplete
 		}
 	}
 	client.ObserveWrite = func(data []byte) {
@@ -379,21 +379,21 @@ func categorizeError(err error) string {
 
 	errStr := strings.ToLower(err.Error())
 	switch {
-	case contains(errStr, "no active profile"), contains(errStr, "config"):
+	case strings.Contains(errStr, "no active profile"), strings.Contains(errStr, "config"):
 		return "CONFIG_ERROR"
-	case contains(errStr, "authentication"), contains(errStr, "unauthorized"):
+	case strings.Contains(errStr, "authentication"), strings.Contains(errStr, "unauthorized"):
 		return "AUTH_ERROR"
-	case contains(errStr, "permission denied"):
+	case strings.Contains(errStr, "permission denied"):
 		return "PERMISSION_DENIED"
-	case contains(errStr, "not found"):
+	case strings.Contains(errStr, "not found"):
 		return "NOT_FOUND"
-	case contains(errStr, "rate limit"):
+	case strings.Contains(errStr, "rate limit"):
 		return "RATE_LIMIT"
-	case contains(errStr, "context deadline exceeded"), contains(errStr, "client.timeout"), contains(errStr, "timeout exceeded"), contains(errStr, "i/o timeout"):
+	case strings.Contains(errStr, "context deadline exceeded"), strings.Contains(errStr, "client.timeout"), strings.Contains(errStr, "timeout exceeded"), strings.Contains(errStr, "i/o timeout"):
 		return "API_TIMEOUT"
-	case contains(errStr, "request entity too large"), contains(errStr, "entity too large"), contains(errStr, "payload too large"), contains(errStr, "413"):
+	case strings.Contains(errStr, "request entity too large"), strings.Contains(errStr, "entity too large"), strings.Contains(errStr, "payload too large"), strings.Contains(errStr, "413"):
 		return "PAYLOAD_TOO_LARGE"
-	case contains(errStr, "server"), contains(errStr, "500"), contains(errStr, "request failed"):
+	case strings.Contains(errStr, "server"), strings.Contains(errStr, "500"), strings.Contains(errStr, "request failed"):
 		return "API_ERROR"
 	default:
 		return "USER_ERROR"
@@ -433,19 +433,6 @@ func errorHint(code string) string {
 	default:
 		return ""
 	}
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsImpl(s, substr))
-}
-
-func containsImpl(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }
 
 // isQuiet returns whether quiet mode is enabled

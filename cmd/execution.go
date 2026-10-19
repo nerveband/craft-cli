@@ -29,7 +29,7 @@ func executeCaptured() error {
 	writer.Close()
 	os.Stdout = original
 	output := <-finished
-	if errors.Is(err, previewComplete) {
+	if errors.Is(err, errPreviewComplete) {
 		err = nil
 	}
 	if len(writeResponses) > 0 && getOutputFormat() == FormatJSON && getOutputOnly() == "" {

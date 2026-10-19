@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 )
+
 func TestCollectionsWriteCmdsRegisterRevertFlags(t *testing.T) {
 	targets := []struct {
 		name string
