@@ -6,6 +6,10 @@ A command-line interface for Craft documents. JSON-first, safe to script, and bu
 
 30-second intro. [Watch the full-quality MP4](docs/media/craft-cli-intro.mp4). All output is real craft 2.0 output against demo data.
 
+## Maintenance release 2.1.2
+
+Updates the self-updater dependency and GitHub Actions, and includes the cleanup since 2.1.1. Commands and output formats are unchanged.
+
 ## What's new in 2.0
 
 The CLI is the primary interface. It uses Craft's REST API for documents, blocks, folders, tasks, collections, views, reminders, comments, uploads and whiteboards. MCP adds discovery, link resolution, edit review and reversible writes. A failed write is never retried through the other backend.
