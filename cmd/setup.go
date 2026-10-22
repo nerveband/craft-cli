@@ -21,9 +21,11 @@ const craftLogo = `
     └─────────────┘
 `
 
+var setupName string
+
 var setupCmd = &cobra.Command{
 	Use:   "setup",
-	Short: "Interactive setup for first-time users",
+	Short: "Configure a profile with flags or an interactive wizard",
 	Long: `Interactive setup wizard to configure Craft CLI.
 
 Guides you through:
@@ -31,8 +33,31 @@ Guides you through:
   - Creating your first profile
   - Verifying the connection works
 
-Use --quiet to skip interactive prompts (for scripts).`,
+Use --name NAME with --api-url URL or --mcp-url URL for noninteractive setup.
+Use --api-key-env NAME to read a REST key without putting it in arguments.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if setupName != "" || apiURL != "" || mcpURL != "" {
+			if setupName == "" {
+				return fmt.Errorf("--name is required for noninteractive setup")
+			}
+			if (apiURL == "") == (mcpURL == "") {
+				return fmt.Errorf("provide exactly one of --api-url or --mcp-url")
+			}
+			if mcpURL != "" {
+				return cfgManager.AddMCPProfile(setupName, mcpURL, "", "", "")
+			}
+			key := apiKey
+			if apiKeyEnv != "" {
+				key = os.Getenv(apiKeyEnv)
+				if key == "" {
+					return fmt.Errorf("--api-key-env %s is not set", apiKeyEnv)
+				}
+			}
+			if key == "" {
+				key = os.Getenv("CRAFT_API_KEY")
+			}
+			return cfgManager.AddRESTProfile(setupName, apiURL, key, "", "", "")
+		}
 		if isQuiet() {
 			return fmt.Errorf("setup requires interactive mode. Remove --quiet flag")
 		}
@@ -42,6 +67,7 @@ Use --quiet to skip interactive prompts (for scripts).`,
 
 func init() {
 	rootCmd.AddCommand(setupCmd)
+	setupCmd.Flags().StringVar(&setupName, "name", "", "Profile name for noninteractive setup")
 }
 
 func runSetup() error {

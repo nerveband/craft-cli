@@ -51,6 +51,11 @@ Examples:
   craft list --created-after 2025-01-01           # Created since Jan 2025
   craft list --modified-after 2025-06-01 --metadata  # Recently modified with metadata`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if local, err := useLocalData(); err != nil {
+			return err
+		} else if local {
+			return localList()
+		}
 		if backendName == "rest" && (listCursor != "" || listOffset > 0) {
 			return fmt.Errorf("REST document listing has no server pagination; use --backend mcp for --cursor/--offset")
 		}
@@ -137,7 +142,7 @@ func init() {
 	listCmd.Flags().StringVar(&listDailyNoteAfter, "daily-note-after", "", "Filter daily notes dated on or after this date (YYYY-MM-DD)")
 	listCmd.Flags().StringVar(&listDailyNoteBefore, "daily-note-before", "", "Filter daily notes dated on or before this date (YYYY-MM-DD)")
 	listCmd.Flags().BoolVar(&listMetadata, "metadata", false, "Fetch document metadata (dates, authors)")
-	listCmd.Flags().IntVar(&listLimit, "limit", 0, "Maximum returned records (REST truncates locally; MCP pages on the server; 0 = all)")
+	listCmd.Flags().IntVar(&listLimit, "limit", 50, "Maximum returned records (REST truncates locally; MCP pages on the server; 0 = all)")
 	listCmd.Flags().BoolVar(&listCount, "count", false, "Count matching documents (REST fetches all records; upstream has no count endpoint)")
 	listCmd.Flags().StringVar(&listFields, "fields", "", "Comma-separated fields to include in JSON output (e.g. id,title,lastModifiedAt)")
 	listCmd.Flags().StringVar(&listCursor, "cursor", "", "MCP pagination cursor")

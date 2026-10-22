@@ -173,9 +173,13 @@ var profilesTestCmd = &cobra.Command{
 			} else {
 				client = api.NewClient(profile.URL)
 			}
+			client.SetTimeout(requestTimeout)
 			_, err = client.GetConnection()
 		case "mcp":
-			_, err = craftmcp.NewClient(profile.MCPURL).Initialize()
+			client := craftmcp.NewClient(profile.MCPURL)
+			client.SetTimeout(requestTimeout)
+			client.ClientVersion = version
+			_, err = client.Initialize()
 		default:
 			err = fmt.Errorf("unknown profile type: %s", profile.TypeOrDefault())
 		}
@@ -183,7 +187,13 @@ var profilesTestCmd = &cobra.Command{
 		if err != nil {
 			result["error"] = err.Error()
 		}
-		return outputJSON(result)
+		if outputErr := outputJSON(result); outputErr != nil {
+			return outputErr
+		}
+		if err != nil {
+			return err
+		}
+		return nil
 	},
 }
 

@@ -5,8 +5,8 @@ Captured data, not hand-maintained API definitions. Review upstream drift and up
 | File | Source | Capture |
 |---|---|---|
 | `craft-rest-space-openapi.json` | [Live Craft Connect docs](https://connect.craft.do/link/HHRuPxZZTJ6/docs/v1), embedded OpenAPI 3.1.1 | 2026-10-19, 44 operations across 21 paths |
-| `craft-mcp-tools.json` | User-supplied Craft MCP, tools/list | 2026-09-26; three workflow tools |
-| `craft-mcp-resources.json` | User-supplied Craft MCP, resources/list | 2026-09-26; edit-review UI resource metadata only |
+| `craft-mcp-tools.json` | User-supplied Craft MCP, tools/list | 2026-10-21; three workflow tools, current discovery and folder/task help verified |
+| `craft-mcp-resources.json` | User-supplied Craft MCP, resources/list | 2026-10-21; edit-review UI resource metadata only |
 | `clispec-v0.2.schema.json` | [Official frozen CLI Spec v0.2 schema](https://clispec.dev/schema/v0.2.json) | Validates `docs/command-reference.json` in CI |
 
 ```bash

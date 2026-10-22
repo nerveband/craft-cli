@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -12,8 +11,11 @@ func parseJSONObject(input string) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("empty JSON payload")
 	}
 	var payload map[string]interface{}
-	if err := json.Unmarshal([]byte(input), &payload); err != nil {
+	if err := decodeInputJSON([]byte(input), &payload); err != nil {
 		return nil, fmt.Errorf("invalid JSON object: %w", err)
+	}
+	if payload == nil {
+		return nil, fmt.Errorf("expected a JSON object")
 	}
 	return payload, nil
 }

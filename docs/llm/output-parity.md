@@ -8,15 +8,14 @@ Goal: CLI JSON output matches API/MCP payload shapes by default. Legacy flattene
 | --- | --- | --- |
 | MCP | JSON-RPC envelope | Actual blocks JSON lives in `result.content[].text` (string) |
 | API | REST payloads | List endpoints return `{items, total}` |
-| CLI (default) | API-shaped JSON | List/search outputs return `{items, total}`; single document returns document JSON |
+| CLI (default) | API-shaped JSON with `_provenance` | List/search outputs return `{items, total}`; single document returns document JSON |
 | CLI (`--format compact`) | Legacy JSON | Flattened arrays for list/search outputs |
 
 ## MCP-Backed CLI Output
 
 Commands that wrap MCP-only features return the MCP tool result by default, or
 a structured dry-run envelope when `--dry-run` is used. Examples include
-`craft documents resolve-link`, `craft blocks revert`, `craft collections views`,
-`craft collections active-view set`, `craft collections rename`,
+`craft documents resolve-link`, `craft blocks revert`, `craft folders update`, `craft collections rename`,
 `craft whiteboards elements get`, `craft images view`, `craft mcp edit-review`,
 and `craft batch`.
 
@@ -29,6 +28,6 @@ client-side, JSON includes `_metadata.truncated`, `returned`,
 
 MCP cursor pagination is exposed through `craft list --backend mcp --cursor ...`.
 
-## Payload Snapshots
+## Contracts and limits
 
-See `docs/payloads/README.md` for MCP/API/CLI payloads for **Craft Everything In One**.
+Use `--cli-response-schema` for CLI output and `--response-schema` for upstream REST output. JSON reports source/scope/backend and local snapshot age. Raw responses and scalar field streams remain unchanged. See [runtime and offline data](runtime-and-offline.md) for bounded defaults and unlimited export flags.

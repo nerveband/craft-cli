@@ -7,6 +7,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/ashrafali/craft-cli/internal/agentdoc"
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +20,7 @@ var validateCmd = &cobra.Command{
 		schema := buildSchema(rootCmd)
 		checks := []map[string]interface{}{
 			{"name": "schema", "ok": len(schema.Subcommands) > 0 && schema.SchemaVersion != ""},
-			{"name": "skill", "ok": fileExists("SKILL.md")},
+			{"name": "skill", "ok": strings.Contains(agentdoc.Content, "name: craft-cli")},
 			{"name": "agent_dx_audit", "ok": findCobraCommand(rootCmd, "audit", "agent-dx") != nil},
 		}
 		ok := true

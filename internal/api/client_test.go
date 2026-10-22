@@ -555,8 +555,9 @@ func TestClient_MoveFolder(t *testing.T) {
 			if len(body.FolderIDs) != 1 || body.FolderIDs[0] != "folder1" {
 				t.Fatalf("Expected folderIds [folder1], got %#v", body.FolderIDs)
 			}
-			if body.Destination != "root" {
-				t.Errorf("Expected destination root, got %#v", body.Destination)
+			destination, ok := body.Destination.(map[string]interface{})
+			if !ok || destination["destination"] != "root" {
+				t.Errorf("Expected nested root destination, got %#v", body.Destination)
 			}
 
 			json.NewEncoder(w).Encode(map[string]interface{}{"items": []map[string]string{{"id": "folder1"}}})

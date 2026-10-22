@@ -36,6 +36,9 @@ func specArgs(flags *pflag.FlagSet) []map[string]interface{} {
 // Behavioral compliance is evaluated separately by Audit v3.
 func cliSpec(filter string) map[string]interface{} {
 	commands := []map[string]interface{}{}
+	definitions := map[string]interface{}{}
+	upstream, _ := upstreamRESTSpec()
+	restComponents := upstream["components"]
 	var walk func(*cobra.Command)
 	walk = func(parent *cobra.Command) {
 		for _, c := range parent.Commands() {
@@ -51,7 +54,8 @@ func cliSpec(filter string) map[string]interface{} {
 						args = append(args, map[string]interface{}{"name": strings.Trim(token, "[]<>"), "type": "string", "required": strings.HasPrefix(token, "<")})
 					}
 				}
-				entry := map[string]interface{}{"name": path, "description": c.Short, "effects": e.Effects, "mutating": e.Effects != "read_only", "stdout_schema": map[string]interface{}{}, "args": args, "extensions": map[string]interface{}{"scope": e.Scope, "destructive": e.Destructive, "supports_dry_run": e.Effects != "read_only", "retry_guidance": "After a write timeout verify with get/list/search before retrying; the server may have applied it.", "output_contract": "Use --response-schema for the upstream REST shape; convenience commands may flatten it."}}
+				entry := map[string]interface{}{"name": path, "description": c.Short, "effects": e.Effects, "mutating": e.Effects != "read_only", "stdout_schema": internContract(cliOutputSchema(c), definitions), "args": args, "extensions": map[string]interface{}{"scope": e.Scope, "destructive": e.Destructive, "supports_dry_run": e.Effects != "read_only", "retry_guidance": "After a write timeout verify with get/list/search before retrying; the server may have applied it.", "output_contract": "Use --cli-request-schema and --cli-response-schema for CLI contracts; --request-schema and --response-schema expose upstream REST contracts."}}
+				entry["extensions"].(map[string]interface{})["input_schema"] = internContract(cliInputSchema(c), definitions)
 				if e.Destructive {
 					entry["confirmation_bypass_arg"] = "--yes"
 				}
@@ -60,7 +64,7 @@ func cliSpec(filter string) map[string]interface{} {
 					entry["extensions"].(map[string]interface{})["confirmation_condition"] = "Only --mode replace requires --yes; the default append mode does not."
 				}
 				if path == "setup" {
-					entry["requires_tty"] = true
+					entry["extensions"].(map[string]interface{})["tty_condition"] = "Interactive wizard only; --name with --api-url or --mcp-url needs no terminal."
 				}
 				// Do not claim bounded cardinality for collection APIs without server paging.
 				if path == "list" || path == "folders list" || path == "tasks list" || path == "collections list" {
@@ -86,5 +90,5 @@ func cliSpec(filter string) map[string]interface{} {
 		}
 		errors = append(errors, map[string]interface{}{"kind": strings.ToLower(kind), "exit_code": code, "retryable": kind == "RATE_LIMIT" || kind == "API_ERROR"})
 	}
-	return map[string]interface{}{"clispec": "0.2", "command_layout": "flat", "name": "craft", "version": version, "description": rootCmd.Short, "output": map[string]string{"tty": "json", "piped": "json"}, "global_args": specArgs(rootCmd.PersistentFlags()), "commands": commands, "errors": errors, "extensions": map[string]interface{}{"generated_from": "Cobra command definitions and explicit cmd/effects.go declarations; do not hand-edit docs/command-reference.json", "status": "v0.2 schema; see Audit v3 final report for behavioral gaps", "async": "No asynchronous submission or polling API is exposed; no job ledger or wait is applicable.", "feedback": "Local feedback only; no upstream feedback transport.", "profiles": "Discover safe runtime profile metadata with profiles list; schema never reads user configuration."}}
+	return map[string]interface{}{"clispec": "0.2", "command_layout": "flat", "name": "craft", "version": version, "description": rootCmd.Short, "output": map[string]string{"tty": "json", "piped": "json"}, "global_args": specArgs(rootCmd.PersistentFlags()), "commands": commands, "errors": errors, "extensions": map[string]interface{}{"rest_components": restComponents, "contract_definitions": definitions, "generated_from": "Cobra command definitions and explicit cmd/effects.go declarations; do not hand-edit docs/command-reference.json", "status": "v0.2 with typed CLI contracts; runtime context is available through craft context", "async": "No asynchronous submission or polling API is exposed; no job ledger or wait is applicable.", "feedback": "Local feedback only; no upstream feedback transport.", "profiles": "Discover safe runtime profile metadata with profiles list; schema never reads user configuration."}}
 }

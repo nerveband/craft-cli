@@ -87,6 +87,7 @@ var (
 	taskRepeatSkipWeekends bool
 	taskRepeatDynamicDays  bool
 	taskSaveRevert         string
+	taskDate               string
 	taskDiff               bool
 )
 
@@ -139,6 +140,33 @@ Examples:
 			return err
 		}
 
+		if taskDate != "" || taskLocation == "dailyNote" {
+			if taskDocumentID != "" {
+				return fmt.Errorf("--date/dailyNote cannot be combined with --document")
+			}
+			location := map[string]interface{}{"type": "dailyNote"}
+			if taskDate != "" {
+				location["date"] = taskDate
+			}
+			item := map[string]interface{}{"markdown": description, "location": location}
+			info := map[string]interface{}{}
+			if taskScheduleDate != "" {
+				info["scheduleDate"] = taskScheduleDate
+			}
+			if taskDeadlineDate != "" {
+				info["deadlineDate"] = taskDeadlineDate
+			}
+			if len(info) > 0 {
+				item["taskInfo"] = info
+			}
+			if repeat != nil {
+				item["repeat"] = repeat
+			}
+			return runTasksAddRaw(map[string]interface{}{"tasks": []interface{}{item}})
+		}
+		if taskLocation != "inbox" && taskLocation != "document" {
+			return fmt.Errorf("invalid location; valid: inbox, document, dailyNote")
+		}
 		if isDryRun() {
 			return dryRunOutput("create task", map[string]interface{}{"markdown": description, "location": taskLocation, "documentId": taskDocumentID, "repeat": repeat, "scheduleDate": taskScheduleDate, "deadlineDate": taskDeadlineDate, "reversible": false})
 		}
@@ -235,15 +263,24 @@ Examples:
 		if cmd.Flags().Changed("markdown") {
 			item["markdown"] = taskMarkdown
 		}
-		if cmd.Flags().Changed("location") || cmd.Flags().Changed("document") {
+		if cmd.Flags().Changed("location") || cmd.Flags().Changed("document") || cmd.Flags().Changed("date") {
 			loc := taskLocation
+			if taskDate != "" {
+				if taskDocumentID != "" {
+					return fmt.Errorf("--date and --document are mutually exclusive")
+				}
+				loc = "dailyNote"
+			}
 			if taskDocumentID != "" {
 				loc = "document"
 			}
-			if loc != "inbox" && loc != "document" {
-				return fmt.Errorf("invalid location %q; valid: inbox, document", loc)
+			if loc != "inbox" && loc != "document" && loc != "dailyNote" {
+				return fmt.Errorf("invalid location %q; valid: inbox, document, dailyNote", loc)
 			}
 			location := map[string]string{"type": loc}
+			if loc == "dailyNote" && taskDate != "" {
+				location["date"] = taskDate
+			}
 			if loc == "document" {
 				if err := validateResourceID(taskDocumentID, "document-id"); err != nil {
 					return err
@@ -336,7 +373,9 @@ func init() {
 	tasksListCmd.Flags().StringVar(&taskDocumentID, "document", "", "Filter by document ID")
 
 	tasksCmd.AddCommand(tasksAddCmd)
-	tasksAddCmd.Flags().StringVar(&taskLocation, "location", "inbox", "Location: inbox, document")
+	tasksAddCmd.Flags().StringVar(&taskLocation, "location", "inbox", "Location: inbox, document, dailyNote")
+	tasksAddCmd.Flags().StringVar(&taskDate, "date", "", "Daily-note date (implies dailyNote location)")
+	tasksUpdateCmd.Flags().StringVar(&taskDate, "date", "", "Destination daily-note date (implies dailyNote location)")
 	tasksAddCmd.Flags().StringVar(&taskDocumentID, "document", "", "Document ID (required for location=document)")
 	tasksAddCmd.Flags().StringVar(&taskScheduleDate, "schedule", "", "Schedule date (YYYY-MM-DD)")
 	tasksAddCmd.Flags().StringVar(&taskDeadlineDate, "deadline", "", "Deadline date (YYYY-MM-DD)")
@@ -383,7 +422,7 @@ func rejectTaskRevertFlags() error {
 		return nil
 	}
 	return newCLIError("CAPABILITY_UNAVAILABLE",
-		"Craft MCP exposes task writes, but task-write revert metadata is not verified by this CLI. For the task's underlying block, use craft blocks update <block-id> --save-revert")
+		"Craft MCP exposes task writes, but live-checked task create/update results contain no revert metadata. For the task's underlying block, use craft blocks update <block-id> --save-revert")
 }
 
 // repeatFlagValues carries repeat flag inputs so validation is testable.

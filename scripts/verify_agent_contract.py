@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Offline subprocess proof. Every network operation targets a loopback fixture."""
-import http.server, json, os, pathlib, subprocess, sys, tempfile, threading, urllib.parse
+import http.server, json, os, pathlib, shlex, subprocess, sys, tempfile, threading, urllib.parse
 binary = str(pathlib.Path(sys.argv[1]).resolve())
 requests = []
 status = 200
@@ -86,6 +86,35 @@ with tempfile.TemporaryDirectory() as td:
     p,_=run(['profiles','show','fixture'],remote=False,env=env);assert 'fixture-private-value' not in p.stdout
     p,_=run(['profiles','list'],remote=False,env=env);assert json.loads(p.stdout)['source']=='config_file'
     config.unlink();p,r=run(['list'],remote=False,env=env,expected=3);assert not p.stdout and not r
+# New backlog behaviors run against the same loopback fixture and isolated state.
+with tempfile.TemporaryDirectory() as td:
+    env=os.environ.copy();env['CRAFT_CONFIG_DIR']=td;env['CRAFT_FIXTURE_SECRET']='fixture-private-value'
+    result,r=data(['setup','--name','fixture','--api-url',url,'--api-key-env','CRAFT_FIXTURE_SECRET'],remote=False,env=env);assert result['status']=='ok' and not r
+    config=pathlib.Path(td)/'config.json';stored=json.loads(config.read_text());assert 'fixture-private-value' not in config.read_text() and url not in config.read_text()
+    secrets=config.parent/stored['credential_store'];assert secrets.stat().st_mode & 0o777 == 0o600
+    result,r=data(['context'],remote=False,env=env);assert not r and result['settings']['api_key']['value'] is True and 'fixture-private-value' not in json.dumps(result)
+    status=500
+    result,r=data(['profiles','test','fixture'],remote=False,env=env,expected=2);assert result['ok'] is False
+    status=200
+    result,r=data(['sync'],env=env);assert result['documents']==2
+    result,r=data(['list','--data-source','local'],env=env);assert len(result['items'])==2 and not r and result['_provenance']['source']=='local'
+    result,r=data(['get','fixture-a','--data-source','local'],env=env);assert result['title']=='Alpha' and not r
+    result,r=data(['search','Hello','--data-source','local'],env=env);assert len(result['items'])==2 and not r
+    result,r=data(['list','--data-source','auto'],env=env);assert not r
+    result,r=data(['list','--data-source','auto','--cache-max-age','0s'],env=env);assert r and result['_provenance']['source']=='live'
+    p,r=run(['cache','clear'],env=env,expected=1);assert not r
+    result,r=data(['cache','clear','--dry-run'],env=env);assert not r and result['dry_run']
+    result,r=data(['cache','clear','--yes'],env=env);assert not r and result['status']=='cleared'
+    p,r=run(['list','--data-source','local'],env=env,expected=1);assert not r
+result,r=data(['documents','list','--limit','1']);assert len(result['items'])==1
+result,r=data(['search','Hello','--date','today']);assert urllib.parse.parse_qs(urllib.parse.urlparse(r[0][1]).query)['date']==['today']
+result,r=data(['search','Hello','--document-id','fixture-a']);assert urllib.parse.parse_qs(urllib.parse.urlparse(r[0][1]).query)['documentId']==['fixture-a']
+for command in manifest['commands']:
+    assert command['extensions'].get('examples'),command['name']
+    result,r=data(command['name'].split()+['--cli-request-schema'],remote=False);assert not r and result['type']=='object'
+    result,r=data(command['name'].split()+['--cli-response-schema'],remote=False);assert not r and result.get('$schema')
+    for example in command['extensions']['examples']:
+        run(shlex.split(example.strip())[1:]+['--cli-request-schema'],remote=False)
 repo=pathlib.Path(__file__).resolve().parents[1]
 assert (repo/'SKILL.md').read_text()==(repo/'internal/agentdoc/SKILL.md').read_text(), 'bundled skill drift'
 assert json.loads((repo/'docs/command-reference.json').read_text())==manifest,'command reference drift'

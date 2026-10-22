@@ -57,8 +57,8 @@ func TestConfirmationGateCoversOnlyDataLoss(t *testing.T) {
 	yesFlag = false
 	defer func() { yesFlag = savedYes }()
 
-	gated := []string{"delete", "clear", "blocks delete", "tasks delete", "folders delete", "collections delete", "collections views delete", "collections schema update", "whiteboards delete", "reminders delete", "config reset", "config remove", "profiles remove"}
-	free := []string{"update", "move", "tasks update", "blocks update", "blocks move", "blocks revert", "folders move", "collections rename", "collections update", "collections views update", "collections active-view set", "reminders update", "whiteboards update"}
+	gated := []string{"delete", "clear", "blocks delete", "tasks delete", "folders delete", "collections delete", "collections views delete", "collections schema update", "whiteboards delete", "reminders delete", "config reset", "config remove", "profiles remove", "cache clear"}
+	free := []string{"folders update", "config migrate", "update", "move", "tasks update", "blocks update", "blocks move", "blocks revert", "folders move", "collections rename", "collections update", "collections views update", "collections active-view set", "reminders update", "whiteboards update"}
 
 	for _, path := range gated {
 		cmd, _, err := rootCmd.Find(strings.Fields(path))

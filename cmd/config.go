@@ -14,7 +14,8 @@ var configCmd = &cobra.Command{
 
 Configuration is stored in: ~/.craft-cli/config.json
 
-You can edit this file directly or use these commands to manage it.
+Use these commands to manage metadata and separate private credentials.
+Use config inspect for setting sources and config migrate for legacy inline credentials.
 
 Examples:
   # Add typed REST and MCP profiles

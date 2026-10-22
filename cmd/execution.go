@@ -55,6 +55,14 @@ func executeCaptured() error {
 		}
 
 	}
+	if activeCommand != nil && err == nil && isJSONFormat(getOutputFormat()) && getOutputOnly() == "" && !rawOutput && !json.Valid(bytes.TrimSpace(output)) {
+		path := canonicalCommandPath(activeCommand)
+		switch path {
+		case "local append", "local new", "local open", "local search", "local space", "local today", "local tomorrow", "local yesterday", "setup", "config add", "config add-rest", "config add-mcp", "config use", "config remove", "config reset", "profiles add-rest", "profiles add-mcp", "profiles use", "profiles remove":
+			output, _ = json.Marshal(map[string]interface{}{"status": "ok", "message": strings.TrimSpace(string(output)), "_provenance": map[string]interface{}{"scope": "local", "source": "local", "backend": "local"}})
+			output = append(output, '\n')
+		}
+	}
 	if outputFormat == "raw" && len(lastRESTResponse) > 0 && transformExpr == "" && getOutputOnly() == "" {
 		output = lastRESTResponse
 	}

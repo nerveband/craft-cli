@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -183,6 +185,10 @@ func (c *Client) Call(method string, params interface{}) (json.RawMessage, error
 
 	req, err := http.NewRequest("POST", c.url, bytes.NewReader(reqBody))
 	if err != nil {
+		var endpointErr *url.Error
+		if errors.As(err, &endpointErr) {
+			err = endpointErr.Err
+		}
 		return nil, fmt.Errorf("failed to create MCP request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -198,6 +204,10 @@ func (c *Client) Call(method string, params interface{}) (json.RawMessage, error
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		var endpointErr *url.Error
+		if errors.As(err, &endpointErr) {
+			err = endpointErr.Err
+		}
 		return nil, fmt.Errorf("MCP request failed: %w", err)
 	}
 	defer resp.Body.Close()
@@ -283,6 +293,10 @@ func (c *Client) SetTimeout(timeout time.Duration) {
 func (c *Client) notifyInitialized() error {
 	req, err := http.NewRequest("POST", c.url, strings.NewReader(`{"jsonrpc":"2.0","method":"notifications/initialized"}`))
 	if err != nil {
+		var endpointErr *url.Error
+		if errors.As(err, &endpointErr) {
+			err = endpointErr.Err
+		}
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -297,6 +311,10 @@ func (c *Client) notifyInitialized() error {
 	}
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		var endpointErr *url.Error
+		if errors.As(err, &endpointErr) {
+			err = endpointErr.Err
+		}
 		return fmt.Errorf("MCP initialized notification: %w", err)
 	}
 	defer resp.Body.Close()

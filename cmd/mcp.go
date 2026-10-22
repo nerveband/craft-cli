@@ -97,7 +97,7 @@ var mcpCallCmd = &cobra.Command{
 
 		arguments := map[string]interface{}{}
 		if mcpArgsJSON != "" {
-			if err := json.Unmarshal([]byte(mcpArgsJSON), &arguments); err != nil {
+			if err := decodeInputJSON([]byte(mcpArgsJSON), &arguments); err != nil {
 				return fmt.Errorf("invalid --arguments JSON: %w", err)
 			}
 		}
@@ -323,6 +323,7 @@ func getMCPClient() (*craftmcp.Client, error) {
 	if url == "" {
 		return nil, fmt.Errorf("Craft MCP URL required. Use --mcp-url, set CRAFT_MCP_URL, or create an MCP profile with 'craft config add-mcp <name> --mcp-url URL'")
 	}
+	responseBackend = "mcp"
 	client := craftmcp.NewClient(url)
 	client.SetTimeout(requestTimeout)
 	client.ClientVersion = version
@@ -402,7 +403,7 @@ func readMCPBatchOperations(cmd *cobra.Command) ([]mcpBatchOperation, error) {
 	stdinFlag, _ := cmd.Flags().GetBool("stdin")
 	switch {
 	case mcpBatchFile != "":
-		data, err := os.ReadFile(mcpBatchFile)
+		data, err := readStructuredFile(mcpBatchFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read batch file: %w", err)
 		}
@@ -433,7 +434,8 @@ func parseMCPBatchInput(input, defaultTool string) ([]mcpBatchOperation, error) 
 		return nil, nil
 	}
 	var raw []interface{}
-	if err := json.Unmarshal([]byte(input), &raw); err == nil {
+	decodeErr := decodeInputJSON([]byte(input), &raw)
+	if decodeErr == nil {
 		ops := make([]mcpBatchOperation, 0, len(raw))
 		for _, item := range raw {
 			switch value := item.(type) {
@@ -454,6 +456,9 @@ func parseMCPBatchInput(input, defaultTool string) ([]mcpBatchOperation, error) 
 			}
 		}
 		return ops, nil
+	}
+	if strings.HasPrefix(input, "[") || strings.HasPrefix(input, "{") {
+		return nil, fmt.Errorf("invalid structured batch input: %w", decodeErr)
 	}
 	var ops []mcpBatchOperation
 	for _, line := range strings.Split(input, "\n") {

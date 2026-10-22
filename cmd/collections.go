@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -185,7 +184,7 @@ var collectionsItemsCmd = &cobra.Command{
 	Long: `List all items in a collection.
 
 Use --depth to control the depth of nested content returned.
-Default depth is -1 (no limit).`,
+Default depth is 2. Use --depth -1 for all descendants.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := getAPIClient()
@@ -276,7 +275,7 @@ Examples:
 
 		var props map[string]interface{}
 		if collectionItemProps != "" {
-			if err := json.Unmarshal([]byte(collectionItemProps), &props); err != nil {
+			if err := decodeInputJSON([]byte(collectionItemProps), &props); err != nil {
 				return fmt.Errorf("invalid --properties JSON: %w", err)
 			}
 		}
@@ -379,7 +378,7 @@ Examples:
 		}
 
 		var props map[string]interface{}
-		if err := json.Unmarshal([]byte(collectionItemProps), &props); err != nil {
+		if err := decodeInputJSON([]byte(collectionItemProps), &props); err != nil {
 			return fmt.Errorf("invalid --properties JSON: %w", err)
 		}
 
@@ -533,7 +532,7 @@ func init() {
 	collectionsRenameCmd.Flags().StringVar(&collectionName, "name", "", "New collection name")
 
 	collectionsCmd.AddCommand(collectionsItemsCmd)
-	collectionsItemsCmd.Flags().IntVar(&collectionItemDepth, "depth", -1, "Max depth of nested content (-1 for no limit)")
+	collectionsItemsCmd.Flags().IntVar(&collectionItemDepth, "depth", 2, "Max depth of nested content (-1 for no limit)")
 
 	collectionsCmd.AddCommand(collectionsAddCmd)
 	collectionsAddCmd.Flags().StringVar(&collectionItemTitle, "title", "", "Item title (required)")

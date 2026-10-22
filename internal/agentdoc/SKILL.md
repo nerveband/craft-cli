@@ -24,7 +24,7 @@ craft config add-rest work --api-url "$CRAFT_API_URL" --api-key-env CRAFT_API_KE
 craft config add-mcp work-mcp --mcp-url "$CRAFT_MCP_URL"
 ```
 
-MCP is a separate profile type. Do not add `mcp_url` to a REST profile or as a top-level config key. A valid MCP profile has `"type": "mcp"` and `"mcp_url"` and is best created with `craft profiles add-mcp` or `craft config add-mcp`.
+MCP is a separate profile type. Do not add `mcp_url` to a REST profile or as a top-level config key. A valid MCP connection has type `mcp`; its URL is stored privately and is best configured with `craft profiles add-mcp` or `craft config add-mcp`.
 
 Per command, prefer explicit routing:
 
@@ -116,10 +116,22 @@ This CLI exposes synchronous operations only. It has no asynchronous submission/
 
 REST document/folder/task lists have no server cursor or count endpoint in the pinned contract. Document `--limit` truncates locally and `--count` fetches the list. MCP document listing and REST reminders support server cursors. JSONL is buffered formatting, not incremental network streaming.
 
-There is no local data index or offline sync. Use `--data-source live`; `local` and `auto` fail explicitly. Local app commands open Craft through its URL scheme and do not provide a query cache.
+Use `craft sync` to opt into a private local document index. List/get/search support `--data-source local` (explicit snapshot) and `auto` (complete snapshot within --cache-max-age, then live). Other commands reject local/auto. Sync after remote changes; clear the cache when removing access. Local app commands open Craft through its URL scheme and are separate from the index.
 
 Feedback is local only. There is no upstream feedback service to configure. This CLI consumes Craft MCP tools; it does not publish an MCP server or generate their descriptions.
 
 After any uncertain write, read or search to verify the result before retrying. No writes are retried automatically.
 
 Use REST for collection views and reminders. For example: `craft collections views list COLLECTION_ID` and `craft reminders list --limit 10`. Views store configuration and do not execute filters.
+
+## Runtime contracts and 3.0 defaults
+
+Use `craft context` or `craft config inspect` for redacted runtime setting sources and profiles. Offline `schema` does not read user configuration. Use `--cli-request-schema` and `--cli-response-schema` for CLI contracts; existing request/response schema flags describe upstream REST.
+
+Lists default to 50 records; document/block/collection-item reads default to depth 2. Other read arrays default to 50 records and document text to 20,000 characters. JSON reports truncation and provenance. Use the applicable `--limit 0`, `--max-items 0`, `--max-chars 0`, and `--max-depth -1` or `--depth -1` for complete exports. REST still fetches entire collections where server pagination is unavailable.
+
+Profile saves separate connection URLs and API keys from metadata. Legacy profiles remain readable; preview `craft config migrate --dry-run`, then run `craft config migrate`. Older CLI versions cannot read the separated layout. Noninteractive setup uses `craft setup --name NAME --api-url URL --api-key-env CRAFT_API_KEY` or `--mcp-url URL`.
+
+Structured inputs can opt into `--expand-files`: `@file://path` for JSON, `@text://path` for UTF-8, `@data://path` for base64, `@@` for a literal at sign, with an 8 MiB total budget and no recursive expansion of file contents.
+
+Use `search --date today` on Daily Notes connections and `search --document-id ID` on Selected Documents connections. Native MCP folder metadata changes use `folders update ID --name NAME --icon ICON --tint COLOR`; preview first. MCP task writes were checked live and return no revert payload, so task undo flags remain unavailable before any mutation.

@@ -36,6 +36,11 @@ Examples:
   craft get abc123 --format rich          # Pretty terminal output`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if local, err := useLocalData(); err != nil {
+			return err
+		} else if local {
+			return localGet(args[0])
+		}
 		client, err := getAPIClient()
 		if err != nil {
 			return err
@@ -137,6 +142,6 @@ func writeBlocksToFile(blocksResp *models.BlocksResponse, format string) error {
 func init() {
 	rootCmd.AddCommand(getCmd)
 	getCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Write document content to file")
-	getCmd.Flags().IntVar(&getMaxDepth, "max-depth", -1, "Maximum block nesting depth (-1 = all, 0 = top level only)")
+	getCmd.Flags().IntVar(&getMaxDepth, "max-depth", 2, "Maximum block nesting depth (-1 = all, 0 = top level only)")
 	getCmd.Flags().BoolVar(&allowOutsideCWD, "allow-outside-cwd", false, "Allow --output paths outside the current working directory")
 }

@@ -1,9 +1,7 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
@@ -173,9 +171,9 @@ Examples:
 		}
 
 		var check []map[string]interface{}
-		if err := json.Unmarshal([]byte(data), &check); err != nil {
+		if err := decodeInputJSON([]byte(data), &check); err != nil {
 			var single map[string]interface{}
-			if err := json.Unmarshal([]byte(data), &single); err != nil {
+			if err := decodeInputJSON([]byte(data), &single); err != nil {
 				return fmt.Errorf("invalid elements JSON: %w", err)
 			}
 			check = []map[string]interface{}{single}
@@ -195,10 +193,10 @@ Examples:
 		}
 
 		var elements []map[string]interface{}
-		if err := json.Unmarshal([]byte(data), &elements); err != nil {
+		if err := decodeInputJSON([]byte(data), &elements); err != nil {
 			// Try single element
 			var single map[string]interface{}
-			if err2 := json.Unmarshal([]byte(data), &single); err2 != nil {
+			if err2 := decodeInputJSON([]byte(data), &single); err2 != nil {
 				return fmt.Errorf("invalid JSON: %w", err)
 			}
 			elements = []map[string]interface{}{single}
@@ -243,9 +241,9 @@ Examples:
 		}
 
 		var check []map[string]interface{}
-		if err := json.Unmarshal([]byte(data), &check); err != nil {
+		if err := decodeInputJSON([]byte(data), &check); err != nil {
 			var single map[string]interface{}
-			if err := json.Unmarshal([]byte(data), &single); err != nil {
+			if err := decodeInputJSON([]byte(data), &single); err != nil {
 				return fmt.Errorf("invalid elements JSON: %w", err)
 			}
 			check = []map[string]interface{}{single}
@@ -265,9 +263,9 @@ Examples:
 		}
 
 		var elements []map[string]interface{}
-		if err := json.Unmarshal([]byte(data), &elements); err != nil {
+		if err := decodeInputJSON([]byte(data), &elements); err != nil {
 			var single map[string]interface{}
-			if err2 := json.Unmarshal([]byte(data), &single); err2 != nil {
+			if err2 := decodeInputJSON([]byte(data), &single); err2 != nil {
 				return fmt.Errorf("invalid JSON: %w", err)
 			}
 			elements = []map[string]interface{}{single}
@@ -379,7 +377,7 @@ func init() {
 }
 
 func readStdinString() (string, error) {
-	data, err := io.ReadAll(os.Stdin)
+	data, err := readStructuredBytes(os.Stdin)
 	if err != nil {
 		return "", fmt.Errorf("failed to read stdin: %w", err)
 	}

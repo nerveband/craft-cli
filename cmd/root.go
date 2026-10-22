@@ -35,7 +35,7 @@ var (
 	transformExpr  string
 	dataSource     string
 	cfgManager     *config.Manager
-	version        = "2.1.2"
+	version        = "3.0.0"
 
 	// Global flags for LLM/scripting friendliness
 	quietMode      bool
@@ -80,6 +80,13 @@ Use --json-errors for machine-readable error output.`,
 
 // Execute runs the root command
 func Execute() {
+	if handled, err := inspectSchemaArgs(os.Args[1:]); handled {
+		if err != nil {
+			handleError(err)
+		}
+		return
+	}
+
 	if c, flags, err := rootCmd.Find(os.Args[1:]); err == nil && c == schemaCmd {
 		c.InitDefaultHelpFlag()
 		if err := c.ParseFlags(flags); err != nil {
@@ -91,12 +98,6 @@ func Execute() {
 			return
 		}
 		if err := c.RunE(c, c.Flags().Args()); err != nil {
-			handleError(err)
-		}
-		return
-	}
-	if handled, err := inspectSchemaArgs(os.Args[1:]); handled {
-		if err != nil {
 			handleError(err)
 		}
 		return
@@ -186,58 +187,12 @@ func getAPIClient() (*api.Client, error) {
 	if backendName == "mcp" || backendName == "local" {
 		return nil, newCLIError("CAPABILITY_UNAVAILABLE", "this command has no adapter for the selected backend; use --backend rest or craft mcp call for verified MCP commands")
 	}
-	url := apiURL
-	key := apiKey
-	if key == "" && apiKeyEnv != "" {
-		key = os.Getenv(apiKeyEnv)
-		if key == "" {
-			return nil, fmt.Errorf("--api-key-env %s is not set", apiKeyEnv)
-		}
-	}
-	if key == "" {
-		key = os.Getenv("CRAFT_API_KEY")
-	}
-	if profileName != "" && url == "" {
-		profile, err := cfgManager.GetProfile(profileName)
-		if err != nil {
-			return nil, err
-		}
-		if profile.TypeOrDefault() != "rest" {
-			return nil, fmt.Errorf("profile '%s' is %s, not rest. Use an MCP command or select a REST profile", profileName, profile.TypeOrDefault())
-		}
-		url = profile.URL
-		if key == "" {
-			key = profile.APIKey
-		}
-	}
-	if url == "" {
-		var err error
-		url, err = cfgManager.GetActiveURL()
-		if err != nil {
-			// Check if this is first run and offer setup
-			if checkFirstRun() {
-				// User went through setup, try again
-				url, err = cfgManager.GetActiveURL()
-				if err != nil {
-					return nil, err
-				}
-			} else {
-				return nil, err
-			}
-		}
+	url, key, _, err := resolveREST()
+	if err != nil {
+		return nil, err
 	}
 
-	// Get API key: flag > config > empty
-	if key == "" {
-		var err error
-		if profileName == "" && apiURL == "" {
-			key, err = cfgManager.GetActiveAPIKey()
-			if err != nil {
-				key = ""
-			}
-		}
-	}
-
+	responseBackend = "rest"
 	client := api.NewClientWithKey(url, key)
 	client.SetTimeout(requestTimeout)
 	client.ObserveResponse = func(data []byte) { lastRESTResponse = append([]byte(nil), data...) }

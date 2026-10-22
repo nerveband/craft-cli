@@ -10,17 +10,17 @@ Run the full pre-release check, release pipeline, and post-release verification.
 1. Run `go test ./...` for all tests
 2. Run `go vet ./...` for static analysis
 3. Run `go build -o craft-cli .` to verify the binary builds
-4. Verify version in `cmd/root.go` matches the intended release version
+4. Verify version in `cmd/root.go` matches the intended release version. Run `python3 scripts/verify_agent_contract.py /tmp/craft-cli`, the pinned CLI Spec validator, and `scripts/verify_cli_schemas.py` (jsonschema required). Regenerate `docs/command-reference.json` from the release binary whenever command contracts or version change.
 
 **API integration verification:**
 5. Test core operations against the live Craft Connect API:
-   - `./craft-cli list` — document listing
-   - `./craft-cli folders` — folder listing
-   - `./craft-cli search "test"` — search functionality
-   - `./craft-cli get <doc-id>` — document retrieval
-   - `./craft-cli blocks get <doc-id>` — block-level access
-   - `./craft-cli collections` — collections listing
-   - `./craft-cli tasks` — task listing
+   - `./craft-cli list` : document listing
+   - `./craft-cli folders` : folder listing
+   - `./craft-cli search "test"` : search functionality
+   - `./craft-cli get <doc-id>` : document retrieval
+   - `./craft-cli blocks get <doc-id>` : block-level access
+   - `./craft-cli collections` : collections listing
+   - `./craft-cli tasks` : task listing
 6. Verify all output formats: `--format json`, `--format table`, `--format markdown`, `--format compact`
 
 **Dependency check:**

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/ashrafali/craft-cli/docs/contracts"
 	"github.com/spf13/cobra"
@@ -15,7 +16,7 @@ func inspectSchemaArgs(args []string) (bool, error) {
 		if arg == "--" {
 			break
 		}
-		if arg == "--request-schema" || arg == "--response-schema" || arg == "--request-schema=true" || arg == "--response-schema=true" {
+		if arg == "--cli-request-schema" || arg == "--cli-response-schema" || arg == "--cli-request-schema=true" || arg == "--cli-response-schema=true" || arg == "--request-schema" || arg == "--response-schema" || arg == "--request-schema=true" || arg == "--response-schema=true" {
 			requested = true
 		}
 	}
@@ -28,6 +29,24 @@ func inspectSchemaArgs(args []string) (bool, error) {
 	}
 	if err := command.ParseFlags(flags); err != nil {
 		return true, err
+	}
+	if cliRequestSchema || cliResponseSchema {
+		if (cliRequestSchema && cliResponseSchema) || requestSchema || responseSchema {
+			return true, fmt.Errorf("choose one CLI or upstream schema flag")
+		}
+		var schema map[string]interface{}
+		if cliRequestSchema {
+			schema = cliInputSchema(command)
+		} else {
+			schema = cliOutputSchema(command)
+		}
+		copySchema := make(map[string]interface{}, len(schema)+4)
+		for k, v := range schema {
+			copySchema[k] = v
+		}
+		schema = copySchema
+		schema["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+		return true, outputSchemaJSON(schema)
 	}
 	if requestSchema && responseSchema {
 		return true, fmt.Errorf("choose --request-schema or --response-schema")
@@ -58,12 +77,24 @@ func restOperation(path string) (string, string) {
 	return op[0], op[1]
 }
 
+var restSpecOnce sync.Once
+var cachedRESTSpec map[string]interface{}
+var cachedRESTError error
+
+func upstreamRESTSpec() (map[string]interface{}, error) {
+	restSpecOnce.Do(func() { cachedRESTSpec, cachedRESTError = contracts.OpenAPI() })
+	return cachedRESTSpec, cachedRESTError
+}
+
 func restCommandSchema(command *cobra.Command, response bool) (map[string]interface{}, error) {
-	path, method := restOperation(command.CommandPath())
+	path, method := restOperation(canonicalCommandPath(command))
+	if canonicalCommandPath(command) == "search" && (len(searchDocuments) == 1 || searchDate != "" || searchSelectedDocument != "") {
+		path, method = "/blocks/search", "get"
+	}
 	if path == "" {
 		return nil, fmt.Errorf("REST schema is unavailable for %s; use craft schema --command %q for CLI discovery", command.CommandPath(), strings.TrimPrefix(command.CommandPath(), "craft "))
 	}
-	spec, err := contracts.OpenAPI()
+	spec, err := upstreamRESTSpec()
 	if err != nil {
 		return nil, err
 	}
@@ -88,6 +119,19 @@ func restCommandSchema(command *cobra.Command, response bool) (map[string]interf
 			props[name] = p["schema"]
 			if p["required"] == true {
 				required = append(required, name)
+			}
+		}
+		if canonicalCommandPath(command) == "search" && (searchDate != "" || searchSelectedDocument != "") {
+			key := "date"
+			if searchSelectedDocument != "" {
+				key = "documentId"
+			}
+			props[key] = props["blockId"]
+			delete(props, "blockId")
+			for i, name := range required {
+				if name == "blockId" {
+					required[i] = key
+				}
 			}
 		}
 		schema = map[string]interface{}{"type": "object", "properties": props, "required": required}

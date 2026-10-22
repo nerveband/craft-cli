@@ -26,9 +26,10 @@ type Profile struct {
 
 // Config represents the application configuration
 type Config struct {
-	DefaultFormat string             `json:"default_format"`
-	ActiveProfile string             `json:"active_profile,omitempty"`
-	Profiles      map[string]Profile `json:"profiles,omitempty"`
+	CredentialStore string             `json:"credential_store,omitempty"`
+	DefaultFormat   string             `json:"default_format"`
+	ActiveProfile   string             `json:"active_profile,omitempty"`
+	Profiles        map[string]Profile `json:"profiles,omitempty"`
 }
 
 // Manager handles configuration operations
@@ -82,6 +83,23 @@ func (m *Manager) Load() (*Config, error) {
 		cfg.Profiles = make(map[string]Profile)
 	}
 
+	credentials, err := m.readCredentials(cfg.CredentialStore)
+	if err != nil {
+		return nil, err
+	}
+	for name, profile := range cfg.Profiles {
+		secret := credentials[name]
+		if profile.URL == "" {
+			profile.URL = secret.URL
+		}
+		if profile.MCPURL == "" {
+			profile.MCPURL = secret.MCPURL
+		}
+		if profile.APIKey == "" {
+			profile.APIKey = secret.APIKey
+		}
+		cfg.Profiles[name] = profile
+	}
 	return &cfg, nil
 }
 
@@ -92,16 +110,40 @@ func (m *Manager) Save(cfg *Config) error {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
-	data, err := json.MarshalIndent(cfg, "", "  ")
+	// Publish a new credential generation, then atomically point metadata at it.
+	// A failed config write leaves the old generation intact and readable.
+	clean := *cfg
+	clean.Profiles = make(map[string]Profile, len(cfg.Profiles))
+	current := map[string]credential{}
+	for name, profile := range cfg.Profiles {
+		current[name] = credential{URL: profile.URL, MCPURL: profile.MCPURL, APIKey: profile.APIKey}
+		profile.URL, profile.MCPURL, profile.APIKey = "", "", ""
+		clean.Profiles[name] = profile
+	}
+	f, err := os.CreateTemp(m.configDir, "credentials-*.json")
 	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
+		return err
 	}
-
-	if err := os.WriteFile(m.configPath, data, 0600); err != nil {
-		return fmt.Errorf("failed to write config file: %w", err)
+	credentialPath := f.Name()
+	if err := f.Close(); err != nil {
+		os.Remove(credentialPath)
+		return err
 	}
-
-	return os.Chmod(m.configPath, 0600)
+	clean.CredentialStore = filepath.Base(credentialPath)
+	if err := writePrivateJSON(credentialPath, current); err != nil {
+		os.Remove(credentialPath)
+		return err
+	}
+	if err := writePrivateJSON(m.configPath, &clean); err != nil {
+		os.Remove(credentialPath)
+		return err
+	}
+	oldStore := cfg.CredentialStore
+	cfg.CredentialStore = clean.CredentialStore
+	if oldStore != "" && oldStore != clean.CredentialStore {
+		_ = os.Remove(filepath.Join(m.configDir, oldStore))
+	}
+	return nil
 }
 
 // AddProfile adds or updates a named profile
@@ -219,7 +261,7 @@ func (m *Manager) ListProfiles() ([]ProfileInfo, error) {
 		return nil, err
 	}
 
-	var profiles []ProfileInfo
+	profiles := make([]ProfileInfo, 0)
 	for name, profile := range cfg.Profiles {
 		profiles = append(profiles, ProfileInfo{
 			Name:          name,
@@ -338,8 +380,15 @@ func (m *Manager) GetActiveAPIKey() (string, error) {
 
 // Reset clears the configuration
 func (m *Manager) Reset() error {
-	if err := os.RemoveAll(m.configPath); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to remove config file: %w", err)
+	paths, err := filepath.Glob(filepath.Join(m.configDir, "credentials-*.json"))
+	if err != nil {
+		return err
+	}
+	paths = append(paths, m.configPath)
+	for _, path := range paths {
+		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("remove configuration: %w", err)
+		}
 	}
 	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -138,7 +139,7 @@ var commandEffects = map[string]CommandEffect{
 }
 
 func declaredEffect(cmd *cobra.Command) (CommandEffect, bool) {
-	e, ok := commandEffects[strings.TrimPrefix(cmd.CommandPath(), "craft ")]
+	e, ok := commandEffects[canonicalCommandPath(cmd)]
 	if cmd.CommandPath() == "craft" {
 		e, ok = commandEffects[""]
 	}
@@ -152,6 +153,29 @@ func stdinIsTerminal() bool {
 var errPreviewComplete = fmt.Errorf("local preview complete")
 
 func commandPreflight(cmd *cobra.Command, args []string) error {
+	activeCommand = cmd
+	responseSource = "live"
+	responseBackend = "rest"
+	responseSnapshot = time.Time{}
+	for _, name := range []string{"limit", "offset"} {
+		if f := cmd.Flags().Lookup(name); f != nil && f.Value.Type() == "int" {
+			value, _ := cmd.Flags().GetInt(name)
+			if value < 0 {
+				return fmt.Errorf("--%s must not be negative", name)
+			}
+		}
+	}
+	for _, name := range []string{"depth", "max-depth"} {
+		if f := cmd.Flags().Lookup(name); f != nil {
+			value, _ := cmd.Flags().GetInt(name)
+			if value < -1 {
+				return fmt.Errorf("--%s must be -1 or nonnegative", name)
+			}
+		}
+	}
+	if maxItems < 0 || maxChars < 0 {
+		return fmt.Errorf("--max-items and --max-chars must not be negative")
+	}
 	if requestTimeout <= 0 {
 		return fmt.Errorf("--timeout must be positive")
 	}
@@ -168,10 +192,17 @@ func commandPreflight(cmd *cobra.Command, args []string) error {
 	switch dataSource {
 	case "", "live":
 	case "local", "auto":
-		return fmt.Errorf("--data-source %q is unavailable: this CLI has no local data index; use live", dataSource)
+		path := canonicalCommandPath(cmd)
+		if path != "list" && path != "get" && path != "search" {
+			return fmt.Errorf("--data-source local/auto is supported by list, get and search only")
+		}
 	default:
-		return fmt.Errorf("invalid --data-source %q; supported: live", dataSource)
+		return fmt.Errorf("invalid --data-source %q; supported: local, live, auto", dataSource)
 	}
+	if cacheMaxAge < 0 {
+		return fmt.Errorf("--cache-max-age must not be negative")
+	}
+
 	if deliverTarget != "" && deliverTarget != "stdout" && !strings.HasPrefix(deliverTarget, "file:") {
 		return fmt.Errorf("invalid --deliver %q; supported: stdout, file:<path>", deliverTarget)
 	}

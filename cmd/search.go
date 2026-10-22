@@ -13,24 +13,26 @@ import (
 )
 
 var (
-	searchDocuments      []string
-	searchRegex          string
-	searchCaseSensitive  bool
-	searchContext        int
-	searchBefore         int
-	searchAfter          int
-	searchDailyAfter     string
-	searchDailyBefore    string
-	searchLocation       string
-	searchFolders        []string
-	searchMetadata       bool
-	searchCreatedAfter   string
-	searchCreatedBefore  string
-	searchModifiedAfter  string
-	searchModifiedBefore string
-	searchLimit          int
-	searchCount          bool
-	searchFields         string
+	searchDate             string
+	searchSelectedDocument string
+	searchDocuments        []string
+	searchRegex            string
+	searchCaseSensitive    bool
+	searchContext          int
+	searchBefore           int
+	searchAfter            int
+	searchDailyAfter       string
+	searchDailyBefore      string
+	searchLocation         string
+	searchFolders          []string
+	searchMetadata         bool
+	searchCreatedAfter     string
+	searchCreatedBefore    string
+	searchModifiedAfter    string
+	searchModifiedBefore   string
+	searchLimit            int
+	searchCount            bool
+	searchFields           string
 )
 
 // searchScope resolves multi-value --folder/--document flags into search parameters.
@@ -77,6 +79,11 @@ Block search (with --document):
   craft search --document <doc-id> "term" --context 10`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if local, err := useLocalData(); err != nil {
+			return err
+		} else if local {
+			return localSearch(args)
+		}
 		client, err := getAPIClient()
 		if err != nil {
 			return err
@@ -85,6 +92,12 @@ Block search (with --document):
 		format := getOutputFormat()
 		scope := resolveSearchScope(searchFolders, searchDocuments)
 
+		if searchDate != "" || searchSelectedDocument != "" {
+			if searchDate != "" && searchSelectedDocument != "" || len(searchDocuments) > 0 || len(searchFolders) > 0 {
+				return fmt.Errorf("choose one of --date, --document-id or --document")
+			}
+			return runBlockSearch(client, args, format, "")
+		}
 		// Block search mode: exactly one --document
 		if scope.BlockDocID != "" {
 			return runBlockSearch(client, args, format, scope.BlockDocID)
@@ -102,6 +115,8 @@ func init() {
 	searchCmd.Flags().StringVar(&searchDailyBefore, "daily-note-before", "", "Daily-note date upper bound YYYY-MM-DD")
 	searchCmd.Flags().BoolVar(&searchMetadata, "fetch-blocks", false, "Include matching blocks in document search responses")
 	rootCmd.AddCommand(searchCmd)
+	searchCmd.Flags().StringVar(&searchDate, "date", "", "Search a daily note by date (today, tomorrow, yesterday or YYYY-MM-DD)")
+	searchCmd.Flags().StringVar(&searchSelectedDocument, "document-id", "", "Search a document on a Selected Documents connection (documentId parameter)")
 
 	searchCmd.Flags().StringSliceVar(&searchDocuments, "document", nil, "Document ID(s). One ID: block-level search. Multiple IDs (repeat or comma-separate): scope document search")
 	searchCmd.Flags().StringVar(&searchRegex, "regex", "", "RE2 regex pattern")
@@ -114,7 +129,7 @@ func init() {
 	searchCmd.Flags().StringVar(&searchCreatedBefore, "created-before", "", "Filter: created on or before date (YYYY-MM-DD)")
 	searchCmd.Flags().StringVar(&searchModifiedAfter, "modified-after", "", "Filter: modified on or after date (YYYY-MM-DD)")
 	searchCmd.Flags().StringVar(&searchModifiedBefore, "modified-before", "", "Filter: modified on or before date (YYYY-MM-DD)")
-	searchCmd.Flags().IntVar(&searchLimit, "limit", 0, "Maximum number of results to return (0 = all, API max is 20)")
+	searchCmd.Flags().IntVar(&searchLimit, "limit", 20, "Maximum number of results to return (0 = all, API max is 20)")
 	searchCmd.Flags().BoolVar(&searchCount, "count", false, "Output only the matching result count")
 	searchCmd.Flags().StringVar(&searchFields, "fields", "", "Comma-separated fields to include in JSON output (e.g. documentId,markdown)")
 }
@@ -140,7 +155,14 @@ func runBlockSearch(client *api.Client, args []string, format, docID string) err
 	if searchAfter >= 0 {
 		after = searchAfter
 	}
-	result, err := client.SearchBlocksWithOptions(docID, pattern, searchCaseSensitive, before, after, searchMetadata)
+	targetKey, target := "blockId", docID
+	if searchDate != "" {
+		targetKey, target = "date", searchDate
+	}
+	if searchSelectedDocument != "" {
+		targetKey, target = "documentId", searchSelectedDocument
+	}
+	result, err := client.SearchBlocksWithTarget(targetKey, target, pattern, searchCaseSensitive, before, after, searchMetadata)
 	if err != nil {
 		return err
 	}

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -213,30 +212,28 @@ func runBatchCreate() error {
 	}
 
 	// Read JSON from stdin
-	data, err := io.ReadAll(os.Stdin)
+	data, err := readStructuredBytes(os.Stdin)
 	if err != nil {
 		return fmt.Errorf("failed to read stdin: %w", err)
 	}
 
 	var requests []models.CreateDocumentRequest
-	if err := json.Unmarshal(data, &requests); err != nil {
+	if err := decodeInputJSON(data, &requests); err != nil {
 		return fmt.Errorf("invalid JSON: %w", err)
 	}
 
 	if isDryRun() {
-		fmt.Printf("Would create %d documents:\n", len(requests))
-		for i, req := range requests {
-			fmt.Printf("  %d. %s\n", i+1, req.Title)
-		}
-		return nil
+		return dryRunOutput("create documents", map[string]interface{}{"documents": requests, "count": len(requests)})
 	}
 
 	var results []models.Document
-	for _, req := range requests {
+	for i, req := range requests {
 		doc, err := client.CreateDocument(&req)
 		if err != nil {
-			printStatus("Error creating '%s': %v\n", req.Title, err)
-			continue
+			if len(writeResponses) > 0 {
+				return newCLIError("PARTIAL_FAILURE", fmt.Sprintf("batch create stopped at item %d after a failure; inspect known write outcomes and verify document state before retrying", i))
+			}
+			return err
 		}
 		results = append(results, *doc)
 		printStatus("Created: %s (%s)\n", doc.Title, doc.ID)

@@ -155,6 +155,31 @@ Examples:
 			if !ok || len(ids) == 0 {
 				return fmt.Errorf("raw folder move payload must include non-empty \"folderIds\" array or \"id\"")
 			}
+			if destination, ok := payload["destination"].(map[string]interface{}); ok {
+				for _, id := range ids {
+					value, ok := id.(string)
+					if !ok {
+						return fmt.Errorf("folderIds must contain strings")
+					}
+					if err := validateResourceID(value, "folder-id"); err != nil {
+						return err
+					}
+				}
+				if isDryRun() {
+					return dryRunOutput("move folders", map[string]interface{}{"payload": payload, "count": len(ids)})
+				}
+				client, err := getAPIClient()
+				if err != nil {
+					return err
+				}
+				exact := payload
+				_ = destination
+				result, err := client.RequestJSON("PUT", "/folders/move", exact)
+				if err != nil {
+					return err
+				}
+				return outputRawJSON(result)
+			}
 			targetID := payloadString(payload, "parentFolderId", "parentId", "to", "destination")
 			if targetID == "root" {
 				targetID = ""

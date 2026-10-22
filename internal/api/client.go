@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -77,6 +78,10 @@ func NewClientWithKey(baseURL, apiKey string) *Client {
 
 // doRequest performs an HTTP request and handles errors
 func (c *Client) doRequest(method, path string, body interface{}) ([]byte, error) {
+	// Documented GET operations never carry a JSON body, including typed nil maps.
+	if method == "GET" {
+		body = nil
+	}
 	if method != "GET" && c.BeforeWrite != nil {
 		if err := c.BeforeWrite(method, path, body); err != nil {
 			return nil, err
@@ -88,12 +93,20 @@ func (c *Client) doRequest(method, path string, body interface{}) ([]byte, error
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal request body: %w", err)
 		}
-		reqBody = bytes.NewBuffer(jsonData)
+		if bytes.Equal(jsonData, []byte("null")) {
+			body = nil
+		} else {
+			reqBody = bytes.NewBuffer(jsonData)
+		}
 	}
 
 	reqURL := fmt.Sprintf("%s%s", c.baseURL, path)
 	req, err := http.NewRequest(method, reqURL, reqBody)
 	if err != nil {
+		var endpointErr *url.Error
+		if errors.As(err, &endpointErr) {
+			err = endpointErr.Err
+		}
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -108,6 +121,10 @@ func (c *Client) doRequest(method, path string, body interface{}) ([]byte, error
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		var endpointErr *url.Error
+		if errors.As(err, &endpointErr) {
+			err = endpointErr.Err
+		}
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
@@ -301,6 +318,14 @@ func (c *Client) GetDocumentBlocksWithDepth(id string, maxDepth int) (models.Blo
 
 // CombineBlocksMarkdown extracts and combines markdown from all blocks.
 func CombineBlocksMarkdown(resp models.BlocksResponse, includeTitle bool) string {
+	if resp.Markdown == "" {
+		var title struct {
+			Value string `json:"value"`
+		}
+		if json.Unmarshal(resp.Extra["title"], &title) == nil {
+			resp.Markdown = title.Value
+		}
+	}
 	var parts []string
 
 	// Add the document title/header
@@ -735,7 +760,7 @@ func (c *Client) MoveFolder(folderID, targetParentID string) error {
 		FolderIDs: []string{folderID},
 	}
 	if targetParentID == "" {
-		req.Destination = "root"
+		req.Destination = map[string]string{"destination": "root"}
 	} else {
 		req.Destination = map[string]string{"parentFolderId": targetParentID}
 	}
@@ -1126,18 +1151,21 @@ func (c *Client) GetCollectionItems(collectionID string, maxDepth int) (*models.
 
 // AddCollectionItem adds an item to a collection
 func (c *Client) AddCollectionItem(collectionID, title string, properties map[string]interface{}, allowNewOptions bool) (*models.CollectionItemList, error) {
+	if properties == nil {
+		properties = map[string]interface{}{}
+	}
 	path := fmt.Sprintf("/collections/%s/items", url.PathEscape(collectionID))
 
 	req := struct {
 		Items []struct {
 			Title      string                 `json:"title"`
-			Properties map[string]interface{} `json:"properties,omitempty"`
+			Properties map[string]interface{} `json:"properties"`
 		} `json:"items"`
-		AllowNewSelectOptions bool `json:"allowNewSelectOptions"`
+		AllowNewSelectOptions bool `json:"allowNewSelectOptions,omitempty"`
 	}{
 		Items: []struct {
 			Title      string                 `json:"title"`
-			Properties map[string]interface{} `json:"properties,omitempty"`
+			Properties map[string]interface{} `json:"properties"`
 		}{{Title: title, Properties: properties}},
 		AllowNewSelectOptions: allowNewOptions,
 	}
@@ -1178,7 +1206,7 @@ func (c *Client) UpdateCollectionItem(collectionID, itemID string, properties ma
 			ID         string                 `json:"id"`
 			Properties map[string]interface{} `json:"properties,omitempty"`
 		} `json:"itemsToUpdate"`
-		AllowNewSelectOptions bool `json:"allowNewSelectOptions"`
+		AllowNewSelectOptions bool `json:"allowNewSelectOptions,omitempty"`
 	}{
 		ItemsToUpdate: []struct {
 			ID         string                 `json:"id"`
@@ -1300,11 +1328,19 @@ func (c *Client) SearchBlocks(blockID, pattern string, caseSensitive bool, befor
 }
 
 func (c *Client) SearchBlocksWithOptions(blockID, pattern string, caseSensitive bool, beforeCount, afterCount int, fetchBlocks bool) (*models.BlockSearchResultList, error) {
+	return c.SearchBlocksWithTarget("blockId", blockID, pattern, caseSensitive, beforeCount, afterCount, fetchBlocks)
+}
+
+// SearchBlocksWithTarget supports the distinct space, selected-document and daily-note contracts.
+func (c *Client) SearchBlocksWithTarget(targetKey, target, pattern string, caseSensitive bool, beforeCount, afterCount int, fetchBlocks bool) (*models.BlockSearchResultList, error) {
+	if targetKey != "blockId" && targetKey != "documentId" && targetKey != "date" {
+		return nil, fmt.Errorf("invalid block search target")
+	}
 	params := url.Values{}
 	if fetchBlocks {
 		params.Set("fetchBlocks", "true")
 	}
-	params.Set("blockId", blockID)
+	params.Set(targetKey, target)
 	params.Set("pattern", pattern)
 	if caseSensitive {
 		params.Set("caseSensitive", "true")
@@ -1554,6 +1590,10 @@ func (c *Client) doRequestRaw(method, path string, body []byte, contentType stri
 	reqURL := fmt.Sprintf("%s%s", c.baseURL, path)
 	req, err := http.NewRequest(method, reqURL, reqBody)
 	if err != nil {
+		var endpointErr *url.Error
+		if errors.As(err, &endpointErr) {
+			err = endpointErr.Err
+		}
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -1567,6 +1607,10 @@ func (c *Client) doRequestRaw(method, path string, body []byte, contentType stri
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		var endpointErr *url.Error
+		if errors.As(err, &endpointErr) {
+			err = endpointErr.Err
+		}
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
@@ -1614,6 +1658,11 @@ func (c *Client) UploadFileNamed(fileData []byte, pageID, date, siblingID, posit
 	}
 	if contentType == "" {
 		contentType = http.DetectContentType(fileData)
+		// General attachments use the documented binary transport. Preserve media
+		// types for inline image/video blocks; callers can still specify a MIME type.
+		if !strings.HasPrefix(contentType, "image/") && !strings.HasPrefix(contentType, "video/") {
+			contentType = "application/octet-stream"
+		}
 	}
 	if position != "" {
 		params.Set("position", position)

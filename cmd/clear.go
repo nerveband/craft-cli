@@ -69,6 +69,9 @@ WARNING: This operation is destructive. Use --dry-run to preview first.`,
 		if err != nil {
 			return err
 		}
+		if isJSONFormat(getOutputFormat()) {
+			return outputJSON(map[string]interface{}{"id": docID, "deleted_blocks": deleted})
+		}
 		outputCleared(docID, deleted)
 		return nil
 	},

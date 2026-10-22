@@ -2,6 +2,8 @@ module github.com/ashrafali/craft-cli
 
 go 1.26.0
 
+toolchain go1.27.3
+
 require (
 	github.com/creativeprojects/go-selfupdate v1.7.0
 	github.com/spf13/cobra v1.10.2

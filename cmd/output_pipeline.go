@@ -24,6 +24,7 @@ func renderData(data interface{}) error {
 	if err := decoder.Decode(&value); err != nil {
 		return err
 	}
+	value = addOutputMetadata(value)
 	if transformExpr != "" {
 		value, err = selectPath(value, transformExpr)
 		if err != nil {

@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -531,23 +530,34 @@ func parseBlocksJSON(jsonStr string) ([]map[string]interface{}, error) {
 	// Try array first
 	if jsonStr[0] == '[' {
 		var blocks []map[string]interface{}
-		if err := json.Unmarshal([]byte(jsonStr), &blocks); err != nil {
+		if err := decodeInputJSON([]byte(jsonStr), &blocks); err != nil {
 			return nil, fmt.Errorf("invalid JSON array: %w", err)
+		}
+		if len(blocks) == 0 {
+			return nil, fmt.Errorf("provide at least one block")
+		}
+		for _, block := range blocks {
+			if block == nil {
+				return nil, fmt.Errorf("blocks must be JSON objects")
+			}
 		}
 		return blocks, nil
 	}
 
 	// Try single object
 	var block map[string]interface{}
-	if err := json.Unmarshal([]byte(jsonStr), &block); err != nil {
+	if err := decodeInputJSON([]byte(jsonStr), &block); err != nil {
 		return nil, fmt.Errorf("invalid JSON: %w", err)
+	}
+	if block == nil {
+		return nil, fmt.Errorf("block must be a JSON object")
 	}
 	return []map[string]interface{}{block}, nil
 }
 
 // parseBlocksFromStdin reads JSON block data from stdin.
 func parseBlocksFromStdin() ([]map[string]interface{}, error) {
-	data, err := io.ReadAll(os.Stdin)
+	data, err := readStructuredBytes(os.Stdin)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read stdin: %w", err)
 	}
@@ -572,7 +582,7 @@ func readBlocksInput(jsonPayload, jsonFile string, stdin bool) ([]map[string]int
 	case stdin:
 		return parseBlocksFromStdin()
 	case jsonFile != "":
-		data, err := os.ReadFile(jsonFile)
+		data, err := readStructuredFile(jsonFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read JSON file: %w", err)
 		}
@@ -1055,7 +1065,7 @@ func init() {
 
 	blocksCmd.AddCommand(blocksGetCmd)
 	blocksGetCmd.Flags().StringVar(&blockDate, "date", "", "Daily note date (today, tomorrow, yesterday, YYYY-MM-DD)")
-	blocksGetCmd.Flags().IntVar(&blockDepth, "depth", -1, "Max depth (-1 for all, 0 for block only)")
+	blocksGetCmd.Flags().IntVar(&blockDepth, "depth", 2, "Max depth (-1 for all, 0 for block only)")
 	blocksGetCmd.Flags().BoolVar(&blockMetadata, "metadata", false, "Include metadata (created/modified info)")
 
 	blocksCmd.AddCommand(blocksAddCmd)
