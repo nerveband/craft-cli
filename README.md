@@ -70,6 +70,7 @@ craft collections views create COLLECTION_ID --json '{"view":{"name":"Gallery","
 craft reminders list --status incomplete --limit 10
 craft reminders create BLOCK_ID --at 2030-01-15T10:00:00-05:00 --dry-run
 craft reminders update REMINDER_ID --clear-time --dry-run
+craft links --to DOCUMENT_ID --limit 20
 craft tasks update TASK_ID --clear-schedule --no-repeat --dry-run
 craft blocks update PAGE_ID --theme-id soil-and-clay --backend rest --dry-run
 craft blocks learn pages tables --profile work-mcp
@@ -82,7 +83,7 @@ Reminder times need an explicit UTC offset for the intended date, including dayl
 
 `craft collections schema update` replaces every column and choice: include all you want to retain. Even retained columns lose stored `isHidden`, `defaultValue`, and select `config.limit` settings, and choice themes lose icons and extra metadata. Omitted choice colors reuse the existing palette color for the same column and exact name; unrecognized stored colors fall back to gray. Renaming a choice does not migrate existing selections. Preview with `--dry-run` and use `--yes` only after reviewing these losses.
 
-REST supports page `styling` JSON. Native theme, text/background color and cover URL flags use REST when no MCP review/revert is requested. The remaining backdrop, crop, attribution and washi convenience flags use MCP. Raw block JSON can express the complete documented REST styling object.
+REST supports page `styling` JSON. Native theme, text/background color, cover URL, cover crop, cover attribution, `--page-width` and `--font-family` flags use REST when no MCP review/revert is requested (crop and attribution need `--cover-url`; page width and font family are REST only). The remaining backdrop, separator and washi convenience flags use MCP. Raw block JSON can express the complete documented REST styling object, including `backdrop` and `separatorStyle`.
 
 ### Verification and limitations
 
@@ -230,7 +231,7 @@ craft clear <document-id>
 craft delete <document-id> --dry-run
 ```
 
-`update --mode replace` is a markdown replacement path: it deletes and recreates content blocks. Use it for structural rewrites, not routine text edits on styled documents. For existing styled blocks, use `craft blocks update BLOCK_ID --markdown ...` so omitted styling fields stay attached to the block. If new blocks are created, style only those changed/new blocks rather than rerunning a full document styling pass.
+`update --mode replace` is a markdown replacement path: it deletes and recreates content blocks. Use it for structural rewrites, not routine text edits on styled documents. For existing styled blocks, use `craft blocks update BLOCK_ID --markdown ...`, which keeps omitted block-only styling such as `color` and `font`; the markdown itself also sets `textStyle`, `listStyle`, `indentationLevel` and task state with parser defaults, so for wording-only edits read the block first and resend those fields (explicit JSON fields override parsed values). Separator updates preserve an omitted `lineStyle`; send `regular` explicitly to reset it. If new blocks are created, style only those changed/new blocks rather than rerunning a full document styling pass.
 
 Section replacement matches headings even when Craft markdown wraps them in lightweight styling tags such as `<callout>## Pricing</callout>`. Replacement content can also start with a decorated heading without duplicating the original heading. Use `--dry-run` before real section replacements when editing styled documents.
 
@@ -378,6 +379,8 @@ craft collections views list <collection-id>
 craft collections active-view set <collection-id> --view <view-id> --dry-run
 # Task recurring rules and batching
 craft tasks add "Standup" --repeat daily --repeat-skip-weekends --repeat-reminder 09:00
+craft tasks add "Pay rent" --repeat monthly --repeat-month-days 1,15 --repeat-start 2026-12-01 --dry-run
+craft tasks add "Review goals" --repeat yearly --repeat-months 3,9 --repeat-day last --dry-run
 craft tasks delete ID1 ID2 ID3
 
 # MCP page styling and reversible block mutations

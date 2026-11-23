@@ -60,6 +60,7 @@ var workflowExamples = map[string]string{
 	"images view":                 "craft images view https://example.org/photo.png",
 	"info":                        "craft info",
 	"limits":                      "craft limits",
+	"links":                       "craft links --to document-123 --limit 20",
 	"list":                        "craft list --limit 10 --metadata",
 	"llm":                         "craft llm",
 	"llm styles":                  "craft llm styles",

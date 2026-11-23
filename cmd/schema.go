@@ -205,7 +205,7 @@ func inferCommandCapabilities(cmd *cobra.Command) ([]string, []string, []string)
 	var optional []string
 
 	switch name {
-	case "list", "get", "search", "connection", "info", "docs", "limits", "version", "schema", "llm", "completion":
+	case "list", "get", "search", "connection", "info", "docs", "limits", "version", "schema", "llm", "completion", "links":
 		required = []string{"read"}
 	case "create", "add", "upload":
 		required = []string{"write"}

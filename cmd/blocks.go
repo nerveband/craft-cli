@@ -113,6 +113,8 @@ var (
 	blockColor             string
 	blockColorDark         string
 	blockFont              string
+	blockFontFamily        string
+	blockPageWidth         string
 	blockTextAlignment     string
 	blockIndentationLevel  string
 	blockLineStyle         string
@@ -229,7 +231,9 @@ JSON Examples:
 		if useMCP {
 			return runMCPBlocksMutation(cmd, "add", blocks, position)
 		}
-		applyRESTPageStyling(blocks)
+		if err := applyRESTPageStyling(blocks); err != nil {
+			return err
+		}
 		if isDryRun() {
 			return dryRunOutput("add blocks", map[string]interface{}{
 				"blocks":   blocks,
@@ -331,7 +335,9 @@ JSON Examples:
 		if useMCP {
 			return runMCPBlocksMutation(cmd, "update", blocks, nil)
 		}
-		applyRESTPageStyling(blocks)
+		if err := applyRESTPageStyling(blocks); err != nil {
+			return err
+		}
 
 		if isDryRun() {
 			ids := []string{}
@@ -740,6 +746,12 @@ func addStylingToMap(cmd *cobra.Command, block map[string]interface{}) {
 	if cmd.Flags().Changed("cover-attribution") {
 		block["coverAttribution"] = blockCoverAttribution
 	}
+	if cmd.Flags().Changed("page-width") {
+		block["pageWidth"] = blockPageWidth
+	}
+	if cmd.Flags().Changed("font-family") {
+		block["fontFamily"] = blockFontFamily
+	}
 	if cmd.Flags().Changed("backdrop-type") {
 		block["backdropType"] = blockBackdropType
 	}
@@ -825,7 +837,7 @@ func addStylingToMap(cmd *cobra.Command, block map[string]interface{}) {
 func shouldUseMCPBlocks(cmd *cobra.Command) (bool, error) {
 	needsMCP := blockSaveRevert != "" || blockDiff
 	for _, flag := range []string{
-		"cover-crop", "cover-attribution", "backdrop-type", "backdrop-color",
+		"backdrop-type", "backdrop-color",
 		"backdrop-colors", "backdrop-direction", "backdrop-url", "separator",
 		"washi-pattern", "washi-color",
 	} {
@@ -889,6 +901,11 @@ func buildMCPBlocksCommand(action string, blocks []map[string]interface{}, posit
 	block := blocks[0]
 	if _, ok := block["colorDark"]; ok {
 		return "", newCLIError("USER_ERROR", "colorDark/--color-dark is REST-only: MCP has no verified translation; use --backend rest")
+	}
+	for key, flag := range map[string]string{"pageWidth": "page-width", "fontFamily": "font-family"} {
+		if _, ok := block[key]; ok {
+			return "", newCLIError("USER_ERROR", fmt.Sprintf("%s/--%s is REST-only: MCP has no verified translation; use --backend rest", key, flag))
+		}
 	}
 	var parts []string
 	switch action {
@@ -1032,8 +1049,10 @@ func registerStylingFlags(cmd *cobra.Command, includeType bool) {
 	cmd.Flags().StringVar(&blockBGColor, "bg-color", "", "Page background color")
 	cmd.Flags().StringVar(&blockThemeColor, "theme-color", "", "Page theme color")
 	cmd.Flags().StringVar(&blockCoverURL, "cover-url", "", "Page cover image URL")
-	cmd.Flags().StringVar(&blockCoverCrop, "cover-crop", "", "MCP page cover crop JSON/string")
-	cmd.Flags().StringVar(&blockCoverAttribution, "cover-attribution", "", "MCP page cover attribution")
+	cmd.Flags().StringVar(&blockCoverCrop, "cover-crop", "", "Page cover crop as a JSON object {x,y,width,height} (0-1); REST requires --cover-url")
+	cmd.Flags().StringVar(&blockCoverAttribution, "cover-attribution", "", "Page cover attribution text; REST requires --cover-url")
+	cmd.Flags().StringVar(&blockPageWidth, "page-width", "", "Page content width type (REST only)")
+	cmd.Flags().StringVar(&blockFontFamily, "font-family", "", "Page font family: system, system-serif, system-rounded, system-mono, sans-serif, serif, rounded, mono (REST only)")
 	cmd.Flags().StringVar(&blockBackdropType, "backdrop-type", "", "MCP backdrop type")
 	cmd.Flags().StringVar(&blockBackdropColor, "backdrop-color", "", "MCP backdrop color")
 	cmd.Flags().StringVar(&blockBackdropColors, "backdrop-colors", "", "MCP backdrop colors")
@@ -1135,24 +1154,52 @@ func readRevertInfoPayload() (map[string]interface{}, error) {
 }
 
 // These flags have exact equivalents in the current REST Page Styling schema.
-func applyRESTPageStyling(blocks []map[string]interface{}) {
+var restFontFamilies = map[string]bool{
+	"system": true, "system-serif": true, "system-rounded": true, "system-mono": true,
+	"sans-serif": true, "serif": true, "rounded": true, "mono": true,
+}
+
+func applyRESTPageStyling(blocks []map[string]interface{}) error {
 	for _, block := range blocks {
 		style, _ := block["styling"].(map[string]interface{})
 		if style == nil {
 			style = map[string]interface{}{}
 		}
-		for from, to := range map[string]string{"themeId": "themeId", "textColor": "textColor", "bgColor": "backgroundColor", "themeColor": "themeColor"} {
+		for from, to := range map[string]string{"themeId": "themeId", "textColor": "textColor", "bgColor": "backgroundColor", "themeColor": "themeColor", "pageWidth": "pageWidth", "fontFamily": "fontFamily"} {
 			if v, ok := block[from]; ok {
 				style[to] = v
 				delete(block, from)
 			}
 		}
+		if family, ok := style["fontFamily"].(string); ok && !restFontFamilies[family] {
+			return newCLIError("USER_ERROR", fmt.Sprintf("invalid --font-family %q; valid: system, system-serif, system-rounded, system-mono, sans-serif, serif, rounded, mono", family))
+		}
+		cover := map[string]interface{}{}
 		if v, ok := block["coverURL"]; ok {
-			style["coverImage"] = map[string]interface{}{"url": v}
+			cover["url"] = v
 			delete(block, "coverURL")
+		}
+		if v, ok := block["coverAttribution"]; ok {
+			cover["unsplashAttribution"] = v
+			delete(block, "coverAttribution")
+		}
+		if v, ok := block["coverCrop"]; ok {
+			var mask map[string]interface{}
+			if text, isText := v.(string); !isText || json.Unmarshal([]byte(text), &mask) != nil || mask == nil {
+				return newCLIError("USER_ERROR", "--cover-crop must be a JSON object such as {\"x\":0,\"y\":0,\"width\":1,\"height\":0.5}")
+			}
+			cover["cropMask"] = mask
+			delete(block, "coverCrop")
+		}
+		if len(cover) > 0 {
+			if cover["url"] == nil {
+				return newCLIError("USER_ERROR", "--cover-crop and --cover-attribution require --cover-url on REST: Craft's coverImage object requires url")
+			}
+			style["coverImage"] = cover
 		}
 		if len(style) > 0 {
 			block["styling"] = style
 		}
 	}
+	return nil
 }

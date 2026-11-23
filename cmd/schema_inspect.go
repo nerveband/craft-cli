@@ -71,6 +71,7 @@ func restOperation(path string) (string, string) {
 		"collections items": {"/collections/{collectionId}/items", "get"}, "collections add": {"/collections/{collectionId}/items", "post"}, "collections update": {"/collections/{collectionId}/items", "put"}, "collections delete": {"/collections/{collectionId}/items", "delete"},
 		"collections views list": {"/collections/{collectionId}/views", "get"}, "collections views create": {"/collections/{collectionId}/views", "post"}, "collections views update": {"/collections/{collectionId}/views/{viewId}", "put"}, "collections views delete": {"/collections/{collectionId}/views/{viewId}", "delete"}, "collections active-view set": {"/collections/{collectionId}/active-view", "put"},
 		"reminders list": {"/reminders", "get"}, "reminders create": {"/reminders", "post"}, "reminders update": {"/reminders", "put"}, "reminders delete": {"/reminders", "delete"},
+		"links":  {"/internal-links", "get"},
 		"upload": {"/upload", "post"}, "comments add": {"/comments", "post"}, "connection": {"/connection", "get"}, "whiteboards create": {"/whiteboards", "post"}, "whiteboards get": {"/whiteboards/{whiteboardBlockId}/elements", "get"}, "whiteboards add": {"/whiteboards/{whiteboardBlockId}/elements", "post"}, "whiteboards update": {"/whiteboards/{whiteboardBlockId}/elements", "put"}, "whiteboards delete": {"/whiteboards/{whiteboardBlockId}/elements", "delete"},
 	}
 	op := operations[strings.TrimPrefix(path, "craft ")]

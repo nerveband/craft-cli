@@ -3,7 +3,7 @@
   "info": {
     "title": "Craft \u2013 API for API for All Ashraf Documents",
     "version": "1.0.0",
-    "description": "## Overview\nThe Craft Space API provides programmatic access to your entire Craft space - the top-level container for all your documents and organizational structure.\n\n## Space Structure\nA Craft space organizes content through:\n- **Folders**: Hierarchical folders to organize documents\n- **Documents**: Individual documents within locations\n- **Blocks**: The content within documents (text, pages, collections, media)\n- **Tasks**: Task management across inbox, daily notes, and documents\n\n## Key Concepts\n**Locations**: Documents exist in locations. A location is either a folder or one of the built-in locations: 'unsorted' (default for new documents), 'templates' (documents shown in Craft's Templates area and usable in-app to create new documents), or 'trash' (recently deleted).\n\n**Document IDs**: A document ID is the same as its root block ID. Use a document ID with `GET /blocks` to fetch the document's content.\n\n**Space Discovery**: Use `GET /folders` to see all locations, then `GET /documents` to list documents within a specific location.\n\n**Document Organization**: Documents can be created in, moved between, and deleted from locations. Use folder and document management endpoints to organize your space.\n\n**Tasks**: Tasks can be managed across the space. Use `GET /tasks` with scope filters (inbox, active, upcoming, logbook) to retrieve tasks, and other task endpoints to create, update, or delete them.\n\n## Rate Limits\nRate limits apply at both public IP and Craft space scopes. The first limit reached returns HTTP `429`.\n\n| Limit | Scope | Allowance |\n|-------|-------|-----------|\n| API requests | Public source IP, shared across API links and MCP connections | 50 requests per 10 seconds |\n| API requests | Craft space | 100 requests per 60 seconds |\n| Blocks read or written | Craft space | 20,000 blocks per 60 seconds |\n\nClients behind the same public IP share the per-IP limit. Space limits are shared across all API links, MCP connections, and clients in that space; they are not allocated separately per link or session. Each paginated request and retry counts separately.\n\nApplication responses expose the Craft space request budget, when available, through `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset`. Responses rejected at the public-IP limit may omit these headers.\n\nREST block operations expose the corresponding `X-BlockBudget-*` headers after the space has recorded block usage in the current window; the first read in a new window may omit them. MCP responses do not expose the block budget as HTTP headers.\n\nApplication-generated HTTP `429` responses include `Retry-After`. MCP request-limit responses also repeat the retry delay in the error message because some MCP clients do not expose response headers. If `Retry-After` is absent, use exponential backoff with jitter.\n\n## Reminders\nBlock reminders are experimental. With a Craft OAuth connection, reminders belong to the signed-in user and are available in single-user and multi-user spaces. With an ordinary link, reminders belong to the link creator and require that creator to be the space's only active participant. Document scope always applies; custom (blockless) reminders are not exposed.\n\nUnavailable reminder endpoints are omitted from this documentation. Direct requests return an explicit availability error. Task dates notify in-app; they are not a substitute for a requested timed reminder. A reminder can schedule a notification on any block, or save it for later without a notification. These operations are available only under the conditions above.\n\n## Craft Link Formats\n| Type | Format | Description |\n|------|--------|-------------|\n| `clickableLink` | `craftdocs://open?spaceId={spaceId}&documentId={documentId}` | Returned in document metadata when `fetchMetadata=true`. |\n| Web editor | https://docs.craft.do/editor/d/{spaceId}/{documentId} | Construct using the `spaceId` and `documentId` values from `clickableLink`. |\n\n## Craft Markdown Extensions\nThe `markdown` field on blocks uses standard Markdown with the following Craft-specific extensions. These tags can appear in both input (when creating/updating blocks) and output (when reading blocks), unless noted otherwise.\n\n### Page Structure\n| Tag | Description |\n|-----|-------------|\n| `<page>...<\\/page>` | A nested page (sub-document). Optional attributes: `textStyle` (e.g. `\"card\"`), `cardLayout`, `id`. |\n| `<card>...<\\/card>` | Shorthand for `<page textStyle=\"card\">`. |\n| `<pageTitle>...<\\/pageTitle>` | The title of a `<page>`. Always the first child inside `<page>`. |\n| `<content>...<\\/content>` | The body content of a `<page>`, following `<pageTitle>`. |\n\n### Block-Level Formatting\n| Tag | Description |\n|-----|-------------|\n| `<callout>...<\\/callout>` | Wraps blocks in a visually distinct callout box (similar to an admonition or aside). |\n| `<caption>...<\\/caption>` | Renders text in a smaller, muted caption style. |\n\n### Inline Formatting\n| Tag | Description |\n|-----|-------------|\n| `<highlight color=\"...\">...<\\/highlight>` | Colored text highlight. Accepts hex colors, light/dark hex pairs, or names: yellow, green, mint, cyan, blue, purple, pink, red, gray, gradient-blue, gradient-purple, gradient-red, gradient-yellow, gradient-brown. |\n| `==text==` | Shorthand for `<highlight color=\"yellow\">`. |\n| `<comment id=\"...\">...<\\/comment>` | Marks text that has a comment thread attached. The `id` references the comment thread. |\n| `$formula$` or `$$formula$$` | LaTeX math formula, rendered inline or as a block. |\n\nMarkdown supports inline background highlights in text and table cells: `<highlight color=\"yellow\">text</highlight>`. Custom highlights use `<highlight color=\"#123456\" colorDark=\"#abcdef\">text</highlight>`; omit dark to use light in both modes. Reads retain legacy names; custom colors use both attributes. Pair input remains accepted (light hex, then dark hex); do not combine pairs with colorDark, including in gradient stops. Gradients color the text rather than its background; clients may render a solid fallback. Use `#start;#end;g` per appearance; a dark gradient requires a light gradient. Inline text-color markup is not supported; use block color for whole-block text. Use adjacent, not nested, `<highlight>` spans for different colors; keep spaces inside spans, e.g. `<highlight color=\"yellow\">Keep </highlight><highlight color=\"pink\">**bold**</highlight><highlight color=\"yellow\"> word</highlight>`.\n\n### Links and Indentation\n| Syntax | Description |\n|--------|-------------|\n| `[text](block://blockId)` | Cross-reference to another block by ID. Appears as `[text](invalid:out_of_scope)` when the target block is outside the current API scope. |\n| `[text](date://YYYY-MM-DD)` | Link to a daily note for the given date. |\n| 2+ leading spaces | Nesting level. Every 2 spaces represents one level of indentation. |\n\n### Collection Tags (output-only)\nThese tags appear only in responses, when the result contains collection data. They are not accepted as input.\n\n| Tag | Description |\n|-----|-------------|\n| `<collection>...<\\/collection>` | A collection (structured database). Contains `<title>`, `<properties>`, and either `<content>` (with items) or `<itemsPreview>`. |\n| `<title>...<\\/title>` | The name of a collection or collection item. |\n| `<properties>...<\\/properties>` | Comma-separated list of property (column) keys defined on the collection. |\n| `<collectionItem>...<\\/collectionItem>` | A single row/item in a collection. Contains `<property>` tags, a `<title>`, and optionally `<content>` or `<contentPreview>`. |\n| `<property name=\"key\">value<\\/property>` | A property value on a collection item, where `name` is the property key. |\n| `<contentPreview>...<\\/contentPreview>` | A truncated preview of nested content, included when the response depth limit is reached instead of the full `<content>`. |\n| `<itemsPreview>...<\\/itemsPreview>` | A truncated preview of collection items, included when the response depth limit is reached instead of the full item list. |\n\n## Development Tips\n- Start with `GET /folders` to discover all locations in the space\n- Use `GET /documents` with a location filter to list documents in a specific location\n- Create new locations with `POST /folders`\n- Use `POST /documents` to create new documents in a specific location\n- Access document content with `GET /blocks?id={documentId}`\n- Search across the entire space with `GET /documents/search`\n- Use `PUT /documents/move` to move documents between locations\n- Manage tasks with `GET /tasks?scope=active` to retrieve due tasks, or use other scopes (inbox, upcoming, logbook)\n\n## Note for AI\nWhen implementing functionality using this API, always make actual calls to these endpoints and verify the responses. Do not simulate or mock the API interactions or use hard-coded values on the client-side - use the real endpoints to ensure proper functionality and data handling.\n\n**IMPORTANT: This is a production server connected to real user data.** Only perform testing operations that can be safely rolled back:\n\n- Safe: Reading data (`GET` requests), creating test content that you delete immediately after\n- Safe: Modifying content if you can restore it to its original state\n- Safe: Moving blocks if you can move them back to their original position\n- Unsafe: Permanent deletions, modifications without backup, or any changes you cannot reverse\n\nAlways verify rollback operations work before considering a test complete."
+    "description": "## Overview\nThe Craft Space API provides programmatic access to your entire Craft space - the top-level container for all your documents and organizational structure.\n\n## Space Structure\nA Craft space organizes content through:\n- **Folders**: Hierarchical folders to organize documents\n- **Documents**: Individual documents within locations\n- **Blocks**: The content within documents (text, pages, collections, media)\n- **Tasks**: Task management across inbox, daily notes, and documents\n\n## Key Concepts\n**Locations**: Documents exist in locations. A location is either a folder or one of the built-in locations: 'unsorted' (default for new documents), 'templates' (documents shown in Craft's Templates area and usable in-app to create new documents), or 'trash' (recently deleted).\n\n**Document IDs**: A document ID is the same as its root block ID. Use a document ID with `GET /blocks` to fetch the document's content.\n\n**Space Discovery**: Use `GET /folders` to see all locations, then `GET /documents` to list documents within a specific location.\n\n**Document Organization**: Documents can be created in, moved between, and deleted from locations. Use folder and document management endpoints to organize your space.\n\n**Tasks**: Tasks can be managed across the space. Use `GET /tasks` with scope filters (inbox, active, upcoming, logbook) to retrieve tasks, and other task endpoints to create, update, or delete them.\n\n## Rate Limits\nRate limits apply at both public IP and Craft space scopes. The first limit reached returns HTTP `429`.\n\n| Limit | Scope | Allowance |\n|-------|-------|-----------|\n| API requests | Public source IP, shared across API links and MCP connections | 50 requests per 10 seconds |\n| API requests | Craft space | 100 requests per 60 seconds |\n| Blocks read or written | Craft space | 20,000 blocks per 60 seconds |\n\nClients behind the same public IP share the per-IP limit. Space limits are shared across all API links, MCP connections, and clients in that space; they are not allocated separately per link or session. Each paginated request and retry counts separately.\n\nApplication responses expose the Craft space request budget, when available, through `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset`. Responses rejected at the public-IP limit may omit these headers.\n\nTask reads, including HEAD requests, count as one block per returned task. Read charges apply after processing; once the budget is exhausted, further requests receive 429 until reset.\n\nREST block operations and task reads expose the corresponding `X-BlockBudget-*` headers after the space has recorded block usage in the current window; the first read in a new window may omit them. MCP responses do not expose the block budget as HTTP headers.\n\nApplication-generated HTTP `429` responses include `Retry-After`. MCP request-limit responses also repeat the retry delay in the error message because some MCP clients do not expose response headers. If `Retry-After` is absent, use exponential backoff with jitter.\n\n## Reminders\nBlock reminders are experimental. With a Craft OAuth connection, reminders belong to the signed-in user and are available in single-user and multi-user spaces. With an ordinary link, reminders belong to the link creator and require that creator to be the space's only active participant. Document scope always applies; custom (blockless) reminders are not exposed.\n\nUnavailable reminder endpoints are omitted from this documentation. Direct requests return an explicit availability error. Task dates notify in-app; they are not a substitute for a requested timed reminder. A reminder can schedule a notification on any block, or save it for later without a notification. These operations are available only under the conditions above.\n\n## Craft Link Formats\n| Type | Format | Description |\n|------|--------|-------------|\n| `clickableLink` | `craftdocs://open?spaceId={spaceId}&documentId={documentId}` | Returned in document metadata when `fetchMetadata=true`. |\n| Web editor | https://docs.craft.do/editor/d/{spaceId}/{documentId} | Construct using the `spaceId` and `documentId` values from `clickableLink`. |\n\n## Craft Markdown Extensions\nThe `markdown` field on blocks uses standard Markdown with the following Craft-specific extensions. These tags can appear in both input (when creating/updating blocks) and output (when reading blocks), unless noted otherwise.\n\n### Page Structure\n| Tag | Description |\n|-----|-------------|\n| `<page>...<\\/page>` | A nested page (sub-document). Optional attributes: `textStyle` (e.g. `\"card\"`), `cardLayout`, `id`. |\n| `<card>...<\\/card>` | Shorthand for `<page textStyle=\"card\">`. |\n| `<pageTitle>...<\\/pageTitle>` | The title of a `<page>`. Always the first child inside `<page>`. |\n| `<content>...<\\/content>` | The body content of a `<page>`, following `<pageTitle>`. |\n\n### Block-Level Formatting\n| Tag | Description |\n|-----|-------------|\n| `<callout>...<\\/callout>` | Wraps blocks in a visually distinct callout box (similar to an admonition or aside). |\n| `<caption>...<\\/caption>` | Renders text in a smaller, muted caption style. |\n\n### Inline Formatting\n| Tag | Description |\n|-----|-------------|\n| `<highlight color=\"...\">...<\\/highlight>` | Colored text highlight. Accepts hex colors, light/dark hex pairs, or names: yellow, green, mint, cyan, blue, purple, pink, red, gray, gradient-blue, gradient-purple, gradient-red, gradient-yellow, gradient-brown. |\n| `==text==` | Shorthand for `<highlight color=\"yellow\">`. |\n| `<comment id=\"...\">...<\\/comment>` | Marks text that has a comment thread attached. The `id` references the comment thread. |\n| `$formula$` or `$$formula$$` | LaTeX math formula, rendered inline or as a block. |\n\nMarkdown supports inline background highlights in text and table cells: `<highlight color=\"yellow\">text</highlight>`. Custom highlights use `<highlight color=\"#123456\" colorDark=\"#abcdef\">text</highlight>`; omit dark to use light in both modes. Reads retain legacy names; custom colors use both attributes. Pair input remains accepted (light hex, then dark hex); do not combine pairs with colorDark, including in gradient stops. Gradients color the text rather than its background; clients may render a solid fallback. Use `#start;#end;g` per appearance; a dark gradient requires a light gradient. Inline text-color markup is not supported; use block color for whole-block text. Use adjacent, not nested, `<highlight>` spans for different colors; keep spaces inside spans, e.g. `<highlight color=\"yellow\">Keep </highlight><highlight color=\"pink\">**bold**</highlight><highlight color=\"yellow\"> word</highlight>`.\n\n### Links and Indentation\n| Syntax | Description |\n|--------|-------------|\n| `[text](block://blockId)` | Cross-reference to another block by ID. Appears as `[text](invalid:out_of_scope)` when the target block is outside the current API scope. |\n| `[text](date://YYYY-MM-DD)` | Link to a daily note for the given date. |\n| 2+ leading spaces | Nesting level. Every 2 spaces represents one level of indentation. |\n\n### Collection Tags (output-only)\nThese tags appear only in responses, when the result contains collection data. They are not accepted as input.\n\n| Tag | Description |\n|-----|-------------|\n| `<collection>...<\\/collection>` | A collection (structured database). Contains `<title>`, `<properties>`, and either `<content>` (with items) or `<itemsPreview>`. |\n| `<title>...<\\/title>` | The name of a collection or collection item. |\n| `<properties>...<\\/properties>` | Comma-separated list of property (column) keys defined on the collection. |\n| `<collectionItem>...<\\/collectionItem>` | A single row/item in a collection. Contains `<property>` tags, a `<title>`, and optionally `<content>` or `<contentPreview>`. |\n| `<property name=\"key\">value<\\/property>` | A property value on a collection item, where `name` is the property key. |\n| `<contentPreview>...<\\/contentPreview>` | A truncated preview of nested content, included when the response depth limit is reached instead of the full `<content>`. |\n| `<itemsPreview>...<\\/itemsPreview>` | A truncated preview of collection items, included when the response depth limit is reached instead of the full item list. |\n\n## Development Tips\n- Start with `GET /folders` to discover all locations in the space\n- Use `GET /documents` with a location filter to list documents in a specific location\n- Create new locations with `POST /folders`\n- Use `POST /documents` to create new documents in a specific location\n- Access document content with `GET /blocks?id={documentId}`\n- Search across the entire space with `GET /documents/search`\n- Use `PUT /documents/move` to move documents between locations\n- Manage tasks with `GET /tasks?scope=active` to retrieve due tasks, or use other scopes (inbox, upcoming, logbook)\n\n## Note for AI\nWhen implementing functionality using this API, always make actual calls to these endpoints and verify the responses. Do not simulate or mock the API interactions or use hard-coded values on the client-side - use the real endpoints to ensure proper functionality and data handling.\n\n**IMPORTANT: This is a production server connected to real user data.** Only perform testing operations that can be safely rolled back:\n\n- Safe: Reading data (`GET` requests), creating test content that you delete immediately after\n- Safe: Modifying content if you can restore it to its original state\n- Safe: Moving blocks if you can move them back to their original position\n- Unsafe: Permanent deletions, modifications without backup, or any changes you cannot reverse\n\nAlways verify rollback operations work before considering a test complete."
   },
   "servers": [
     {
@@ -5707,7 +5707,7 @@
       },
       "post": {
         "summary": "Insert Blocks",
-        "description": "Insert content into any document in the space. Content can be provided as structured JSON blocks. Use position parameter to specify where to insert (via parent blockId, sibling blockId, or daily-note date). Returns the inserted blocks with their assigned block IDs for later reference.",
+        "description": "Insert content into any document in the space. Content can be provided as structured JSON blocks. Use position parameter to specify where to insert (via parent blockId, sibling blockId, or daily-note date). Returns the inserted blocks with their assigned block IDs for later reference. Image URLs must be accessible and point to supported images at least 100 \u00d7 100 pixels.",
         "tags": [
           "Blocks"
         ],
@@ -14563,7 +14563,7 @@
                 "properties": {
                   "blocks": {
                     "title": "Blocks to Update",
-                    "description": "The blocks to update, as JSON array. Only the fields that are provided will be updated.",
+                    "description": "The blocks to update, as JSON array. Markdown also sets formatting and task state, including parser defaults. Explicit JSON fields override parsed values. For wording-only edits, read first and include the existing textStyle, listStyle, indentationLevel and taskInfo.state as needed; retain inline markup in Markdown. Separator updates preserve omitted lineStyle; supply regular explicitly to reset it.",
                     "type": "array",
                     "items": {
                       "title": "Block Update",
@@ -18212,7 +18212,6 @@
                               "type": "string"
                             },
                             "lineStyle": {
-                              "default": "regular",
                               "description": "pageBreak lineStyle is just a strong visual separator within a page (chunks to page-looking groups visually). It does not affect the page block hierarchy.",
                               "type": "string",
                               "enum": [
@@ -46710,6 +46709,284 @@
                           }
                         }
                       ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal-links": {
+      "get": {
+        "summary": "List Internal Links",
+        "description": "Experimental: list directed document pairs with reference counts and titles for the opposite endpoint of one-sided document queries. Use level=block for individual references; combine source and target root-ID filters. Self-links are opt-in. Links are omitted when either document is in Recently Deleted, permanently deleted, or outside your access. Titles are omitted for both/neither filters, self-links and block level. Use GET /documents for whole-graph titles. fromDate/toDate accept YYYY-MM-DD, today, yesterday or tomorrow in the connection timezone instead of the corresponding document ID; they resolve existing daily notes without creating them. Missing or inaccessible notes return no matches. Use an ISO date when paginating relative-date queries across midnight. Live cursor pagination.\n\nUse fromDocumentId to answer \"Which documents does this note reference?\", or toDocumentId for \"Where is this document referenced?\" (backlinks). Combine both to inspect references from A to B. Use document IDs returned by GET /documents (root block IDs), not IDs copied from editor URLs.\n\nInternal links reference documents, pages/cards or individual blocks; backlinks are the same references viewed from the target. Document level groups by containing documents; block level preserves source and target blocks. Direct daily-note links and date mentions with an existing daily note are included. Date mentions target the daily note root block at block level. User mentions, comments, collection/calendar relations and published share/external URLs are excluded. Follow either direction for missing context and read the content to establish the relationship. References do not encode assignees, creators or due dates, and are not semantic search; use the relevant content or metadata tools for those.\n\nFor the next page, pass pagination.cursor unchanged with the same level and filters; stop when pagination is absent. On CURSOR_INVALID, restart without a cursor. Results are live, not a snapshot.",
+        "tags": [
+          "Experimental"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "level",
+            "schema": {
+              "description": "Defaults to document: distinct directed pairs with referenceCount. block returns individual references.",
+              "default": "document",
+              "type": "string",
+              "enum": [
+                "document",
+                "block"
+              ]
+            },
+            "description": "Defaults to document: distinct directed pairs with referenceCount. block returns individual references."
+          },
+          {
+            "in": "query",
+            "name": "fromDocumentId",
+            "schema": {
+              "description": "Only links from this document root block ID. May be combined with toDocumentId.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "pattern": "^[a-zA-Z0-9_-]+$"
+            },
+            "description": "Only links from this document root block ID. May be combined with toDocumentId."
+          },
+          {
+            "in": "query",
+            "name": "toDocumentId",
+            "schema": {
+              "description": "Only links to this document root block ID. May be combined with fromDocumentId.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "pattern": "^[a-zA-Z0-9_-]+$"
+            },
+            "description": "Only links to this document root block ID. May be combined with fromDocumentId."
+          },
+          {
+            "in": "query",
+            "name": "fromDate",
+            "schema": {
+              "description": "Source daily note: YYYY-MM-DD, today, yesterday or tomorrow. Cannot combine with fromDocumentId.",
+              "type": "string"
+            },
+            "description": "Source daily note: YYYY-MM-DD, today, yesterday or tomorrow. Cannot combine with fromDocumentId."
+          },
+          {
+            "in": "query",
+            "name": "toDate",
+            "schema": {
+              "description": "Target daily note: YYYY-MM-DD, today, yesterday or tomorrow. Cannot combine with toDocumentId.",
+              "type": "string"
+            },
+            "description": "Target daily note: YYYY-MM-DD, today, yesterday or tomorrow. Cannot combine with toDocumentId."
+          },
+          {
+            "in": "query",
+            "name": "includeSelfLinks",
+            "schema": {
+              "default": "false",
+              "description": "Include links within one document. Defaults to false.",
+              "type": "string",
+              "enum": [
+                "false",
+                "true"
+              ]
+            },
+            "description": "Include links within one document. Defaults to false."
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "description": "Page size, defaults to 50. Document pairs are grouped before pagination.",
+              "default": 50,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            },
+            "description": "Page size, defaults to 50. Document pairs are grouped before pagination."
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "description": "Opaque last-item cursor. Keep level, scope and filters unchanged. Restart if that item becomes unavailable; this is not a snapshot.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 513,
+              "pattern": "^[a-zA-Z0-9_-]+(?::[a-zA-Z0-9_-]+)?$"
+            },
+            "description": "Opaque last-item cursor. Keep level, scope and filters unchanged. Restart if that item becomes unavailable; this is not a snapshot."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "sourceDocumentId": {
+                                "description": "Source document root block ID",
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256,
+                                "pattern": "^[a-zA-Z0-9_-]+$"
+                              },
+                              "targetDocumentId": {
+                                "description": "Target document root block ID",
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256,
+                                "pattern": "^[a-zA-Z0-9_-]+$"
+                              },
+                              "referenceCount": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 9007199254740991
+                              },
+                              "sourceDocumentTitle": {
+                                "description": "Only for target-only queries, excluding self-links",
+                                "type": "string"
+                              },
+                              "targetDocumentTitle": {
+                                "description": "Only for source-only queries, excluding self-links",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "sourceDocumentId",
+                              "targetDocumentId",
+                              "referenceCount"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256,
+                                "pattern": "^[a-zA-Z0-9_-]+$"
+                              },
+                              "sourceDocumentId": {
+                                "description": "Source document root block ID",
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256,
+                                "pattern": "^[a-zA-Z0-9_-]+$"
+                              },
+                              "sourceBlockId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256,
+                                "pattern": "^[a-zA-Z0-9_-]+$"
+                              },
+                              "targetDocumentId": {
+                                "description": "Target document root block ID",
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256,
+                                "pattern": "^[a-zA-Z0-9_-]+$"
+                              },
+                              "targetBlockId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256,
+                                "pattern": "^[a-zA-Z0-9_-]+$"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "sourceDocumentId",
+                              "sourceBlockId",
+                              "targetDocumentId",
+                              "targetBlockId"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "cursor": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "cursor"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "documentPairs": {
+                    "summary": "Default: whole-space document pairs with reference counts",
+                    "value": {
+                      "items": [
+                        {
+                          "sourceDocumentId": "doc-a",
+                          "targetDocumentId": "doc-b",
+                          "referenceCount": 3
+                        }
+                      ],
+                      "pagination": {
+                        "cursor": "doc-a:doc-b"
+                      }
+                    }
+                  },
+                  "blockReferences": {
+                    "summary": "level=block: individual references for locating source blocks",
+                    "value": {
+                      "items": [
+                        {
+                          "id": "link-1",
+                          "sourceDocumentId": "doc-a",
+                          "sourceBlockId": "block-1",
+                          "targetDocumentId": "doc-b",
+                          "targetBlockId": "block-2"
+                        }
+                      ],
+                      "pagination": {
+                        "cursor": "link-1"
+                      }
+                    }
+                  },
+                  "backlinks": {
+                    "summary": "toDocumentId or toDate: referring document titles, final page",
+                    "value": {
+                      "items": [
+                        {
+                          "sourceDocumentId": "doc-a",
+                          "targetDocumentId": "doc-b",
+                          "referenceCount": 3,
+                          "sourceDocumentTitle": "Launch plan"
+                        }
+                      ]
+                    }
+                  },
+                  "empty": {
+                    "summary": "No matching references",
+                    "value": {
+                      "items": []
                     }
                   }
                 }

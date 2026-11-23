@@ -15,6 +15,7 @@ REST is the default backend for deterministic API operations:
 - comments: add
 - upload: file upload and raw upload metadata
 - whiteboards: create, add, update, delete
+- links: list document-to-document and block-level internal links (experimental)
 - search: document/block search with limit/count controls
 - context controls: `--limit`, `--count`, `--fields`, `--max-depth`, `--output-only`, and truncation metadata on JSON list/search payloads
 - hardening: document/block/folder IDs reject path traversal, query fragments, encoded path characters, and control characters; output files stay under cwd unless explicitly overridden
@@ -29,7 +30,7 @@ MCP is used for agent-ahead or MCP-only features:
 - documents: resolve-link
 - folders: explore-icons
 - blocks: explore-themes, explore-washi, search-unsplash, revert
-- block styling: REST theme/color/cover flags, plus MCP `--backdrop-*`, `--washi-*`, `--save-revert`, and `--diff` on block add/update
+- block styling: REST theme/color/cover (url, crop, attribution), `--page-width` and `--font-family` flags, plus MCP `--backdrop-*`, `--separator`, `--washi-*`, `--save-revert`, and `--diff` on block add/update
 - cursor pagination: MCP-backed `craft list --backend mcp --cursor ... --limit ...`
 - collections: rename, dynamic `--property Name=value` flags, views list/create/update/delete, active-view set
 - whiteboards: MCP-backed `whiteboards elements get`
