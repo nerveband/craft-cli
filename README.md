@@ -70,6 +70,7 @@ craft collections views create COLLECTION_ID --json '{"view":{"name":"Gallery","
 craft reminders list --status incomplete --limit 10
 craft reminders create BLOCK_ID --at 2030-01-15T10:00:00-05:00 --dry-run
 craft reminders update REMINDER_ID --clear-time --dry-run
+craft links --to DOCUMENT_ID --limit 20
 craft tasks update TASK_ID --clear-schedule --no-repeat --dry-run
 craft blocks update PAGE_ID --theme-id soil-and-clay --backend rest --dry-run
 craft blocks learn pages tables --profile work-mcp
@@ -230,7 +231,7 @@ craft clear <document-id>
 craft delete <document-id> --dry-run
 ```
 
-`update --mode replace` is a markdown replacement path: it deletes and recreates content blocks. Use it for structural rewrites, not routine text edits on styled documents. For existing styled blocks, use `craft blocks update BLOCK_ID --markdown ...` so omitted styling fields stay attached to the block. If new blocks are created, style only those changed/new blocks rather than rerunning a full document styling pass.
+`update --mode replace` is a markdown replacement path: it deletes and recreates content blocks. Use it for structural rewrites, not routine text edits on styled documents. For existing styled blocks, use `craft blocks update BLOCK_ID --markdown ...`, which keeps omitted block-only styling such as `color` and `font`; the markdown itself also sets `textStyle`, `listStyle`, `indentationLevel` and task state with parser defaults, so for wording-only edits read the block first and resend those fields (explicit JSON fields override parsed values). Separator updates preserve an omitted `lineStyle`; send `regular` explicitly to reset it. If new blocks are created, style only those changed/new blocks rather than rerunning a full document styling pass.
 
 Section replacement matches headings even when Craft markdown wraps them in lightweight styling tags such as `<callout>## Pricing</callout>`. Replacement content can also start with a decorated heading without duplicating the original heading. Use `--dry-run` before real section replacements when editing styled documents.
 

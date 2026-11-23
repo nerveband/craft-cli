@@ -98,7 +98,7 @@ func TestPinnedContractMatchesEncodingFixtures(t *testing.T) {
 			}
 		}
 	}
-	if operations != 44 {
+	if operations != 45 {
 		t.Fatalf("contract inventory changed to %d operations; review coverage", operations)
 	}
 	search := paths["/documents/search"].(map[string]interface{})["get"].(map[string]interface{})

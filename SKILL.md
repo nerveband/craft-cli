@@ -122,7 +122,7 @@ Feedback is local only. There is no upstream feedback service to configure. This
 
 After any uncertain write, read or search to verify the result before retrying. No writes are retried automatically.
 
-Use REST for collection views and reminders. For example: `craft collections views list COLLECTION_ID` and `craft reminders list --limit 10`. Views store configuration and do not execute filters.
+Use REST for collection views and reminders. For example: `craft collections views list COLLECTION_ID` and `craft reminders list --limit 10`. Views store configuration and do not execute filters. Use `craft links --to DOCUMENT_ID` for backlinks and `--level block` for individual references (experimental REST `GET /internal-links`).
 
 ## Runtime contracts and 3.0 defaults
 

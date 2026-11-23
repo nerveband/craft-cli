@@ -4554,6 +4554,96 @@
     {
       "args": [
         {
+          "description": "Server pagination cursor; keep level and filters unchanged",
+          "name": "--cursor",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "description": "Only links from this document root block ID",
+          "name": "--from",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "description": "Source daily note: YYYY-MM-DD, today, yesterday or tomorrow",
+          "name": "--from-date",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "description": "Include links within one document",
+          "name": "--include-self",
+          "required": false,
+          "type": "boolean"
+        },
+        {
+          "description": "document: distinct pairs with referenceCount; block: individual references",
+          "name": "--level",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "description": "Server page size (1-200)",
+          "name": "--limit",
+          "required": false,
+          "type": "integer"
+        },
+        {
+          "description": "Only links to this document root block ID",
+          "name": "--to",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "description": "Target daily note: YYYY-MM-DD, today, yesterday or tomorrow",
+          "name": "--to-date",
+          "required": false,
+          "type": "string"
+        }
+      ],
+      "description": "List links between documents (experimental)",
+      "effects": "read_only",
+      "extensions": {
+        "destructive": false,
+        "examples": [
+          "craft links --to document-123 --limit 20"
+        ],
+        "input_schema": {
+          "properties": {
+            "args": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 0,
+              "minItems": 0,
+              "type": "array"
+            },
+            "flags": {
+              "additionalProperties": false,
+              "properties": {
+                "$ref": "#/extensions/contract_definitions/sf99156659cba0ed4"
+              },
+              "type": "object"
+            }
+          },
+          "type": "object",
+          "x-craft-validation": "Cobra positional validation and required/mutually-exclusive flag annotations are authoritative; payload validation and upstream capability checks run before mutations"
+        },
+        "output_contract": "Use --cli-request-schema and --cli-response-schema for CLI contracts; --request-schema and --response-schema expose upstream REST contracts.",
+        "retry_guidance": "After a write timeout verify with get/list/search before retrying; the server may have applied it.",
+        "scope": "remote",
+        "supports_dry_run": false
+      },
+      "mutating": false,
+      "name": "links",
+      "stdout_schema": {
+        "$ref": "#/extensions/contract_definitions/s823fb29395a52b6f"
+      }
+    },
+    {
+      "args": [
+        {
           "description": "Count matching documents (REST fetches all records; upstream has no count endpoint)",
           "name": "--count",
           "required": false,
@@ -24472,6 +24562,104 @@
           "type": "object"
         }
       },
+      "s823fb29395a52b6f": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/extensions/contract_definitions/sc077d3e11584a846"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "additionalProperties": false,
+            "properties": {
+              "cursor": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "cursor"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "x-craft-cli-contract": "upstream REST payload; CLI convenience output may add or flatten fields",
+        "x-craft-command": "links",
+        "x-craft-operation": "GET /internal-links",
+        "x-craft-output-variants": {
+          "count": {
+            "properties": {
+              "count": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "count"
+            ],
+            "type": "object"
+          },
+          "dry_run": {
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "dry_run": {
+                "const": true
+              },
+              "target": {
+                "type": "object"
+              },
+              "validated": {
+                "const": "local"
+              }
+            },
+            "required": [
+              "dry_run",
+              "validated",
+              "action",
+              "target"
+            ],
+            "type": "object"
+          },
+          "projection": "--fields, --transform and --output-only change the selected shape; --format raw preserves upstream bytes; compact may emit an array"
+        },
+        "x-craft-provenance": {
+          "properties": {
+            "age_seconds": {
+              "type": "integer"
+            },
+            "backend": {
+              "type": "string"
+            },
+            "scope": {
+              "enum": [
+                "local",
+                "remote"
+              ]
+            },
+            "snapshot_at": {
+              "type": "string"
+            },
+            "source": {
+              "enum": [
+                "local",
+                "live"
+              ]
+            }
+          },
+          "required": [
+            "scope",
+            "source",
+            "backend"
+          ],
+          "type": "object"
+        }
+      },
       "s839b25f08bef08a3": {
         "alt-text": {
           "description": "Alt text for image/video blocks",
@@ -30798,6 +30986,93 @@
         "type": "object",
         "x-craft-validation": "Cobra positional validation and required/mutually-exclusive flag annotations are authoritative; payload validation and upstream capability checks run before mutations"
       },
+      "sc077d3e11584a846": {
+        "anyOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "referenceCount": {
+                "maximum": 9007199254740991,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "sourceDocumentId": {
+                "description": "Source document root block ID",
+                "maxLength": 256,
+                "minLength": 1,
+                "pattern": "^[a-zA-Z0-9_-]+$",
+                "type": "string"
+              },
+              "sourceDocumentTitle": {
+                "description": "Only for target-only queries, excluding self-links",
+                "type": "string"
+              },
+              "targetDocumentId": {
+                "description": "Target document root block ID",
+                "maxLength": 256,
+                "minLength": 1,
+                "pattern": "^[a-zA-Z0-9_-]+$",
+                "type": "string"
+              },
+              "targetDocumentTitle": {
+                "description": "Only for source-only queries, excluding self-links",
+                "type": "string"
+              }
+            },
+            "required": [
+              "sourceDocumentId",
+              "targetDocumentId",
+              "referenceCount"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "maxLength": 256,
+                "minLength": 1,
+                "pattern": "^[a-zA-Z0-9_-]+$",
+                "type": "string"
+              },
+              "sourceBlockId": {
+                "maxLength": 256,
+                "minLength": 1,
+                "pattern": "^[a-zA-Z0-9_-]+$",
+                "type": "string"
+              },
+              "sourceDocumentId": {
+                "description": "Source document root block ID",
+                "maxLength": 256,
+                "minLength": 1,
+                "pattern": "^[a-zA-Z0-9_-]+$",
+                "type": "string"
+              },
+              "targetBlockId": {
+                "maxLength": 256,
+                "minLength": 1,
+                "pattern": "^[a-zA-Z0-9_-]+$",
+                "type": "string"
+              },
+              "targetDocumentId": {
+                "description": "Target document root block ID",
+                "maxLength": 256,
+                "minLength": 1,
+                "pattern": "^[a-zA-Z0-9_-]+$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "sourceDocumentId",
+              "sourceBlockId",
+              "targetDocumentId",
+              "targetBlockId"
+            ],
+            "type": "object"
+          }
+        ]
+      },
       "sc1e5c47a4c100eae": {
         "api-key": {
           "description": "API key for authentication (overrides config)",
@@ -35712,6 +35987,183 @@
             "backend"
           ],
           "type": "object"
+        }
+      },
+      "sf99156659cba0ed4": {
+        "api-key": {
+          "description": "API key for authentication (overrides config)",
+          "type": "string",
+          "x-default": ""
+        },
+        "api-key-env": {
+          "description": "Environment variable containing the API key",
+          "type": "string",
+          "x-default": ""
+        },
+        "api-url": {
+          "description": "Craft API URL (overrides config)",
+          "type": "string",
+          "x-default": ""
+        },
+        "backend": {
+          "description": "Backend preference: auto, rest, mcp, or local",
+          "type": "string",
+          "x-default": "auto"
+        },
+        "cache-max-age": {
+          "description": "Maximum index age for --data-source auto; local explicitly permits older snapshots",
+          "type": "string",
+          "x-default": "5m0s"
+        },
+        "cli-request-schema": {
+          "description": "Print the CLI argument/flag input contract offline",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "cli-response-schema": {
+          "description": "Print the CLI stdout contract offline (distinct from upstream REST)",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "cursor": {
+          "description": "Server pagination cursor; keep level and filters unchanged",
+          "type": "string",
+          "x-default": ""
+        },
+        "data-source": {
+          "description": "Data source preference: local, live, or auto",
+          "type": "string",
+          "x-default": ""
+        },
+        "deliver": {
+          "description": "Deliver output to stdout or file:\u003cpath\u003e (atomic file writes)",
+          "type": "string",
+          "x-default": ""
+        },
+        "dry-run": {
+          "description": "Show what would happen without making changes",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "expand-files": {
+          "description": "Expand @file:// JSON, @text:// text and @data:// base64 in structured input; @@ escapes @ (8 MiB total)",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "format": {
+          "description": "Output format (json, compact=legacy JSON, table, markdown, raw, jsonl, yaml)",
+          "type": "string",
+          "x-default": ""
+        },
+        "from": {
+          "description": "Only links from this document root block ID",
+          "type": "string",
+          "x-default": ""
+        },
+        "from-date": {
+          "description": "Source daily note: YYYY-MM-DD, today, yesterday or tomorrow",
+          "type": "string",
+          "x-default": ""
+        },
+        "id-only": {
+          "description": "Output only document IDs (shorthand for --output-only id)",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "include-self": {
+          "description": "Include links within one document",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "json-errors": {
+          "description": "Output errors as JSON",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "level": {
+          "description": "document: distinct pairs with referenceCount; block: individual references",
+          "type": "string",
+          "x-default": "document"
+        },
+        "limit": {
+          "description": "Server page size (1-200)",
+          "type": "integer",
+          "x-default": "50"
+        },
+        "max-chars": {
+          "description": "Maximum document text characters (0 = all; raw output is unchanged)",
+          "type": "integer",
+          "x-default": "20000"
+        },
+        "max-items": {
+          "description": "Maximum records for read commands without --limit (0 = all; raw output is unchanged)",
+          "type": "integer",
+          "x-default": "50"
+        },
+        "mcp-url": {
+          "description": "Craft MCP URL (overrides CRAFT_MCP_URL)",
+          "type": "string",
+          "x-default": ""
+        },
+        "no-headers": {
+          "description": "Omit headers in table output",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "output-only": {
+          "description": "Output only specified field (e.g., id, title)",
+          "type": "string",
+          "x-default": ""
+        },
+        "profile": {
+          "description": "Named profile to use for this command",
+          "type": "string",
+          "x-default": ""
+        },
+        "quiet": {
+          "description": "Suppress status messages, output data only",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "raw": {
+          "description": "Output raw content without formatting",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "request-schema": {
+          "description": "Print request JSON Schema for supported commands",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "response-schema": {
+          "description": "Print response JSON Schema for supported commands",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "timeout": {
+          "description": "HTTP request timeout (for example 10s)",
+          "type": "string",
+          "x-default": "30s"
+        },
+        "to": {
+          "description": "Only links to this document root block ID",
+          "type": "string",
+          "x-default": ""
+        },
+        "to-date": {
+          "description": "Target daily note: YYYY-MM-DD, today, yesterday or tomorrow",
+          "type": "string",
+          "x-default": ""
+        },
+        "transform": {
+          "description": "Extract a field/projection from structured output",
+          "type": "string",
+          "x-default": ""
+        },
+        "yes": {
+          "description": "Skip confirmation prompts",
+          "type": "boolean",
+          "x-default": "false"
         }
       },
       "sfca0902d89bfb516": {

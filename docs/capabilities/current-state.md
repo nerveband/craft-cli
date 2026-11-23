@@ -15,6 +15,7 @@ REST is the default backend for deterministic API operations:
 - comments: add
 - upload: file upload and raw upload metadata
 - whiteboards: create, add, update, delete
+- links: list document-to-document and block-level internal links (experimental)
 - search: document/block search with limit/count controls
 - context controls: `--limit`, `--count`, `--fields`, `--max-depth`, `--output-only`, and truncation metadata on JSON list/search payloads
 - hardening: document/block/folder IDs reject path traversal, query fragments, encoded path characters, and control characters; output files stay under cwd unless explicitly overridden
