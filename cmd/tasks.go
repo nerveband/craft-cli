@@ -86,6 +86,10 @@ var (
 	taskRepeatReminder     string
 	taskRepeatSkipWeekends bool
 	taskRepeatDynamicDays  bool
+	taskRepeatStart        string
+	taskRepeatMonths       []int
+	taskRepeatMonthDays    []int
+	taskRepeatDay          string
 	taskSaveRevert         string
 	taskDate               string
 	taskDiff               bool
@@ -404,6 +408,10 @@ func init() {
 		c.Flags().StringVar(&taskRepeatReminder, "repeat-reminder", "", "Reminder time (HH:MM)")
 		c.Flags().BoolVar(&taskRepeatSkipWeekends, "repeat-skip-weekends", false, "Skip weekend occurrences")
 		c.Flags().BoolVar(&taskRepeatDynamicDays, "repeat-dynamic-days", false, "Reschedule relative to completion date")
+		c.Flags().StringVar(&taskRepeatStart, "repeat-start", "", "Repeat start date (YYYY-MM-DD)")
+		c.Flags().IntSliceVar(&taskRepeatMonths, "repeat-months", nil, "Yearly repeat months, 1-12 (comma-separated; required with --repeat-month-days or --repeat-day on yearly)")
+		c.Flags().IntSliceVar(&taskRepeatMonthDays, "repeat-month-days", nil, "Monthly or yearly repeat days of the month, 1-31 (comma-separated)")
+		c.Flags().StringVar(&taskRepeatDay, "repeat-day", "", "Monthly or yearly repeat on the first or last day of the month: first, last")
 	}
 	for _, c := range []*cobra.Command{tasksAddCmd, tasksUpdateCmd, tasksDeleteCmd} {
 		c.Flags().StringVar(&taskSaveRevert, "save-revert", "", "Not supported for tasks; returns CAPABILITY_UNAVAILABLE (use craft blocks update --save-revert)")
@@ -435,6 +443,10 @@ type repeatFlagValues struct {
 	Reminder     string
 	SkipWeekends bool
 	DynamicDays  bool
+	StartDate    string
+	Months       []int
+	MonthDays    []int
+	DayOfMonth   string
 }
 
 // buildRepeatConfig validates repeat flags and assembles a RepeatConfig.
@@ -442,7 +454,8 @@ type repeatFlagValues struct {
 func buildRepeatConfig(v repeatFlagValues) (*models.RepeatConfig, error) {
 	hasRule := v.Type != "" || v.Frequency != ""
 	hasModifier := v.Interval != 0 || len(v.Weekdays) > 0 || v.EndDate != "" ||
-		v.Reminder != "" || v.SkipWeekends || v.DynamicDays
+		v.Reminder != "" || v.SkipWeekends || v.DynamicDays ||
+		v.StartDate != "" || len(v.Months) > 0 || len(v.MonthDays) > 0 || v.DayOfMonth != ""
 	if !hasRule && !hasModifier {
 		return nil, nil
 	}
@@ -489,6 +502,12 @@ func buildRepeatConfig(v repeatFlagValues) (*models.RepeatConfig, error) {
 		}
 		r.Weekly = map[string]interface{}{"days": days}
 	}
+	if v.StartDate != "" {
+		if _, err := time.Parse("2006-01-02", v.StartDate); err != nil {
+			return nil, fmt.Errorf("invalid --repeat-start %q; expected YYYY-MM-DD", v.StartDate)
+		}
+		r.StartDate = v.StartDate
+	}
 	if v.SkipWeekends {
 		switch frequency {
 		case "daily":
@@ -498,6 +517,49 @@ func buildRepeatConfig(v repeatFlagValues) (*models.RepeatConfig, error) {
 		default:
 			return nil, fmt.Errorf("--repeat-skip-weekends requires daily or monthly")
 		}
+	}
+	if len(v.MonthDays) > 0 || v.DayOfMonth != "" {
+		if frequency != "monthly" && frequency != "yearly" {
+			return nil, fmt.Errorf("--repeat-month-days and --repeat-day require --repeat monthly or yearly")
+		}
+		rule := &r.Monthly
+		if frequency == "yearly" {
+			rule = &r.Yearly
+		}
+		if *rule == nil {
+			*rule = map[string]interface{}{}
+		}
+		for _, day := range v.MonthDays {
+			if day < 1 || day > 31 {
+				return nil, fmt.Errorf("--repeat-month-days values must be 1 through 31, got %d", day)
+			}
+		}
+		if len(v.MonthDays) > 0 {
+			(*rule)["days"] = v.MonthDays
+		}
+		if v.DayOfMonth != "" {
+			if v.DayOfMonth != "first" && v.DayOfMonth != "last" {
+				return nil, fmt.Errorf("invalid --repeat-day %q (expected first or last)", v.DayOfMonth)
+			}
+			(*rule)["dynamicDays"] = []interface{}{map[string]interface{}{"selector": v.DayOfMonth, "type": "day"}}
+		}
+	}
+	if len(v.Months) > 0 {
+		if frequency != "yearly" {
+			return nil, fmt.Errorf("--repeat-months requires --repeat yearly")
+		}
+		for _, month := range v.Months {
+			if month < 1 || month > 12 {
+				return nil, fmt.Errorf("--repeat-months values must be 1 through 12, got %d", month)
+			}
+		}
+		if r.Yearly == nil {
+			r.Yearly = map[string]interface{}{}
+		}
+		r.Yearly["months"] = v.Months
+	}
+	if r.Yearly != nil && len(v.Months) == 0 {
+		return nil, fmt.Errorf("yearly repeat options require --repeat-months")
 	}
 	if v.Reminder != "" {
 		parsed, err := time.Parse("15:04", v.Reminder)
@@ -519,6 +581,10 @@ func repeatFlagsFromVars() repeatFlagValues {
 		Reminder:     taskRepeatReminder,
 		SkipWeekends: taskRepeatSkipWeekends,
 		DynamicDays:  taskRepeatDynamicDays,
+		StartDate:    taskRepeatStart,
+		Months:       taskRepeatMonths,
+		MonthDays:    taskRepeatMonthDays,
+		DayOfMonth:   taskRepeatDay,
 	}
 }
 

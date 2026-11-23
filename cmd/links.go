@@ -24,54 +24,9 @@ inaccessible documents are omitted by the server.`,
 	Example: "  craft links --to DOCUMENT_ID --limit 20\n  craft links --from-date today --level block\n  craft links --from DOC_A --to DOC_B --level block",
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		from, _ := cmd.Flags().GetString("from")
-		to, _ := cmd.Flags().GetString("to")
-		fromDate, _ := cmd.Flags().GetString("from-date")
-		toDate, _ := cmd.Flags().GetString("to-date")
-		level, _ := cmd.Flags().GetString("level")
-		self, _ := cmd.Flags().GetBool("include-self")
-		limit, _ := cmd.Flags().GetInt("limit")
-		cursor, _ := cmd.Flags().GetString("cursor")
-
-		if from != "" && fromDate != "" {
-			return fmt.Errorf("choose --from or --from-date")
-		}
-		if to != "" && toDate != "" {
-			return fmt.Errorf("choose --to or --to-date")
-		}
-		if from != "" {
-			if err := validateResourceID(from, "--from"); err != nil {
-				return err
-			}
-		}
-		if to != "" {
-			if err := validateResourceID(to, "--to"); err != nil {
-				return err
-			}
-		}
-		if fromDate != "" && !linkDatePattern.MatchString(fromDate) {
-			return fmt.Errorf("--from-date must be YYYY-MM-DD, today, yesterday or tomorrow")
-		}
-		if toDate != "" && !linkDatePattern.MatchString(toDate) {
-			return fmt.Errorf("--to-date must be YYYY-MM-DD, today, yesterday or tomorrow")
-		}
-		if level != "document" && level != "block" {
-			return fmt.Errorf("invalid --level %q; valid: document, block", level)
-		}
-		if limit < 1 || limit > 200 {
-			return fmt.Errorf("--limit must be between 1 and 200")
-		}
-
-		q := url.Values{}
-		q.Set("level", level)
-		q.Set("limit", strconv.Itoa(limit))
-		for name, value := range map[string]string{"fromDocumentId": from, "toDocumentId": to, "fromDate": fromDate, "toDate": toDate, "cursor": cursor} {
-			if value != "" {
-				q.Set(name, value)
-			}
-		}
-		if self {
-			q.Set("includeSelfLinks", "true")
+		q, err := buildLinksQuery(cmd)
+		if err != nil {
+			return err
 		}
 
 		client, err := getAPIClient()
@@ -84,6 +39,59 @@ inaccessible documents are omitted by the server.`,
 		}
 		return outputRawJSON(result)
 	},
+}
+
+func buildLinksQuery(cmd *cobra.Command) (url.Values, error) {
+	from, _ := cmd.Flags().GetString("from")
+	to, _ := cmd.Flags().GetString("to")
+	fromDate, _ := cmd.Flags().GetString("from-date")
+	toDate, _ := cmd.Flags().GetString("to-date")
+	level, _ := cmd.Flags().GetString("level")
+	self, _ := cmd.Flags().GetBool("include-self")
+	limit, _ := cmd.Flags().GetInt("limit")
+	cursor, _ := cmd.Flags().GetString("cursor")
+
+	if from != "" && fromDate != "" {
+		return nil, fmt.Errorf("choose --from or --from-date")
+	}
+	if to != "" && toDate != "" {
+		return nil, fmt.Errorf("choose --to or --to-date")
+	}
+	if from != "" {
+		if err := validateResourceID(from, "--from"); err != nil {
+			return nil, err
+		}
+	}
+	if to != "" {
+		if err := validateResourceID(to, "--to"); err != nil {
+			return nil, err
+		}
+	}
+	if fromDate != "" && !linkDatePattern.MatchString(fromDate) {
+		return nil, fmt.Errorf("--from-date must be YYYY-MM-DD, today, yesterday or tomorrow")
+	}
+	if toDate != "" && !linkDatePattern.MatchString(toDate) {
+		return nil, fmt.Errorf("--to-date must be YYYY-MM-DD, today, yesterday or tomorrow")
+	}
+	if level != "document" && level != "block" {
+		return nil, fmt.Errorf("invalid --level %q; valid: document, block", level)
+	}
+	if limit < 1 || limit > 200 {
+		return nil, fmt.Errorf("--limit must be between 1 and 200")
+	}
+
+	q := url.Values{}
+	q.Set("level", level)
+	q.Set("limit", strconv.Itoa(limit))
+	for name, value := range map[string]string{"fromDocumentId": from, "toDocumentId": to, "fromDate": fromDate, "toDate": toDate, "cursor": cursor} {
+		if value != "" {
+			q.Set(name, value)
+		}
+	}
+	if self {
+		q.Set("includeSelfLinks", "true")
+	}
+	return q, nil
 }
 
 func init() {

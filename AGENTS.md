@@ -37,7 +37,7 @@ No interactive login. Set credentials via:
 - Use `craft mcp read-resource URI --metadata-only` before reading resource contents; MCP UI resources can be large
 - Use native wrappers before generic MCP calls: `craft mcp edit-review`, `craft images view`, `craft whiteboards elements get`, `craft collections rename`, and `craft collections --property ...`
 - Use `craft batch --dry-run` before `craft batch --tool craft_write --yes`
-- Theme, text/background color and cover URL flags use REST. Backdrop, crop, attribution, washi, `--diff` and `--save-revert` convenience flags require MCP; raw REST `styling` JSON covers documented page styles
+- Theme, text/background color, cover URL/crop/attribution (crop and attribution need `--cover-url`), `--page-width` and `--font-family` (REST only) flags use REST. Backdrop, separator, washi, `--diff` and `--save-revert` convenience flags require MCP; raw REST `styling` JSON (including `backdrop` and `separatorStyle`) covers documented page styles
 - For MCP style writes, run `--dry-run` first, then use `--yes --save-revert FILE --diff` on the real write. `--diff` returns the mutation result plus MCP edit-review metadata when available; `--save-revert` captures the undo payload.
 - Use `craft list --backend mcp --cursor CURSOR --limit N` for MCP cursor pagination
 - Use `--yes` to skip any confirmation prompts

@@ -30,7 +30,7 @@ MCP is used for agent-ahead or MCP-only features:
 - documents: resolve-link
 - folders: explore-icons
 - blocks: explore-themes, explore-washi, search-unsplash, revert
-- block styling: REST theme/color/cover flags, plus MCP `--backdrop-*`, `--washi-*`, `--save-revert`, and `--diff` on block add/update
+- block styling: REST theme/color/cover (url, crop, attribution), `--page-width` and `--font-family` flags, plus MCP `--backdrop-*`, `--separator`, `--washi-*`, `--save-revert`, and `--diff` on block add/update
 - cursor pagination: MCP-backed `craft list --backend mcp --cursor ... --limit ...`
 - collections: rename, dynamic `--property Name=value` flags, views list/create/update/delete, active-view set
 - whiteboards: MCP-backed `whiteboards elements get`

@@ -455,6 +455,9 @@ Available styling flags:
   --color             #RRGGBB or #RRGGBBAA hex, or "#light #dark" pair (e.g. #ef052a)
   --color-dark        Exact dark-mode hex; requires --color without a pair (REST only)
   --font              system, serif, mono, rounded
+  --page-width        Page content width type (REST only; page blocks)
+  --font-family       Page font family: system, system-serif, system-rounded, system-mono, sans-serif, serif, rounded, mono (REST only; page blocks)
+  --cover-url         Page cover image URL; --cover-crop '{"x":0,"y":0,"width":1,"height":0.5}' and --cover-attribution TEXT need it on REST
   --text-alignment    left, center, right, justify
   --indentation-level 0-5
   --line-style        strong, regular, light, extraLight, pageBreak

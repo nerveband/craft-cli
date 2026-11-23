@@ -183,13 +183,13 @@
           "type": "string"
         },
         {
-          "description": "MCP page cover attribution",
+          "description": "Page cover attribution text; REST requires --cover-url",
           "name": "--cover-attribution",
           "required": false,
           "type": "string"
         },
         {
-          "description": "MCP page cover crop JSON/string",
+          "description": "Page cover crop as a JSON object {x,y,width,height} (0-1); REST requires --cover-url",
           "name": "--cover-crop",
           "required": false,
           "type": "string"
@@ -243,6 +243,12 @@
           "type": "string"
         },
         {
+          "description": "Page font family: system, system-serif, system-rounded, system-mono, sans-serif, serif, rounded, mono (REST only)",
+          "name": "--font-family",
+          "required": false,
+          "type": "string"
+        },
+        {
           "description": "Indentation level: 0-5",
           "name": "--indentation-level",
           "required": false,
@@ -289,6 +295,12 @@
           "name": "--markdown",
           "required": false,
           "short": "-m",
+          "type": "string"
+        },
+        {
+          "description": "Page content width type (REST only)",
+          "name": "--page-width",
+          "required": false,
           "type": "string"
         },
         {
@@ -433,7 +445,7 @@
                 }
               ],
               "properties": {
-                "$ref": "#/extensions/contract_definitions/sc7ee50c4e8e86ad7"
+                "$ref": "#/extensions/contract_definitions/s951ef9548fdbc076"
               },
               "type": "object"
             }
@@ -942,13 +954,13 @@
           "type": "string"
         },
         {
-          "description": "MCP page cover attribution",
+          "description": "Page cover attribution text; REST requires --cover-url",
           "name": "--cover-attribution",
           "required": false,
           "type": "string"
         },
         {
-          "description": "MCP page cover crop JSON/string",
+          "description": "Page cover crop as a JSON object {x,y,width,height} (0-1); REST requires --cover-url",
           "name": "--cover-crop",
           "required": false,
           "type": "string"
@@ -992,6 +1004,12 @@
         {
           "description": "Font: system, serif, mono, rounded",
           "name": "--font",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "description": "Page font family: system, system-serif, system-rounded, system-mono, sans-serif, serif, rounded, mono (REST only)",
+          "name": "--font-family",
           "required": false,
           "type": "string"
         },
@@ -1042,6 +1060,12 @@
           "name": "--markdown",
           "required": false,
           "short": "-m",
+          "type": "string"
+        },
+        {
+          "description": "Page content width type (REST only)",
+          "name": "--page-width",
+          "required": false,
           "type": "string"
         },
         {
@@ -1167,7 +1191,7 @@
                 }
               ],
               "properties": {
-                "$ref": "#/extensions/contract_definitions/s839b25f08bef08a3"
+                "$ref": "#/extensions/contract_definitions/s2034cf027130026f"
               },
               "type": "object"
             }
@@ -6826,6 +6850,12 @@
           "type": "string"
         },
         {
+          "description": "Monthly or yearly repeat on the first or last day of the month: first, last",
+          "name": "--repeat-day",
+          "required": false,
+          "type": "string"
+        },
+        {
           "description": "Reschedule relative to completion date",
           "name": "--repeat-dynamic-days",
           "required": false,
@@ -6850,6 +6880,18 @@
           "type": "integer"
         },
         {
+          "description": "Monthly or yearly repeat days of the month, 1-31 (comma-separated)",
+          "name": "--repeat-month-days",
+          "required": false,
+          "type": "integer[]"
+        },
+        {
+          "description": "Yearly repeat months, 1-12 (comma-separated; required with --repeat-month-days or --repeat-day on yearly)",
+          "name": "--repeat-months",
+          "required": false,
+          "type": "integer[]"
+        },
+        {
           "description": "Reminder time (HH:MM)",
           "name": "--repeat-reminder",
           "required": false,
@@ -6860,6 +6902,12 @@
           "name": "--repeat-skip-weekends",
           "required": false,
           "type": "boolean"
+        },
+        {
+          "description": "Repeat start date (YYYY-MM-DD)",
+          "name": "--repeat-start",
+          "required": false,
+          "type": "string"
         },
         {
           "description": "Repeat weekdays, 0=Sunday..6=Saturday (comma-separated)",
@@ -6899,7 +6947,7 @@
           "craft tasks add 'Review release' --dry-run"
         ],
         "input_schema": {
-          "$ref": "#/extensions/contract_definitions/sc077453bc03bfa3e"
+          "$ref": "#/extensions/contract_definitions/s3ac8938b79733193"
         },
         "output_contract": "Use --cli-request-schema and --cli-response-schema for CLI contracts; --request-schema and --response-schema expose upstream REST contracts.",
         "retry_guidance": "After a write timeout verify with get/list/search before retrying; the server may have applied it.",
@@ -7089,6 +7137,12 @@
           "type": "string"
         },
         {
+          "description": "Monthly or yearly repeat on the first or last day of the month: first, last",
+          "name": "--repeat-day",
+          "required": false,
+          "type": "string"
+        },
+        {
           "description": "Reschedule relative to completion date",
           "name": "--repeat-dynamic-days",
           "required": false,
@@ -7113,6 +7167,18 @@
           "type": "integer"
         },
         {
+          "description": "Monthly or yearly repeat days of the month, 1-31 (comma-separated)",
+          "name": "--repeat-month-days",
+          "required": false,
+          "type": "integer[]"
+        },
+        {
+          "description": "Yearly repeat months, 1-12 (comma-separated; required with --repeat-month-days or --repeat-day on yearly)",
+          "name": "--repeat-months",
+          "required": false,
+          "type": "integer[]"
+        },
+        {
           "description": "Reminder time (HH:MM)",
           "name": "--repeat-reminder",
           "required": false,
@@ -7123,6 +7189,12 @@
           "name": "--repeat-skip-weekends",
           "required": false,
           "type": "boolean"
+        },
+        {
+          "description": "Repeat start date (YYYY-MM-DD)",
+          "name": "--repeat-start",
+          "required": false,
+          "type": "string"
         },
         {
           "description": "Repeat weekdays, 0=Sunday..6=Saturday (comma-separated)",
@@ -7168,7 +7240,7 @@
           "craft tasks update task-123 --state done --dry-run"
         ],
         "input_schema": {
-          "$ref": "#/extensions/contract_definitions/s9925d9cfa2ed544f"
+          "$ref": "#/extensions/contract_definitions/s515a5a3887394acd"
         },
         "output_contract": "Use --cli-request-schema and --cli-response-schema for CLI contracts; --request-schema and --response-schema expose upstream REST contracts.",
         "retry_guidance": "After a write timeout verify with get/list/search before retrying; the server may have applied it.",
@@ -12374,6 +12446,368 @@
           "type": "object"
         }
       },
+      "s2034cf027130026f": {
+        "alt-text": {
+          "description": "Alt text for image/video blocks",
+          "type": "string",
+          "x-default": ""
+        },
+        "api-key": {
+          "description": "API key for authentication (overrides config)",
+          "type": "string",
+          "x-default": ""
+        },
+        "api-key-env": {
+          "description": "Environment variable containing the API key",
+          "type": "string",
+          "x-default": ""
+        },
+        "api-url": {
+          "description": "Craft API URL (overrides config)",
+          "type": "string",
+          "x-default": ""
+        },
+        "backdrop-color": {
+          "description": "MCP backdrop color",
+          "type": "string",
+          "x-default": ""
+        },
+        "backdrop-colors": {
+          "description": "MCP backdrop colors",
+          "type": "string",
+          "x-default": ""
+        },
+        "backdrop-direction": {
+          "description": "MCP backdrop direction",
+          "type": "string",
+          "x-default": ""
+        },
+        "backdrop-type": {
+          "description": "MCP backdrop type",
+          "type": "string",
+          "x-default": ""
+        },
+        "backdrop-url": {
+          "description": "MCP backdrop URL",
+          "type": "string",
+          "x-default": ""
+        },
+        "backend": {
+          "description": "Backend preference: auto, rest, mcp, or local",
+          "type": "string",
+          "x-default": "auto"
+        },
+        "bg-color": {
+          "description": "Page background color",
+          "type": "string",
+          "x-default": ""
+        },
+        "block-layout": {
+          "description": "Layout for file blocks: small, regular, card",
+          "type": "string",
+          "x-default": ""
+        },
+        "cache-max-age": {
+          "description": "Maximum index age for --data-source auto; local explicitly permits older snapshots",
+          "type": "string",
+          "x-default": "5m0s"
+        },
+        "card-layout": {
+          "description": "Card layout: small, square, regular, large",
+          "type": "string",
+          "x-default": ""
+        },
+        "cli-request-schema": {
+          "description": "Print the CLI argument/flag input contract offline",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "cli-response-schema": {
+          "description": "Print the CLI stdout contract offline (distinct from upstream REST)",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "color": {
+          "description": "Block color as #RRGGBB or #RRGGBBAA hex, or a '#light #dark' pair (e.g. #ef052a)",
+          "type": "string",
+          "x-default": ""
+        },
+        "color-dark": {
+          "description": "Exact dark-mode color as #RRGGBB or #RRGGBBAA hex; requires --color without a pair (REST only)",
+          "type": "string",
+          "x-default": ""
+        },
+        "cover-attribution": {
+          "description": "Page cover attribution text; REST requires --cover-url",
+          "type": "string",
+          "x-default": ""
+        },
+        "cover-crop": {
+          "description": "Page cover crop as a JSON object {x,y,width,height} (0-1); REST requires --cover-url",
+          "type": "string",
+          "x-default": ""
+        },
+        "cover-url": {
+          "description": "Page cover image URL",
+          "type": "string",
+          "x-default": ""
+        },
+        "data-source": {
+          "description": "Data source preference: local, live, or auto",
+          "type": "string",
+          "x-default": ""
+        },
+        "deadline-date": {
+          "description": "Task deadline date (YYYY-MM-DD)",
+          "type": "string",
+          "x-default": ""
+        },
+        "decorations": {
+          "description": "Decorations (comma-separated): callout, quote",
+          "type": "string",
+          "x-default": ""
+        },
+        "deliver": {
+          "description": "Deliver output to stdout or file:\u003cpath\u003e (atomic file writes)",
+          "type": "string",
+          "x-default": ""
+        },
+        "description": {
+          "description": "Description for richUrl blocks",
+          "type": "string",
+          "x-default": ""
+        },
+        "diff": {
+          "description": "Include MCP edit-review metadata in output when possible",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "dry-run": {
+          "description": "Show what would happen without making changes",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "expand-files": {
+          "description": "Expand @file:// JSON, @text:// text and @data:// base64 in structured input; @@ escapes @ (8 MiB total)",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "file-name": {
+          "description": "File name for file blocks",
+          "type": "string",
+          "x-default": ""
+        },
+        "font": {
+          "description": "Font: system, serif, mono, rounded",
+          "type": "string",
+          "x-default": ""
+        },
+        "font-family": {
+          "description": "Page font family: system, system-serif, system-rounded, system-mono, sans-serif, serif, rounded, mono (REST only)",
+          "type": "string",
+          "x-default": ""
+        },
+        "format": {
+          "description": "Output format (json, compact=legacy JSON, table, markdown, raw, jsonl, yaml)",
+          "type": "string",
+          "x-default": ""
+        },
+        "id-only": {
+          "description": "Output only document IDs (shorthand for --output-only id)",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "indentation-level": {
+          "description": "Indentation level: 0-5",
+          "type": "string",
+          "x-default": ""
+        },
+        "json": {
+          "description": "Block(s) as JSON with \"id\" fields (array or single object)",
+          "type": "string",
+          "x-default": ""
+        },
+        "json-errors": {
+          "description": "Output errors as JSON",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "json-file": {
+          "description": "Read block JSON from file",
+          "type": "string",
+          "x-default": ""
+        },
+        "language": {
+          "description": "Code block language (e.g. python, javascript, math_formula)",
+          "type": "string",
+          "x-default": ""
+        },
+        "layout": {
+          "description": "Layout for richUrl: small, regular, card",
+          "type": "string",
+          "x-default": ""
+        },
+        "line-style": {
+          "description": "Line/divider style: strong, regular, light, extraLight, pageBreak",
+          "type": "string",
+          "x-default": ""
+        },
+        "list-style": {
+          "description": "List style: none, bullet, numbered, task, toggle",
+          "type": "string",
+          "x-default": ""
+        },
+        "markdown": {
+          "description": "New markdown content",
+          "type": "string",
+          "x-default": ""
+        },
+        "max-chars": {
+          "description": "Maximum document text characters (0 = all; raw output is unchanged)",
+          "type": "integer",
+          "x-default": "20000"
+        },
+        "max-items": {
+          "description": "Maximum records for read commands without --limit (0 = all; raw output is unchanged)",
+          "type": "integer",
+          "x-default": "50"
+        },
+        "mcp-url": {
+          "description": "Craft MCP URL (overrides CRAFT_MCP_URL)",
+          "type": "string",
+          "x-default": ""
+        },
+        "no-headers": {
+          "description": "Omit headers in table output",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "output-only": {
+          "description": "Output only specified field (e.g., id, title)",
+          "type": "string",
+          "x-default": ""
+        },
+        "page-width": {
+          "description": "Page content width type (REST only)",
+          "type": "string",
+          "x-default": ""
+        },
+        "profile": {
+          "description": "Named profile to use for this command",
+          "type": "string",
+          "x-default": ""
+        },
+        "quiet": {
+          "description": "Suppress status messages, output data only",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "raw": {
+          "description": "Output raw content without formatting",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "raw-code": {
+          "description": "Raw code content for code blocks",
+          "type": "string",
+          "x-default": ""
+        },
+        "request-schema": {
+          "description": "Print request JSON Schema for supported commands",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "response-schema": {
+          "description": "Print response JSON Schema for supported commands",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "save-revert": {
+          "description": "Save MCP revertInfo JSON to a file",
+          "type": "string",
+          "x-default": ""
+        },
+        "schedule-date": {
+          "description": "Task schedule date (YYYY-MM-DD)",
+          "type": "string",
+          "x-default": ""
+        },
+        "separator": {
+          "description": "MCP page separator",
+          "type": "string",
+          "x-default": ""
+        },
+        "stdin": {
+          "description": "Read block JSON from stdin",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "task-state": {
+          "description": "Task state: todo, done, canceled",
+          "type": "string",
+          "x-default": ""
+        },
+        "text-alignment": {
+          "description": "Text alignment: left, center, right, justify",
+          "type": "string",
+          "x-default": ""
+        },
+        "text-color": {
+          "description": "Page text color",
+          "type": "string",
+          "x-default": ""
+        },
+        "text-style": {
+          "description": "Text style: h1, h2, h3, h4, caption, body, page, card",
+          "type": "string",
+          "x-default": ""
+        },
+        "theme-color": {
+          "description": "Page theme color",
+          "type": "string",
+          "x-default": ""
+        },
+        "theme-id": {
+          "description": "Page theme ID (REST; MCP with review/revert)",
+          "type": "string",
+          "x-default": ""
+        },
+        "timeout": {
+          "description": "HTTP request timeout (for example 10s)",
+          "type": "string",
+          "x-default": "30s"
+        },
+        "title": {
+          "description": "Title for richUrl blocks",
+          "type": "string",
+          "x-default": ""
+        },
+        "transform": {
+          "description": "Extract a field/projection from structured output",
+          "type": "string",
+          "x-default": ""
+        },
+        "url": {
+          "description": "URL for richUrl, image, video, or file blocks",
+          "type": "string",
+          "x-default": ""
+        },
+        "washi-color": {
+          "description": "MCP washi color",
+          "type": "string",
+          "x-default": ""
+        },
+        "washi-pattern": {
+          "description": "MCP washi pattern",
+          "type": "string",
+          "x-default": ""
+        },
+        "yes": {
+          "description": "Skip confirmation prompts",
+          "type": "boolean",
+          "x-default": "false"
+        }
+      },
       "s21a6b0886066bb28": {
         "api-key": {
           "description": "API key for authentication (overrides config)",
@@ -15590,6 +16024,119 @@
           "x-default": "false"
         }
       },
+      "s3ac8938b79733193": {
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "args": {
+                  "minItems": 1
+                }
+              },
+              "type": "object"
+            },
+            "if": {
+              "properties": {
+                "flags": {
+                  "anyOf": [
+                    {
+                      "properties": {
+                        "json": {
+                          "description": "Raw REST add tasks payload JSON",
+                          "type": "string",
+                          "x-default": ""
+                        }
+                      },
+                      "required": [
+                        "json"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "stdin": {
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "stdin"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "flags"
+              ],
+              "type": "object"
+            },
+            "then": {
+              "properties": {
+                "args": {
+                  "maxItems": 0
+                }
+              },
+              "type": "object"
+            }
+          }
+        ],
+        "properties": {
+          "args": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 1,
+            "minItems": 0,
+            "type": "array"
+          },
+          "flags": {
+            "additionalProperties": false,
+            "allOf": [
+              {
+                "not": {
+                  "anyOf": [
+                    {
+                      "allOf": [
+                        {
+                          "properties": {
+                            "json": {
+                              "description": "Raw REST add tasks payload JSON",
+                              "type": "string",
+                              "x-default": ""
+                            }
+                          },
+                          "required": [
+                            "json"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "properties": {
+                            "stdin": {
+                              "const": true
+                            }
+                          },
+                          "required": [
+                            "stdin"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            ],
+            "properties": {
+              "$ref": "#/extensions/contract_definitions/s6d4f8de8b51530fb"
+            },
+            "type": "object"
+          }
+        },
+        "type": "object",
+        "x-craft-validation": "Cobra positional validation and required/mutually-exclusive flag annotations are authoritative; payload validation and upstream capability checks run before mutations"
+      },
       "s3b241d8b35fae2b4": {
         "api-key": {
           "description": "API key for authentication (overrides config)",
@@ -17707,6 +18254,119 @@
           "x-default": "false"
         }
       },
+      "s515a5a3887394acd": {
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "args": {
+                  "minItems": 1
+                }
+              },
+              "type": "object"
+            },
+            "if": {
+              "properties": {
+                "flags": {
+                  "anyOf": [
+                    {
+                      "properties": {
+                        "json": {
+                          "description": "Raw REST update tasks payload JSON",
+                          "type": "string",
+                          "x-default": ""
+                        }
+                      },
+                      "required": [
+                        "json"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "stdin": {
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "stdin"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "flags"
+              ],
+              "type": "object"
+            },
+            "then": {
+              "properties": {
+                "args": {
+                  "maxItems": 0
+                }
+              },
+              "type": "object"
+            }
+          }
+        ],
+        "properties": {
+          "args": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 1,
+            "minItems": 0,
+            "type": "array"
+          },
+          "flags": {
+            "additionalProperties": false,
+            "allOf": [
+              {
+                "not": {
+                  "anyOf": [
+                    {
+                      "allOf": [
+                        {
+                          "properties": {
+                            "json": {
+                              "description": "Raw REST update tasks payload JSON",
+                              "type": "string",
+                              "x-default": ""
+                            }
+                          },
+                          "required": [
+                            "json"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "properties": {
+                            "stdin": {
+                              "const": true
+                            }
+                          },
+                          "required": [
+                            "stdin"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            ],
+            "properties": {
+              "$ref": "#/extensions/contract_definitions/sda32880582780ce5"
+            },
+            "type": "object"
+          }
+        },
+        "type": "object",
+        "x-craft-validation": "Cobra positional validation and required/mutually-exclusive flag annotations are authoritative; payload validation and upstream capability checks run before mutations"
+      },
       "s52437c82d1a3f99f": {
         "anyOf": [
           {
@@ -17795,228 +18455,6 @@
             "backend"
           ],
           "type": "object"
-        }
-      },
-      "s56f289adb225456c": {
-        "api-key": {
-          "description": "API key for authentication (overrides config)",
-          "type": "string",
-          "x-default": ""
-        },
-        "api-key-env": {
-          "description": "Environment variable containing the API key",
-          "type": "string",
-          "x-default": ""
-        },
-        "api-url": {
-          "description": "Craft API URL (overrides config)",
-          "type": "string",
-          "x-default": ""
-        },
-        "backend": {
-          "description": "Backend preference: auto, rest, mcp, or local",
-          "type": "string",
-          "x-default": "auto"
-        },
-        "cache-max-age": {
-          "description": "Maximum index age for --data-source auto; local explicitly permits older snapshots",
-          "type": "string",
-          "x-default": "5m0s"
-        },
-        "cli-request-schema": {
-          "description": "Print the CLI argument/flag input contract offline",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "cli-response-schema": {
-          "description": "Print the CLI stdout contract offline (distinct from upstream REST)",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "data-source": {
-          "description": "Data source preference: local, live, or auto",
-          "type": "string",
-          "x-default": ""
-        },
-        "date": {
-          "description": "Daily-note date (implies dailyNote location)",
-          "type": "string",
-          "x-default": ""
-        },
-        "deadline": {
-          "description": "Deadline date (YYYY-MM-DD)",
-          "type": "string",
-          "x-default": ""
-        },
-        "deliver": {
-          "description": "Deliver output to stdout or file:\u003cpath\u003e (atomic file writes)",
-          "type": "string",
-          "x-default": ""
-        },
-        "diff": {
-          "description": "Not supported for tasks; returns CAPABILITY_UNAVAILABLE",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "document": {
-          "description": "Document ID (required for location=document)",
-          "type": "string",
-          "x-default": ""
-        },
-        "dry-run": {
-          "description": "Show what would happen without making changes",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "expand-files": {
-          "description": "Expand @file:// JSON, @text:// text and @data:// base64 in structured input; @@ escapes @ (8 MiB total)",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "format": {
-          "description": "Output format (json, compact=legacy JSON, table, markdown, raw, jsonl, yaml)",
-          "type": "string",
-          "x-default": ""
-        },
-        "id-only": {
-          "description": "Output only document IDs (shorthand for --output-only id)",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "json": {
-          "description": "Raw REST add tasks payload JSON",
-          "type": "string",
-          "x-default": ""
-        },
-        "json-errors": {
-          "description": "Output errors as JSON",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "location": {
-          "description": "Location: inbox, document, dailyNote",
-          "type": "string",
-          "x-default": "inbox"
-        },
-        "max-chars": {
-          "description": "Maximum document text characters (0 = all; raw output is unchanged)",
-          "type": "integer",
-          "x-default": "20000"
-        },
-        "max-items": {
-          "description": "Maximum records for read commands without --limit (0 = all; raw output is unchanged)",
-          "type": "integer",
-          "x-default": "50"
-        },
-        "mcp-url": {
-          "description": "Craft MCP URL (overrides CRAFT_MCP_URL)",
-          "type": "string",
-          "x-default": ""
-        },
-        "no-headers": {
-          "description": "Omit headers in table output",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "output-only": {
-          "description": "Output only specified field (e.g., id, title)",
-          "type": "string",
-          "x-default": ""
-        },
-        "profile": {
-          "description": "Named profile to use for this command",
-          "type": "string",
-          "x-default": ""
-        },
-        "quiet": {
-          "description": "Suppress status messages, output data only",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "raw": {
-          "description": "Output raw content without formatting",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "repeat": {
-          "description": "Repeat rule: daily, weekly, monthly, yearly",
-          "type": "string",
-          "x-default": ""
-        },
-        "repeat-dynamic-days": {
-          "description": "Reschedule relative to completion date",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "repeat-end": {
-          "description": "Repeat end date (YYYY-MM-DD)",
-          "type": "string",
-          "x-default": ""
-        },
-        "repeat-frequency": {
-          "description": "Repeat frequency key (daily, weekly, monthly, yearly)",
-          "type": "string",
-          "x-default": ""
-        },
-        "repeat-interval": {
-          "description": "Repeat every N periods",
-          "type": "integer",
-          "x-default": "0"
-        },
-        "repeat-reminder": {
-          "description": "Reminder time (HH:MM)",
-          "type": "string",
-          "x-default": ""
-        },
-        "repeat-skip-weekends": {
-          "description": "Skip weekend occurrences",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "repeat-weekdays": {
-          "description": "Repeat weekdays, 0=Sunday..6=Saturday (comma-separated)",
-          "type": "string",
-          "x-default": "[]"
-        },
-        "request-schema": {
-          "description": "Print request JSON Schema for supported commands",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "response-schema": {
-          "description": "Print response JSON Schema for supported commands",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "save-revert": {
-          "description": "Not supported for tasks; returns CAPABILITY_UNAVAILABLE (use craft blocks update --save-revert)",
-          "type": "string",
-          "x-default": ""
-        },
-        "schedule": {
-          "description": "Schedule date (YYYY-MM-DD)",
-          "type": "string",
-          "x-default": ""
-        },
-        "stdin": {
-          "description": "Read raw REST add tasks payload from stdin",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "timeout": {
-          "description": "HTTP request timeout (for example 10s)",
-          "type": "string",
-          "x-default": "30s"
-        },
-        "transform": {
-          "description": "Extract a field/projection from structured output",
-          "type": "string",
-          "x-default": ""
-        },
-        "yes": {
-          "description": "Skip confirmation prompts",
-          "type": "boolean",
-          "x-default": "false"
         }
       },
       "s5b6a767d5b92ad9d": {
@@ -21629,6 +22067,248 @@
           "x-default": "false"
         }
       },
+      "s6d4f8de8b51530fb": {
+        "api-key": {
+          "description": "API key for authentication (overrides config)",
+          "type": "string",
+          "x-default": ""
+        },
+        "api-key-env": {
+          "description": "Environment variable containing the API key",
+          "type": "string",
+          "x-default": ""
+        },
+        "api-url": {
+          "description": "Craft API URL (overrides config)",
+          "type": "string",
+          "x-default": ""
+        },
+        "backend": {
+          "description": "Backend preference: auto, rest, mcp, or local",
+          "type": "string",
+          "x-default": "auto"
+        },
+        "cache-max-age": {
+          "description": "Maximum index age for --data-source auto; local explicitly permits older snapshots",
+          "type": "string",
+          "x-default": "5m0s"
+        },
+        "cli-request-schema": {
+          "description": "Print the CLI argument/flag input contract offline",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "cli-response-schema": {
+          "description": "Print the CLI stdout contract offline (distinct from upstream REST)",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "data-source": {
+          "description": "Data source preference: local, live, or auto",
+          "type": "string",
+          "x-default": ""
+        },
+        "date": {
+          "description": "Daily-note date (implies dailyNote location)",
+          "type": "string",
+          "x-default": ""
+        },
+        "deadline": {
+          "description": "Deadline date (YYYY-MM-DD)",
+          "type": "string",
+          "x-default": ""
+        },
+        "deliver": {
+          "description": "Deliver output to stdout or file:\u003cpath\u003e (atomic file writes)",
+          "type": "string",
+          "x-default": ""
+        },
+        "diff": {
+          "description": "Not supported for tasks; returns CAPABILITY_UNAVAILABLE",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "document": {
+          "description": "Document ID (required for location=document)",
+          "type": "string",
+          "x-default": ""
+        },
+        "dry-run": {
+          "description": "Show what would happen without making changes",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "expand-files": {
+          "description": "Expand @file:// JSON, @text:// text and @data:// base64 in structured input; @@ escapes @ (8 MiB total)",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "format": {
+          "description": "Output format (json, compact=legacy JSON, table, markdown, raw, jsonl, yaml)",
+          "type": "string",
+          "x-default": ""
+        },
+        "id-only": {
+          "description": "Output only document IDs (shorthand for --output-only id)",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "json": {
+          "description": "Raw REST add tasks payload JSON",
+          "type": "string",
+          "x-default": ""
+        },
+        "json-errors": {
+          "description": "Output errors as JSON",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "location": {
+          "description": "Location: inbox, document, dailyNote",
+          "type": "string",
+          "x-default": "inbox"
+        },
+        "max-chars": {
+          "description": "Maximum document text characters (0 = all; raw output is unchanged)",
+          "type": "integer",
+          "x-default": "20000"
+        },
+        "max-items": {
+          "description": "Maximum records for read commands without --limit (0 = all; raw output is unchanged)",
+          "type": "integer",
+          "x-default": "50"
+        },
+        "mcp-url": {
+          "description": "Craft MCP URL (overrides CRAFT_MCP_URL)",
+          "type": "string",
+          "x-default": ""
+        },
+        "no-headers": {
+          "description": "Omit headers in table output",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "output-only": {
+          "description": "Output only specified field (e.g., id, title)",
+          "type": "string",
+          "x-default": ""
+        },
+        "profile": {
+          "description": "Named profile to use for this command",
+          "type": "string",
+          "x-default": ""
+        },
+        "quiet": {
+          "description": "Suppress status messages, output data only",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "raw": {
+          "description": "Output raw content without formatting",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "repeat": {
+          "description": "Repeat rule: daily, weekly, monthly, yearly",
+          "type": "string",
+          "x-default": ""
+        },
+        "repeat-day": {
+          "description": "Monthly or yearly repeat on the first or last day of the month: first, last",
+          "type": "string",
+          "x-default": ""
+        },
+        "repeat-dynamic-days": {
+          "description": "Reschedule relative to completion date",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "repeat-end": {
+          "description": "Repeat end date (YYYY-MM-DD)",
+          "type": "string",
+          "x-default": ""
+        },
+        "repeat-frequency": {
+          "description": "Repeat frequency key (daily, weekly, monthly, yearly)",
+          "type": "string",
+          "x-default": ""
+        },
+        "repeat-interval": {
+          "description": "Repeat every N periods",
+          "type": "integer",
+          "x-default": "0"
+        },
+        "repeat-month-days": {
+          "description": "Monthly or yearly repeat days of the month, 1-31 (comma-separated)",
+          "type": "string",
+          "x-default": "[]"
+        },
+        "repeat-months": {
+          "description": "Yearly repeat months, 1-12 (comma-separated; required with --repeat-month-days or --repeat-day on yearly)",
+          "type": "string",
+          "x-default": "[]"
+        },
+        "repeat-reminder": {
+          "description": "Reminder time (HH:MM)",
+          "type": "string",
+          "x-default": ""
+        },
+        "repeat-skip-weekends": {
+          "description": "Skip weekend occurrences",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "repeat-start": {
+          "description": "Repeat start date (YYYY-MM-DD)",
+          "type": "string",
+          "x-default": ""
+        },
+        "repeat-weekdays": {
+          "description": "Repeat weekdays, 0=Sunday..6=Saturday (comma-separated)",
+          "type": "string",
+          "x-default": "[]"
+        },
+        "request-schema": {
+          "description": "Print request JSON Schema for supported commands",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "response-schema": {
+          "description": "Print response JSON Schema for supported commands",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "save-revert": {
+          "description": "Not supported for tasks; returns CAPABILITY_UNAVAILABLE (use craft blocks update --save-revert)",
+          "type": "string",
+          "x-default": ""
+        },
+        "schedule": {
+          "description": "Schedule date (YYYY-MM-DD)",
+          "type": "string",
+          "x-default": ""
+        },
+        "stdin": {
+          "description": "Read raw REST add tasks payload from stdin",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "timeout": {
+          "description": "HTTP request timeout (for example 10s)",
+          "type": "string",
+          "x-default": "30s"
+        },
+        "transform": {
+          "description": "Extract a field/projection from structured output",
+          "type": "string",
+          "x-default": ""
+        },
+        "yes": {
+          "description": "Skip confirmation prompts",
+          "type": "boolean",
+          "x-default": "false"
+        }
+      },
       "s6d7143fe4cf144cf": {
         "cardLayout": {
           "description": "Applies for 'card' textStyle. Small and square are for laying out in multi-column (2 or 3 depending on screen size, multi-column is only supported for certain block types, not for text). Regular and large are full width cards.",
@@ -24660,358 +25340,6 @@
           "type": "object"
         }
       },
-      "s839b25f08bef08a3": {
-        "alt-text": {
-          "description": "Alt text for image/video blocks",
-          "type": "string",
-          "x-default": ""
-        },
-        "api-key": {
-          "description": "API key for authentication (overrides config)",
-          "type": "string",
-          "x-default": ""
-        },
-        "api-key-env": {
-          "description": "Environment variable containing the API key",
-          "type": "string",
-          "x-default": ""
-        },
-        "api-url": {
-          "description": "Craft API URL (overrides config)",
-          "type": "string",
-          "x-default": ""
-        },
-        "backdrop-color": {
-          "description": "MCP backdrop color",
-          "type": "string",
-          "x-default": ""
-        },
-        "backdrop-colors": {
-          "description": "MCP backdrop colors",
-          "type": "string",
-          "x-default": ""
-        },
-        "backdrop-direction": {
-          "description": "MCP backdrop direction",
-          "type": "string",
-          "x-default": ""
-        },
-        "backdrop-type": {
-          "description": "MCP backdrop type",
-          "type": "string",
-          "x-default": ""
-        },
-        "backdrop-url": {
-          "description": "MCP backdrop URL",
-          "type": "string",
-          "x-default": ""
-        },
-        "backend": {
-          "description": "Backend preference: auto, rest, mcp, or local",
-          "type": "string",
-          "x-default": "auto"
-        },
-        "bg-color": {
-          "description": "Page background color",
-          "type": "string",
-          "x-default": ""
-        },
-        "block-layout": {
-          "description": "Layout for file blocks: small, regular, card",
-          "type": "string",
-          "x-default": ""
-        },
-        "cache-max-age": {
-          "description": "Maximum index age for --data-source auto; local explicitly permits older snapshots",
-          "type": "string",
-          "x-default": "5m0s"
-        },
-        "card-layout": {
-          "description": "Card layout: small, square, regular, large",
-          "type": "string",
-          "x-default": ""
-        },
-        "cli-request-schema": {
-          "description": "Print the CLI argument/flag input contract offline",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "cli-response-schema": {
-          "description": "Print the CLI stdout contract offline (distinct from upstream REST)",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "color": {
-          "description": "Block color as #RRGGBB or #RRGGBBAA hex, or a '#light #dark' pair (e.g. #ef052a)",
-          "type": "string",
-          "x-default": ""
-        },
-        "color-dark": {
-          "description": "Exact dark-mode color as #RRGGBB or #RRGGBBAA hex; requires --color without a pair (REST only)",
-          "type": "string",
-          "x-default": ""
-        },
-        "cover-attribution": {
-          "description": "MCP page cover attribution",
-          "type": "string",
-          "x-default": ""
-        },
-        "cover-crop": {
-          "description": "MCP page cover crop JSON/string",
-          "type": "string",
-          "x-default": ""
-        },
-        "cover-url": {
-          "description": "Page cover image URL",
-          "type": "string",
-          "x-default": ""
-        },
-        "data-source": {
-          "description": "Data source preference: local, live, or auto",
-          "type": "string",
-          "x-default": ""
-        },
-        "deadline-date": {
-          "description": "Task deadline date (YYYY-MM-DD)",
-          "type": "string",
-          "x-default": ""
-        },
-        "decorations": {
-          "description": "Decorations (comma-separated): callout, quote",
-          "type": "string",
-          "x-default": ""
-        },
-        "deliver": {
-          "description": "Deliver output to stdout or file:\u003cpath\u003e (atomic file writes)",
-          "type": "string",
-          "x-default": ""
-        },
-        "description": {
-          "description": "Description for richUrl blocks",
-          "type": "string",
-          "x-default": ""
-        },
-        "diff": {
-          "description": "Include MCP edit-review metadata in output when possible",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "dry-run": {
-          "description": "Show what would happen without making changes",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "expand-files": {
-          "description": "Expand @file:// JSON, @text:// text and @data:// base64 in structured input; @@ escapes @ (8 MiB total)",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "file-name": {
-          "description": "File name for file blocks",
-          "type": "string",
-          "x-default": ""
-        },
-        "font": {
-          "description": "Font: system, serif, mono, rounded",
-          "type": "string",
-          "x-default": ""
-        },
-        "format": {
-          "description": "Output format (json, compact=legacy JSON, table, markdown, raw, jsonl, yaml)",
-          "type": "string",
-          "x-default": ""
-        },
-        "id-only": {
-          "description": "Output only document IDs (shorthand for --output-only id)",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "indentation-level": {
-          "description": "Indentation level: 0-5",
-          "type": "string",
-          "x-default": ""
-        },
-        "json": {
-          "description": "Block(s) as JSON with \"id\" fields (array or single object)",
-          "type": "string",
-          "x-default": ""
-        },
-        "json-errors": {
-          "description": "Output errors as JSON",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "json-file": {
-          "description": "Read block JSON from file",
-          "type": "string",
-          "x-default": ""
-        },
-        "language": {
-          "description": "Code block language (e.g. python, javascript, math_formula)",
-          "type": "string",
-          "x-default": ""
-        },
-        "layout": {
-          "description": "Layout for richUrl: small, regular, card",
-          "type": "string",
-          "x-default": ""
-        },
-        "line-style": {
-          "description": "Line/divider style: strong, regular, light, extraLight, pageBreak",
-          "type": "string",
-          "x-default": ""
-        },
-        "list-style": {
-          "description": "List style: none, bullet, numbered, task, toggle",
-          "type": "string",
-          "x-default": ""
-        },
-        "markdown": {
-          "description": "New markdown content",
-          "type": "string",
-          "x-default": ""
-        },
-        "max-chars": {
-          "description": "Maximum document text characters (0 = all; raw output is unchanged)",
-          "type": "integer",
-          "x-default": "20000"
-        },
-        "max-items": {
-          "description": "Maximum records for read commands without --limit (0 = all; raw output is unchanged)",
-          "type": "integer",
-          "x-default": "50"
-        },
-        "mcp-url": {
-          "description": "Craft MCP URL (overrides CRAFT_MCP_URL)",
-          "type": "string",
-          "x-default": ""
-        },
-        "no-headers": {
-          "description": "Omit headers in table output",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "output-only": {
-          "description": "Output only specified field (e.g., id, title)",
-          "type": "string",
-          "x-default": ""
-        },
-        "profile": {
-          "description": "Named profile to use for this command",
-          "type": "string",
-          "x-default": ""
-        },
-        "quiet": {
-          "description": "Suppress status messages, output data only",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "raw": {
-          "description": "Output raw content without formatting",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "raw-code": {
-          "description": "Raw code content for code blocks",
-          "type": "string",
-          "x-default": ""
-        },
-        "request-schema": {
-          "description": "Print request JSON Schema for supported commands",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "response-schema": {
-          "description": "Print response JSON Schema for supported commands",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "save-revert": {
-          "description": "Save MCP revertInfo JSON to a file",
-          "type": "string",
-          "x-default": ""
-        },
-        "schedule-date": {
-          "description": "Task schedule date (YYYY-MM-DD)",
-          "type": "string",
-          "x-default": ""
-        },
-        "separator": {
-          "description": "MCP page separator",
-          "type": "string",
-          "x-default": ""
-        },
-        "stdin": {
-          "description": "Read block JSON from stdin",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "task-state": {
-          "description": "Task state: todo, done, canceled",
-          "type": "string",
-          "x-default": ""
-        },
-        "text-alignment": {
-          "description": "Text alignment: left, center, right, justify",
-          "type": "string",
-          "x-default": ""
-        },
-        "text-color": {
-          "description": "Page text color",
-          "type": "string",
-          "x-default": ""
-        },
-        "text-style": {
-          "description": "Text style: h1, h2, h3, h4, caption, body, page, card",
-          "type": "string",
-          "x-default": ""
-        },
-        "theme-color": {
-          "description": "Page theme color",
-          "type": "string",
-          "x-default": ""
-        },
-        "theme-id": {
-          "description": "Page theme ID (REST; MCP with review/revert)",
-          "type": "string",
-          "x-default": ""
-        },
-        "timeout": {
-          "description": "HTTP request timeout (for example 10s)",
-          "type": "string",
-          "x-default": "30s"
-        },
-        "title": {
-          "description": "Title for richUrl blocks",
-          "type": "string",
-          "x-default": ""
-        },
-        "transform": {
-          "description": "Extract a field/projection from structured output",
-          "type": "string",
-          "x-default": ""
-        },
-        "url": {
-          "description": "URL for richUrl, image, video, or file blocks",
-          "type": "string",
-          "x-default": ""
-        },
-        "washi-color": {
-          "description": "MCP washi color",
-          "type": "string",
-          "x-default": ""
-        },
-        "washi-pattern": {
-          "description": "MCP washi pattern",
-          "type": "string",
-          "x-default": ""
-        },
-        "yes": {
-          "description": "Skip confirmation prompts",
-          "type": "boolean",
-          "x-default": "false"
-        }
-      },
       "s84f8d8e814274d6c": {
         "api-key": {
           "description": "API key for authentication (overrides config)",
@@ -26632,6 +26960,388 @@
           "x-default": "false"
         }
       },
+      "s951ef9548fdbc076": {
+        "alt-text": {
+          "description": "Alt text for image/video blocks",
+          "type": "string",
+          "x-default": ""
+        },
+        "api-key": {
+          "description": "API key for authentication (overrides config)",
+          "type": "string",
+          "x-default": ""
+        },
+        "api-key-env": {
+          "description": "Environment variable containing the API key",
+          "type": "string",
+          "x-default": ""
+        },
+        "api-url": {
+          "description": "Craft API URL (overrides config)",
+          "type": "string",
+          "x-default": ""
+        },
+        "backdrop-color": {
+          "description": "MCP backdrop color",
+          "type": "string",
+          "x-default": ""
+        },
+        "backdrop-colors": {
+          "description": "MCP backdrop colors",
+          "type": "string",
+          "x-default": ""
+        },
+        "backdrop-direction": {
+          "description": "MCP backdrop direction",
+          "type": "string",
+          "x-default": ""
+        },
+        "backdrop-type": {
+          "description": "MCP backdrop type",
+          "type": "string",
+          "x-default": ""
+        },
+        "backdrop-url": {
+          "description": "MCP backdrop URL",
+          "type": "string",
+          "x-default": ""
+        },
+        "backend": {
+          "description": "Backend preference: auto, rest, mcp, or local",
+          "type": "string",
+          "x-default": "auto"
+        },
+        "bg-color": {
+          "description": "Page background color",
+          "type": "string",
+          "x-default": ""
+        },
+        "block-layout": {
+          "description": "Layout for file blocks: small, regular, card",
+          "type": "string",
+          "x-default": ""
+        },
+        "cache-max-age": {
+          "description": "Maximum index age for --data-source auto; local explicitly permits older snapshots",
+          "type": "string",
+          "x-default": "5m0s"
+        },
+        "card-layout": {
+          "description": "Card layout: small, square, regular, large",
+          "type": "string",
+          "x-default": ""
+        },
+        "cli-request-schema": {
+          "description": "Print the CLI argument/flag input contract offline",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "cli-response-schema": {
+          "description": "Print the CLI stdout contract offline (distinct from upstream REST)",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "color": {
+          "description": "Block color as #RRGGBB or #RRGGBBAA hex, or a '#light #dark' pair (e.g. #ef052a)",
+          "type": "string",
+          "x-default": ""
+        },
+        "color-dark": {
+          "description": "Exact dark-mode color as #RRGGBB or #RRGGBBAA hex; requires --color without a pair (REST only)",
+          "type": "string",
+          "x-default": ""
+        },
+        "cover-attribution": {
+          "description": "Page cover attribution text; REST requires --cover-url",
+          "type": "string",
+          "x-default": ""
+        },
+        "cover-crop": {
+          "description": "Page cover crop as a JSON object {x,y,width,height} (0-1); REST requires --cover-url",
+          "type": "string",
+          "x-default": ""
+        },
+        "cover-url": {
+          "description": "Page cover image URL",
+          "type": "string",
+          "x-default": ""
+        },
+        "data-source": {
+          "description": "Data source preference: local, live, or auto",
+          "type": "string",
+          "x-default": ""
+        },
+        "date": {
+          "description": "Daily note date (today, tomorrow, yesterday, YYYY-MM-DD)",
+          "type": "string",
+          "x-default": ""
+        },
+        "deadline-date": {
+          "description": "Task deadline date (YYYY-MM-DD)",
+          "type": "string",
+          "x-default": ""
+        },
+        "decorations": {
+          "description": "Decorations (comma-separated): callout, quote",
+          "type": "string",
+          "x-default": ""
+        },
+        "deliver": {
+          "description": "Deliver output to stdout or file:\u003cpath\u003e (atomic file writes)",
+          "type": "string",
+          "x-default": ""
+        },
+        "description": {
+          "description": "Description for richUrl blocks",
+          "type": "string",
+          "x-default": ""
+        },
+        "diff": {
+          "description": "Include MCP edit-review metadata in output when possible",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "dry-run": {
+          "description": "Show what would happen without making changes",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "expand-files": {
+          "description": "Expand @file:// JSON, @text:// text and @data:// base64 in structured input; @@ escapes @ (8 MiB total)",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "file-name": {
+          "description": "File name for file blocks",
+          "type": "string",
+          "x-default": ""
+        },
+        "font": {
+          "description": "Font: system, serif, mono, rounded",
+          "type": "string",
+          "x-default": ""
+        },
+        "font-family": {
+          "description": "Page font family: system, system-serif, system-rounded, system-mono, sans-serif, serif, rounded, mono (REST only)",
+          "type": "string",
+          "x-default": ""
+        },
+        "format": {
+          "description": "Output format (json, compact=legacy JSON, table, markdown, raw, jsonl, yaml)",
+          "type": "string",
+          "x-default": ""
+        },
+        "id-only": {
+          "description": "Output only document IDs (shorthand for --output-only id)",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "indentation-level": {
+          "description": "Indentation level: 0-5",
+          "type": "string",
+          "x-default": ""
+        },
+        "json": {
+          "description": "Block(s) as JSON (array or single object)",
+          "type": "string",
+          "x-default": ""
+        },
+        "json-errors": {
+          "description": "Output errors as JSON",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "json-file": {
+          "description": "Read block JSON from file",
+          "type": "string",
+          "x-default": ""
+        },
+        "language": {
+          "description": "Code block language (e.g. python, javascript, math_formula)",
+          "type": "string",
+          "x-default": ""
+        },
+        "layout": {
+          "description": "Layout for richUrl: small, regular, card",
+          "type": "string",
+          "x-default": ""
+        },
+        "line-style": {
+          "description": "Line/divider style: strong, regular, light, extraLight, pageBreak",
+          "type": "string",
+          "x-default": ""
+        },
+        "list-style": {
+          "description": "List style: none, bullet, numbered, task, toggle",
+          "type": "string",
+          "x-default": ""
+        },
+        "markdown": {
+          "description": "Markdown content for the block",
+          "type": "string",
+          "x-default": ""
+        },
+        "max-chars": {
+          "description": "Maximum document text characters (0 = all; raw output is unchanged)",
+          "type": "integer",
+          "x-default": "20000"
+        },
+        "max-items": {
+          "description": "Maximum records for read commands without --limit (0 = all; raw output is unchanged)",
+          "type": "integer",
+          "x-default": "50"
+        },
+        "mcp-url": {
+          "description": "Craft MCP URL (overrides CRAFT_MCP_URL)",
+          "type": "string",
+          "x-default": ""
+        },
+        "no-headers": {
+          "description": "Omit headers in table output",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "output-only": {
+          "description": "Output only specified field (e.g., id, title)",
+          "type": "string",
+          "x-default": ""
+        },
+        "page-width": {
+          "description": "Page content width type (REST only)",
+          "type": "string",
+          "x-default": ""
+        },
+        "position": {
+          "description": "Position: start, end, before, after",
+          "type": "string",
+          "x-default": "end"
+        },
+        "profile": {
+          "description": "Named profile to use for this command",
+          "type": "string",
+          "x-default": ""
+        },
+        "quiet": {
+          "description": "Suppress status messages, output data only",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "raw": {
+          "description": "Output raw content without formatting",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "raw-code": {
+          "description": "Raw code content for code blocks",
+          "type": "string",
+          "x-default": ""
+        },
+        "request-schema": {
+          "description": "Print request JSON Schema for supported commands",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "response-schema": {
+          "description": "Print response JSON Schema for supported commands",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "save-revert": {
+          "description": "Save MCP revertInfo JSON to a file",
+          "type": "string",
+          "x-default": ""
+        },
+        "schedule-date": {
+          "description": "Task schedule date (YYYY-MM-DD)",
+          "type": "string",
+          "x-default": ""
+        },
+        "separator": {
+          "description": "MCP page separator",
+          "type": "string",
+          "x-default": ""
+        },
+        "sibling": {
+          "description": "Sibling block ID for relative positioning",
+          "type": "string",
+          "x-default": ""
+        },
+        "stdin": {
+          "description": "Read block JSON from stdin",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "task-state": {
+          "description": "Task state: todo, done, canceled",
+          "type": "string",
+          "x-default": ""
+        },
+        "text-alignment": {
+          "description": "Text alignment: left, center, right, justify",
+          "type": "string",
+          "x-default": ""
+        },
+        "text-color": {
+          "description": "Page text color",
+          "type": "string",
+          "x-default": ""
+        },
+        "text-style": {
+          "description": "Text style: h1, h2, h3, h4, caption, body, page, card",
+          "type": "string",
+          "x-default": ""
+        },
+        "theme-color": {
+          "description": "Page theme color",
+          "type": "string",
+          "x-default": ""
+        },
+        "theme-id": {
+          "description": "Page theme ID (REST; MCP with review/revert)",
+          "type": "string",
+          "x-default": ""
+        },
+        "timeout": {
+          "description": "HTTP request timeout (for example 10s)",
+          "type": "string",
+          "x-default": "30s"
+        },
+        "title": {
+          "description": "Title for richUrl blocks",
+          "type": "string",
+          "x-default": ""
+        },
+        "transform": {
+          "description": "Extract a field/projection from structured output",
+          "type": "string",
+          "x-default": ""
+        },
+        "type": {
+          "description": "Block type: text, page, code, line, richUrl, image, file",
+          "type": "string",
+          "x-default": "text"
+        },
+        "url": {
+          "description": "URL for richUrl, image, video, or file blocks",
+          "type": "string",
+          "x-default": ""
+        },
+        "washi-color": {
+          "description": "MCP washi color",
+          "type": "string",
+          "x-default": ""
+        },
+        "washi-pattern": {
+          "description": "MCP washi pattern",
+          "type": "string",
+          "x-default": ""
+        },
+        "yes": {
+          "description": "Skip confirmation prompts",
+          "type": "boolean",
+          "x-default": "false"
+        }
+      },
       "s961afa4fd63a1339": {
         "properties": {
           "$ref": "#/extensions/contract_definitions/s5d25d161f21eabf4"
@@ -27148,119 +27858,6 @@
           ],
           "type": "object"
         }
-      },
-      "s9925d9cfa2ed544f": {
-        "allOf": [
-          {
-            "else": {
-              "properties": {
-                "args": {
-                  "minItems": 1
-                }
-              },
-              "type": "object"
-            },
-            "if": {
-              "properties": {
-                "flags": {
-                  "anyOf": [
-                    {
-                      "properties": {
-                        "json": {
-                          "description": "Raw REST update tasks payload JSON",
-                          "type": "string",
-                          "x-default": ""
-                        }
-                      },
-                      "required": [
-                        "json"
-                      ],
-                      "type": "object"
-                    },
-                    {
-                      "properties": {
-                        "stdin": {
-                          "const": true
-                        }
-                      },
-                      "required": [
-                        "stdin"
-                      ],
-                      "type": "object"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "flags"
-              ],
-              "type": "object"
-            },
-            "then": {
-              "properties": {
-                "args": {
-                  "maxItems": 0
-                }
-              },
-              "type": "object"
-            }
-          }
-        ],
-        "properties": {
-          "args": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 1,
-            "minItems": 0,
-            "type": "array"
-          },
-          "flags": {
-            "additionalProperties": false,
-            "allOf": [
-              {
-                "not": {
-                  "anyOf": [
-                    {
-                      "allOf": [
-                        {
-                          "properties": {
-                            "json": {
-                              "description": "Raw REST update tasks payload JSON",
-                              "type": "string",
-                              "x-default": ""
-                            }
-                          },
-                          "required": [
-                            "json"
-                          ],
-                          "type": "object"
-                        },
-                        {
-                          "properties": {
-                            "stdin": {
-                              "const": true
-                            }
-                          },
-                          "required": [
-                            "stdin"
-                          ],
-                          "type": "object"
-                        }
-                      ]
-                    }
-                  ]
-                }
-              }
-            ],
-            "properties": {
-              "$ref": "#/extensions/contract_definitions/sb05d58a64c4a37b7"
-            },
-            "type": "object"
-          }
-        },
-        "type": "object",
-        "x-craft-validation": "Cobra positional validation and required/mutually-exclusive flag annotations are authoritative; payload validation and upstream capability checks run before mutations"
       },
       "s9a3e47defa4cc9a3": {
         "properties": {
@@ -29072,253 +29669,6 @@
           "type": "object"
         }
       },
-      "sb05d58a64c4a37b7": {
-        "api-key": {
-          "description": "API key for authentication (overrides config)",
-          "type": "string",
-          "x-default": ""
-        },
-        "api-key-env": {
-          "description": "Environment variable containing the API key",
-          "type": "string",
-          "x-default": ""
-        },
-        "api-url": {
-          "description": "Craft API URL (overrides config)",
-          "type": "string",
-          "x-default": ""
-        },
-        "backend": {
-          "description": "Backend preference: auto, rest, mcp, or local",
-          "type": "string",
-          "x-default": "auto"
-        },
-        "cache-max-age": {
-          "description": "Maximum index age for --data-source auto; local explicitly permits older snapshots",
-          "type": "string",
-          "x-default": "5m0s"
-        },
-        "clear-deadline": {
-          "description": "Clear deadline with null",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "clear-schedule": {
-          "description": "Clear scheduled date with null",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "cli-request-schema": {
-          "description": "Print the CLI argument/flag input contract offline",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "cli-response-schema": {
-          "description": "Print the CLI stdout contract offline (distinct from upstream REST)",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "data-source": {
-          "description": "Data source preference: local, live, or auto",
-          "type": "string",
-          "x-default": ""
-        },
-        "date": {
-          "description": "Destination daily-note date (implies dailyNote location)",
-          "type": "string",
-          "x-default": ""
-        },
-        "deadline": {
-          "description": "Deadline date (YYYY-MM-DD)",
-          "type": "string",
-          "x-default": ""
-        },
-        "deliver": {
-          "description": "Deliver output to stdout or file:\u003cpath\u003e (atomic file writes)",
-          "type": "string",
-          "x-default": ""
-        },
-        "diff": {
-          "description": "Not supported for tasks; returns CAPABILITY_UNAVAILABLE",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "document": {
-          "description": "Destination document ID",
-          "type": "string",
-          "x-default": ""
-        },
-        "dry-run": {
-          "description": "Show what would happen without making changes",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "expand-files": {
-          "description": "Expand @file:// JSON, @text:// text and @data:// base64 in structured input; @@ escapes @ (8 MiB total)",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "format": {
-          "description": "Output format (json, compact=legacy JSON, table, markdown, raw, jsonl, yaml)",
-          "type": "string",
-          "x-default": ""
-        },
-        "id-only": {
-          "description": "Output only document IDs (shorthand for --output-only id)",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "json": {
-          "description": "Raw REST update tasks payload JSON",
-          "type": "string",
-          "x-default": ""
-        },
-        "json-errors": {
-          "description": "Output errors as JSON",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "location": {
-          "description": "Move task to inbox or document",
-          "type": "string",
-          "x-default": "inbox"
-        },
-        "markdown": {
-          "description": "Update task markdown",
-          "type": "string",
-          "x-default": ""
-        },
-        "max-chars": {
-          "description": "Maximum document text characters (0 = all; raw output is unchanged)",
-          "type": "integer",
-          "x-default": "20000"
-        },
-        "max-items": {
-          "description": "Maximum records for read commands without --limit (0 = all; raw output is unchanged)",
-          "type": "integer",
-          "x-default": "50"
-        },
-        "mcp-url": {
-          "description": "Craft MCP URL (overrides CRAFT_MCP_URL)",
-          "type": "string",
-          "x-default": ""
-        },
-        "no-headers": {
-          "description": "Omit headers in table output",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "no-repeat": {
-          "description": "Remove recurrence with null",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "output-only": {
-          "description": "Output only specified field (e.g., id, title)",
-          "type": "string",
-          "x-default": ""
-        },
-        "profile": {
-          "description": "Named profile to use for this command",
-          "type": "string",
-          "x-default": ""
-        },
-        "quiet": {
-          "description": "Suppress status messages, output data only",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "raw": {
-          "description": "Output raw content without formatting",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "repeat": {
-          "description": "Repeat rule: daily, weekly, monthly, yearly",
-          "type": "string",
-          "x-default": ""
-        },
-        "repeat-dynamic-days": {
-          "description": "Reschedule relative to completion date",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "repeat-end": {
-          "description": "Repeat end date (YYYY-MM-DD)",
-          "type": "string",
-          "x-default": ""
-        },
-        "repeat-frequency": {
-          "description": "Repeat frequency key (daily, weekly, monthly, yearly)",
-          "type": "string",
-          "x-default": ""
-        },
-        "repeat-interval": {
-          "description": "Repeat every N periods",
-          "type": "integer",
-          "x-default": "0"
-        },
-        "repeat-reminder": {
-          "description": "Reminder time (HH:MM)",
-          "type": "string",
-          "x-default": ""
-        },
-        "repeat-skip-weekends": {
-          "description": "Skip weekend occurrences",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "repeat-weekdays": {
-          "description": "Repeat weekdays, 0=Sunday..6=Saturday (comma-separated)",
-          "type": "string",
-          "x-default": "[]"
-        },
-        "request-schema": {
-          "description": "Print request JSON Schema for supported commands",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "response-schema": {
-          "description": "Print response JSON Schema for supported commands",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "save-revert": {
-          "description": "Not supported for tasks; returns CAPABILITY_UNAVAILABLE (use craft blocks update --save-revert)",
-          "type": "string",
-          "x-default": ""
-        },
-        "schedule": {
-          "description": "Schedule date (YYYY-MM-DD)",
-          "type": "string",
-          "x-default": ""
-        },
-        "state": {
-          "description": "New state: todo, done, canceled",
-          "type": "string",
-          "x-default": ""
-        },
-        "stdin": {
-          "description": "Read raw REST update tasks payload from stdin",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "timeout": {
-          "description": "HTTP request timeout (for example 10s)",
-          "type": "string",
-          "x-default": "30s"
-        },
-        "transform": {
-          "description": "Extract a field/projection from structured output",
-          "type": "string",
-          "x-default": ""
-        },
-        "yes": {
-          "description": "Skip confirmation prompts",
-          "type": "boolean",
-          "x-default": "false"
-        }
-      },
       "sb18452d136a4905c": {
         "anyOf": [
           {
@@ -30873,119 +31223,6 @@
           "type": "string"
         }
       },
-      "sc077453bc03bfa3e": {
-        "allOf": [
-          {
-            "else": {
-              "properties": {
-                "args": {
-                  "minItems": 1
-                }
-              },
-              "type": "object"
-            },
-            "if": {
-              "properties": {
-                "flags": {
-                  "anyOf": [
-                    {
-                      "properties": {
-                        "json": {
-                          "description": "Raw REST add tasks payload JSON",
-                          "type": "string",
-                          "x-default": ""
-                        }
-                      },
-                      "required": [
-                        "json"
-                      ],
-                      "type": "object"
-                    },
-                    {
-                      "properties": {
-                        "stdin": {
-                          "const": true
-                        }
-                      },
-                      "required": [
-                        "stdin"
-                      ],
-                      "type": "object"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "flags"
-              ],
-              "type": "object"
-            },
-            "then": {
-              "properties": {
-                "args": {
-                  "maxItems": 0
-                }
-              },
-              "type": "object"
-            }
-          }
-        ],
-        "properties": {
-          "args": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 1,
-            "minItems": 0,
-            "type": "array"
-          },
-          "flags": {
-            "additionalProperties": false,
-            "allOf": [
-              {
-                "not": {
-                  "anyOf": [
-                    {
-                      "allOf": [
-                        {
-                          "properties": {
-                            "json": {
-                              "description": "Raw REST add tasks payload JSON",
-                              "type": "string",
-                              "x-default": ""
-                            }
-                          },
-                          "required": [
-                            "json"
-                          ],
-                          "type": "object"
-                        },
-                        {
-                          "properties": {
-                            "stdin": {
-                              "const": true
-                            }
-                          },
-                          "required": [
-                            "stdin"
-                          ],
-                          "type": "object"
-                        }
-                      ]
-                    }
-                  ]
-                }
-              }
-            ],
-            "properties": {
-              "$ref": "#/extensions/contract_definitions/s56f289adb225456c"
-            },
-            "type": "object"
-          }
-        },
-        "type": "object",
-        "x-craft-validation": "Cobra positional validation and required/mutually-exclusive flag annotations are authoritative; payload validation and upstream capability checks run before mutations"
-      },
       "sc077d3e11584a846": {
         "anyOf": [
           {
@@ -31350,378 +31587,6 @@
             "backend"
           ],
           "type": "object"
-        }
-      },
-      "sc7ee50c4e8e86ad7": {
-        "alt-text": {
-          "description": "Alt text for image/video blocks",
-          "type": "string",
-          "x-default": ""
-        },
-        "api-key": {
-          "description": "API key for authentication (overrides config)",
-          "type": "string",
-          "x-default": ""
-        },
-        "api-key-env": {
-          "description": "Environment variable containing the API key",
-          "type": "string",
-          "x-default": ""
-        },
-        "api-url": {
-          "description": "Craft API URL (overrides config)",
-          "type": "string",
-          "x-default": ""
-        },
-        "backdrop-color": {
-          "description": "MCP backdrop color",
-          "type": "string",
-          "x-default": ""
-        },
-        "backdrop-colors": {
-          "description": "MCP backdrop colors",
-          "type": "string",
-          "x-default": ""
-        },
-        "backdrop-direction": {
-          "description": "MCP backdrop direction",
-          "type": "string",
-          "x-default": ""
-        },
-        "backdrop-type": {
-          "description": "MCP backdrop type",
-          "type": "string",
-          "x-default": ""
-        },
-        "backdrop-url": {
-          "description": "MCP backdrop URL",
-          "type": "string",
-          "x-default": ""
-        },
-        "backend": {
-          "description": "Backend preference: auto, rest, mcp, or local",
-          "type": "string",
-          "x-default": "auto"
-        },
-        "bg-color": {
-          "description": "Page background color",
-          "type": "string",
-          "x-default": ""
-        },
-        "block-layout": {
-          "description": "Layout for file blocks: small, regular, card",
-          "type": "string",
-          "x-default": ""
-        },
-        "cache-max-age": {
-          "description": "Maximum index age for --data-source auto; local explicitly permits older snapshots",
-          "type": "string",
-          "x-default": "5m0s"
-        },
-        "card-layout": {
-          "description": "Card layout: small, square, regular, large",
-          "type": "string",
-          "x-default": ""
-        },
-        "cli-request-schema": {
-          "description": "Print the CLI argument/flag input contract offline",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "cli-response-schema": {
-          "description": "Print the CLI stdout contract offline (distinct from upstream REST)",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "color": {
-          "description": "Block color as #RRGGBB or #RRGGBBAA hex, or a '#light #dark' pair (e.g. #ef052a)",
-          "type": "string",
-          "x-default": ""
-        },
-        "color-dark": {
-          "description": "Exact dark-mode color as #RRGGBB or #RRGGBBAA hex; requires --color without a pair (REST only)",
-          "type": "string",
-          "x-default": ""
-        },
-        "cover-attribution": {
-          "description": "MCP page cover attribution",
-          "type": "string",
-          "x-default": ""
-        },
-        "cover-crop": {
-          "description": "MCP page cover crop JSON/string",
-          "type": "string",
-          "x-default": ""
-        },
-        "cover-url": {
-          "description": "Page cover image URL",
-          "type": "string",
-          "x-default": ""
-        },
-        "data-source": {
-          "description": "Data source preference: local, live, or auto",
-          "type": "string",
-          "x-default": ""
-        },
-        "date": {
-          "description": "Daily note date (today, tomorrow, yesterday, YYYY-MM-DD)",
-          "type": "string",
-          "x-default": ""
-        },
-        "deadline-date": {
-          "description": "Task deadline date (YYYY-MM-DD)",
-          "type": "string",
-          "x-default": ""
-        },
-        "decorations": {
-          "description": "Decorations (comma-separated): callout, quote",
-          "type": "string",
-          "x-default": ""
-        },
-        "deliver": {
-          "description": "Deliver output to stdout or file:\u003cpath\u003e (atomic file writes)",
-          "type": "string",
-          "x-default": ""
-        },
-        "description": {
-          "description": "Description for richUrl blocks",
-          "type": "string",
-          "x-default": ""
-        },
-        "diff": {
-          "description": "Include MCP edit-review metadata in output when possible",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "dry-run": {
-          "description": "Show what would happen without making changes",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "expand-files": {
-          "description": "Expand @file:// JSON, @text:// text and @data:// base64 in structured input; @@ escapes @ (8 MiB total)",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "file-name": {
-          "description": "File name for file blocks",
-          "type": "string",
-          "x-default": ""
-        },
-        "font": {
-          "description": "Font: system, serif, mono, rounded",
-          "type": "string",
-          "x-default": ""
-        },
-        "format": {
-          "description": "Output format (json, compact=legacy JSON, table, markdown, raw, jsonl, yaml)",
-          "type": "string",
-          "x-default": ""
-        },
-        "id-only": {
-          "description": "Output only document IDs (shorthand for --output-only id)",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "indentation-level": {
-          "description": "Indentation level: 0-5",
-          "type": "string",
-          "x-default": ""
-        },
-        "json": {
-          "description": "Block(s) as JSON (array or single object)",
-          "type": "string",
-          "x-default": ""
-        },
-        "json-errors": {
-          "description": "Output errors as JSON",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "json-file": {
-          "description": "Read block JSON from file",
-          "type": "string",
-          "x-default": ""
-        },
-        "language": {
-          "description": "Code block language (e.g. python, javascript, math_formula)",
-          "type": "string",
-          "x-default": ""
-        },
-        "layout": {
-          "description": "Layout for richUrl: small, regular, card",
-          "type": "string",
-          "x-default": ""
-        },
-        "line-style": {
-          "description": "Line/divider style: strong, regular, light, extraLight, pageBreak",
-          "type": "string",
-          "x-default": ""
-        },
-        "list-style": {
-          "description": "List style: none, bullet, numbered, task, toggle",
-          "type": "string",
-          "x-default": ""
-        },
-        "markdown": {
-          "description": "Markdown content for the block",
-          "type": "string",
-          "x-default": ""
-        },
-        "max-chars": {
-          "description": "Maximum document text characters (0 = all; raw output is unchanged)",
-          "type": "integer",
-          "x-default": "20000"
-        },
-        "max-items": {
-          "description": "Maximum records for read commands without --limit (0 = all; raw output is unchanged)",
-          "type": "integer",
-          "x-default": "50"
-        },
-        "mcp-url": {
-          "description": "Craft MCP URL (overrides CRAFT_MCP_URL)",
-          "type": "string",
-          "x-default": ""
-        },
-        "no-headers": {
-          "description": "Omit headers in table output",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "output-only": {
-          "description": "Output only specified field (e.g., id, title)",
-          "type": "string",
-          "x-default": ""
-        },
-        "position": {
-          "description": "Position: start, end, before, after",
-          "type": "string",
-          "x-default": "end"
-        },
-        "profile": {
-          "description": "Named profile to use for this command",
-          "type": "string",
-          "x-default": ""
-        },
-        "quiet": {
-          "description": "Suppress status messages, output data only",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "raw": {
-          "description": "Output raw content without formatting",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "raw-code": {
-          "description": "Raw code content for code blocks",
-          "type": "string",
-          "x-default": ""
-        },
-        "request-schema": {
-          "description": "Print request JSON Schema for supported commands",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "response-schema": {
-          "description": "Print response JSON Schema for supported commands",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "save-revert": {
-          "description": "Save MCP revertInfo JSON to a file",
-          "type": "string",
-          "x-default": ""
-        },
-        "schedule-date": {
-          "description": "Task schedule date (YYYY-MM-DD)",
-          "type": "string",
-          "x-default": ""
-        },
-        "separator": {
-          "description": "MCP page separator",
-          "type": "string",
-          "x-default": ""
-        },
-        "sibling": {
-          "description": "Sibling block ID for relative positioning",
-          "type": "string",
-          "x-default": ""
-        },
-        "stdin": {
-          "description": "Read block JSON from stdin",
-          "type": "boolean",
-          "x-default": "false"
-        },
-        "task-state": {
-          "description": "Task state: todo, done, canceled",
-          "type": "string",
-          "x-default": ""
-        },
-        "text-alignment": {
-          "description": "Text alignment: left, center, right, justify",
-          "type": "string",
-          "x-default": ""
-        },
-        "text-color": {
-          "description": "Page text color",
-          "type": "string",
-          "x-default": ""
-        },
-        "text-style": {
-          "description": "Text style: h1, h2, h3, h4, caption, body, page, card",
-          "type": "string",
-          "x-default": ""
-        },
-        "theme-color": {
-          "description": "Page theme color",
-          "type": "string",
-          "x-default": ""
-        },
-        "theme-id": {
-          "description": "Page theme ID (REST; MCP with review/revert)",
-          "type": "string",
-          "x-default": ""
-        },
-        "timeout": {
-          "description": "HTTP request timeout (for example 10s)",
-          "type": "string",
-          "x-default": "30s"
-        },
-        "title": {
-          "description": "Title for richUrl blocks",
-          "type": "string",
-          "x-default": ""
-        },
-        "transform": {
-          "description": "Extract a field/projection from structured output",
-          "type": "string",
-          "x-default": ""
-        },
-        "type": {
-          "description": "Block type: text, page, code, line, richUrl, image, file",
-          "type": "string",
-          "x-default": "text"
-        },
-        "url": {
-          "description": "URL for richUrl, image, video, or file blocks",
-          "type": "string",
-          "x-default": ""
-        },
-        "washi-color": {
-          "description": "MCP washi color",
-          "type": "string",
-          "x-default": ""
-        },
-        "washi-pattern": {
-          "description": "MCP washi pattern",
-          "type": "string",
-          "x-default": ""
-        },
-        "yes": {
-          "description": "Skip confirmation prompts",
-          "type": "boolean",
-          "x-default": "false"
         }
       },
       "sca1edefb85340732": {
@@ -33377,6 +33242,273 @@
             "backend"
           ],
           "type": "object"
+        }
+      },
+      "sda32880582780ce5": {
+        "api-key": {
+          "description": "API key for authentication (overrides config)",
+          "type": "string",
+          "x-default": ""
+        },
+        "api-key-env": {
+          "description": "Environment variable containing the API key",
+          "type": "string",
+          "x-default": ""
+        },
+        "api-url": {
+          "description": "Craft API URL (overrides config)",
+          "type": "string",
+          "x-default": ""
+        },
+        "backend": {
+          "description": "Backend preference: auto, rest, mcp, or local",
+          "type": "string",
+          "x-default": "auto"
+        },
+        "cache-max-age": {
+          "description": "Maximum index age for --data-source auto; local explicitly permits older snapshots",
+          "type": "string",
+          "x-default": "5m0s"
+        },
+        "clear-deadline": {
+          "description": "Clear deadline with null",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "clear-schedule": {
+          "description": "Clear scheduled date with null",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "cli-request-schema": {
+          "description": "Print the CLI argument/flag input contract offline",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "cli-response-schema": {
+          "description": "Print the CLI stdout contract offline (distinct from upstream REST)",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "data-source": {
+          "description": "Data source preference: local, live, or auto",
+          "type": "string",
+          "x-default": ""
+        },
+        "date": {
+          "description": "Destination daily-note date (implies dailyNote location)",
+          "type": "string",
+          "x-default": ""
+        },
+        "deadline": {
+          "description": "Deadline date (YYYY-MM-DD)",
+          "type": "string",
+          "x-default": ""
+        },
+        "deliver": {
+          "description": "Deliver output to stdout or file:\u003cpath\u003e (atomic file writes)",
+          "type": "string",
+          "x-default": ""
+        },
+        "diff": {
+          "description": "Not supported for tasks; returns CAPABILITY_UNAVAILABLE",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "document": {
+          "description": "Destination document ID",
+          "type": "string",
+          "x-default": ""
+        },
+        "dry-run": {
+          "description": "Show what would happen without making changes",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "expand-files": {
+          "description": "Expand @file:// JSON, @text:// text and @data:// base64 in structured input; @@ escapes @ (8 MiB total)",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "format": {
+          "description": "Output format (json, compact=legacy JSON, table, markdown, raw, jsonl, yaml)",
+          "type": "string",
+          "x-default": ""
+        },
+        "id-only": {
+          "description": "Output only document IDs (shorthand for --output-only id)",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "json": {
+          "description": "Raw REST update tasks payload JSON",
+          "type": "string",
+          "x-default": ""
+        },
+        "json-errors": {
+          "description": "Output errors as JSON",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "location": {
+          "description": "Move task to inbox or document",
+          "type": "string",
+          "x-default": "inbox"
+        },
+        "markdown": {
+          "description": "Update task markdown",
+          "type": "string",
+          "x-default": ""
+        },
+        "max-chars": {
+          "description": "Maximum document text characters (0 = all; raw output is unchanged)",
+          "type": "integer",
+          "x-default": "20000"
+        },
+        "max-items": {
+          "description": "Maximum records for read commands without --limit (0 = all; raw output is unchanged)",
+          "type": "integer",
+          "x-default": "50"
+        },
+        "mcp-url": {
+          "description": "Craft MCP URL (overrides CRAFT_MCP_URL)",
+          "type": "string",
+          "x-default": ""
+        },
+        "no-headers": {
+          "description": "Omit headers in table output",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "no-repeat": {
+          "description": "Remove recurrence with null",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "output-only": {
+          "description": "Output only specified field (e.g., id, title)",
+          "type": "string",
+          "x-default": ""
+        },
+        "profile": {
+          "description": "Named profile to use for this command",
+          "type": "string",
+          "x-default": ""
+        },
+        "quiet": {
+          "description": "Suppress status messages, output data only",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "raw": {
+          "description": "Output raw content without formatting",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "repeat": {
+          "description": "Repeat rule: daily, weekly, monthly, yearly",
+          "type": "string",
+          "x-default": ""
+        },
+        "repeat-day": {
+          "description": "Monthly or yearly repeat on the first or last day of the month: first, last",
+          "type": "string",
+          "x-default": ""
+        },
+        "repeat-dynamic-days": {
+          "description": "Reschedule relative to completion date",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "repeat-end": {
+          "description": "Repeat end date (YYYY-MM-DD)",
+          "type": "string",
+          "x-default": ""
+        },
+        "repeat-frequency": {
+          "description": "Repeat frequency key (daily, weekly, monthly, yearly)",
+          "type": "string",
+          "x-default": ""
+        },
+        "repeat-interval": {
+          "description": "Repeat every N periods",
+          "type": "integer",
+          "x-default": "0"
+        },
+        "repeat-month-days": {
+          "description": "Monthly or yearly repeat days of the month, 1-31 (comma-separated)",
+          "type": "string",
+          "x-default": "[]"
+        },
+        "repeat-months": {
+          "description": "Yearly repeat months, 1-12 (comma-separated; required with --repeat-month-days or --repeat-day on yearly)",
+          "type": "string",
+          "x-default": "[]"
+        },
+        "repeat-reminder": {
+          "description": "Reminder time (HH:MM)",
+          "type": "string",
+          "x-default": ""
+        },
+        "repeat-skip-weekends": {
+          "description": "Skip weekend occurrences",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "repeat-start": {
+          "description": "Repeat start date (YYYY-MM-DD)",
+          "type": "string",
+          "x-default": ""
+        },
+        "repeat-weekdays": {
+          "description": "Repeat weekdays, 0=Sunday..6=Saturday (comma-separated)",
+          "type": "string",
+          "x-default": "[]"
+        },
+        "request-schema": {
+          "description": "Print request JSON Schema for supported commands",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "response-schema": {
+          "description": "Print response JSON Schema for supported commands",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "save-revert": {
+          "description": "Not supported for tasks; returns CAPABILITY_UNAVAILABLE (use craft blocks update --save-revert)",
+          "type": "string",
+          "x-default": ""
+        },
+        "schedule": {
+          "description": "Schedule date (YYYY-MM-DD)",
+          "type": "string",
+          "x-default": ""
+        },
+        "state": {
+          "description": "New state: todo, done, canceled",
+          "type": "string",
+          "x-default": ""
+        },
+        "stdin": {
+          "description": "Read raw REST update tasks payload from stdin",
+          "type": "boolean",
+          "x-default": "false"
+        },
+        "timeout": {
+          "description": "HTTP request timeout (for example 10s)",
+          "type": "string",
+          "x-default": "30s"
+        },
+        "transform": {
+          "description": "Extract a field/projection from structured output",
+          "type": "string",
+          "x-default": ""
+        },
+        "yes": {
+          "description": "Skip confirmation prompts",
+          "type": "boolean",
+          "x-default": "false"
         }
       },
       "sdcdfdaaf730de859": {

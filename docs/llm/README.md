@@ -30,7 +30,7 @@ craft audit agent-dx   # Legacy presence diagnostic, not behavioral proof
 - Use `--daily-note-after` and `--daily-note-before` on `craft list` for daily note date range queries.
 - Use positional multi-ID batching on `craft delete`, `craft blocks delete`, `craft tasks delete`, `craft folders delete`, and `craft move` to execute batch operations in a single API call.
 - Use multi-value `--folder` and `--document` on `craft search` to scope searches across multiple targets.
-- Use REST for theme/color/cover flags and raw page styling. Use MCP for review/revert and the remaining convenience flags.
+- Use REST for theme/color/cover/page-width/font-family flags and raw page styling. Use MCP for review/revert and the backdrop, separator and washi convenience flags.
 - Use native wrappers instead of generic MCP calls for edit review, image view, collection rename/dynamic properties, and whiteboard element reads.
 - Collection schema updates replace every column and choice. Include all retained fields, but do not assume a get/update round trip is lossless: stored `isHidden`, `defaultValue`, select `config.limit`, and choice icon/extra theme metadata are dropped. Omitted colors reuse the existing palette color only for the same column and exact choice name; unrecognized stored colors fall back to gray. Renaming choices does not migrate selections. Use `--dry-run` and review losses before `--yes`.
 ## MCP Escalation Flow
