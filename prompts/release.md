@@ -4,6 +4,8 @@ Copy-paste this into Claude Code after you're done with your changes and ready t
 
 ---
 
+Use only for an explicitly authorized release. Live checks use the intended profile and read-only calls; any mutating check needs approval and disposable test artifacts. If the compatibility-based version bump is ambiguous, ask before changing it. A source edit is not release authorization.
+
 Run the full pre-release check, release pipeline, and post-release verification. Do these steps:
 
 **Build checks:**
@@ -48,7 +50,7 @@ Run the full pre-release check, release pipeline, and post-release verification.
 16. Commit all release changes together
 17. Tag with `vX.Y.Z`
 18. Push main first, then push the tag
-19. Run `goreleaser release --clean` or let GitHub Actions handle it
+19. There is no release workflow in this repo. Build with `goreleaser release --clean --skip=publish`, then publish with `gh release create vX.Y.Z dist/*.tar.gz dist/*.zip dist/checksums.txt --notes-file NOTES.md` (uses the `gh` login, so no `GITHUB_TOKEN` is needed). Write the notes by hand in the style of the previous release: capabilities, behavior changes, validation. The goreleaser changelog only lists commit subjects.
 20. Monitor the release until all artifacts are published (Linux, macOS, Windows builds)
 
 **Post-release verification:**
@@ -60,5 +62,5 @@ Run the full pre-release check, release pipeline, and post-release verification.
 
 **If re-releasing (workflow failed):**
 - First try: `gh run rerun <run-id> --failed`
-- If that doesn't work: delete the release and tag, re-create and push
-- After re-release: verify assets don't conflict with previous release
+- If that does not work, stop. Deleting or replacing a published release or tag needs separate explicit approval; do not do it automatically.
+- After any re-release: verify assets and checksums do not conflict with the intended version

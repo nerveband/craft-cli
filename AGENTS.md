@@ -44,7 +44,7 @@ No interactive login. Set credentials via:
 
 ## Release flow
 
-When the user says "go release", "run the release", or otherwise asks to release craft-cli, follow `prompts/release.md` end to end.
+Only for an explicitly requested release. When the user says "go release", "run the release", or otherwise asks to release craft-cli, follow `prompts/release.md` end to end. Source work does not authorize external publication; if the version bump is ambiguous, ask before version edits or tagging.
 
 - Run the full pre-release checks: `go test ./...`, `go vet ./...`, and `go build -o craft-cli .`
 - Verify `cmd/root.go` has the intended version before tagging
@@ -54,7 +54,7 @@ When the user says "go release", "run the release", or otherwise asks to release
 - Update `README.md`, `docs/llm/`, and `AGENTS.md` for any user-facing, LLM-facing, or process changes
 - Choose the version bump from compatibility: patch for fixes, minor for additive public behavior, major for breaking command/output changes
 - Commit release changes, tag `vX.Y.Z`, push main first, then push the tag
-- Run `goreleaser release --clean` or verify the GitHub Actions release completed
+- No release workflow exists: build with `goreleaser release --clean --skip=publish`, then publish with `gh release create vX.Y.Z dist/*.tar.gz dist/*.zip dist/checksums.txt --notes-file NOTES.md` (uses the `gh` login, no `GITHUB_TOKEN`). Write the release notes by hand; the goreleaser changelog only lists commit subjects
 - Post-release, run `craft upgrade` (not a manual copy) on this host and verify `craft version`, `craft info`, `craft list`, and `gh release view vX.Y.Z`. When asked to roll out to other devices, use `craft upgrade` over the SSH aliases in `~/.config/agent-policy/reference/devices.md` and confirm `craft version` on each
 - If the intended version bump is ambiguous, ask the user before changing the version or tagging
 
