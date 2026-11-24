@@ -6,6 +6,12 @@ A command-line interface for Craft documents. JSON-first, safe to script, and bu
 
 30-second intro. [Watch the full-quality MP4](docs/media/craft-cli-intro.mp4). All output is real craft 2.0 output against demo data.
 
+## What's new in 3.1
+
+Tracks Craft's current REST contract (pinned snapshot refreshed 2026-11-23, 45 operations). Adds `craft links` for the experimental internal-links endpoint (document pairs with reference counts, or block-level references; backlinks via `--to`). Adds REST page-styling flags `--page-width` and `--font-family`. `--cover-crop` and `--cover-attribution` now route to REST instead of MCP when no MCP profile, `--backend mcp`, `--save-revert` or `--diff` is requested; on REST they require `--cover-url`. Adds the remaining task repeat fields: `--repeat-start`, `--repeat-months`, `--repeat-month-days` and `--repeat-day first|last`. `craft limits` notes that task reads count against the block budget. Updates direct dependencies. Other commands and output formats are unchanged.
+
+Scheduled contract verification (`upstream-drift`) compares the live Craft OpenAPI with the pinned snapshot weekly; when it fails, review the diff, update the CLI and fixtures, then refresh the pin.
+
 ## What's new in 3.0
 
 Adds CLI input/output contracts, runtime configuration reporting, separate credential storage, noninteractive setup, document resource aliases, embedded file inputs, and an opt-in local document index. It also adds native MCP folder metadata updates and connection-specific search options. Live testing fixed root-folder moves, bodyless REST requests, collection-item payloads, attachment transport, and connection URL redaction in network errors.

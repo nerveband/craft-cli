@@ -5,15 +5,15 @@ go 1.26.0
 toolchain go1.27.3
 
 require (
-	github.com/creativeprojects/go-selfupdate v1.7.0
+	github.com/creativeprojects/go-selfupdate v1.7.1
 	github.com/spf13/cobra v1.10.2
-	github.com/spf13/pflag v1.0.10
+	github.com/spf13/pflag v1.1.0
 )
 
 require (
 	github.com/ProtonMail/go-crypto v1.5.2 // indirect
 	github.com/cloudflare/circl v1.6.3 // indirect
-	github.com/google/go-github/v86 v86.0.0 // indirect
+	github.com/google/go-github/v93 v93.0.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 )
 
@@ -32,8 +32,8 @@ require (
 	gitlab.com/gitlab-org/api/client-go v1.46.0 // indirect
 	golang.org/x/crypto v0.53.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/sys v0.49.0 // indirect
-	golang.org/x/term v0.47.0
+	golang.org/x/sys v0.50.0 // indirect
+	golang.org/x/term v0.48.0
 	golang.org/x/time v0.15.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1
 )
